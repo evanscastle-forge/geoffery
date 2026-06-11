@@ -4,6 +4,20 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — algorithms — SCOPE: LOCAL
+**Summary**: Phase 2a of D-011 — three pure pipeline helpers and their tests, with no schema or wiring changes yet. (1) `rounding.py`: `round_sig(value, sigs, direction)` + the convenience `round_for_side(value, side)` that rounds buys up and sells down at 4 sig figs (binding rule per D-011). (2) `regime.py`: `classify(rows, now)` returns a `RegimeResult` with `power` (`buyer|seller|balanced`, derived from a 3-day trend and spread-share asymmetry) and `stability` (`steady|volatile`, derived from a 30-day-baseline volatility z-score). Generalises the prior single-axis "unsettled" flag — "volatile" is its replacement. Plus `liquidity_band(volume_baseline)` for the `thick|medium|thin` classification the recommend engine consumes. (3) `recommend.py`: `recommend(side, tolerance, regime, liquidity, current_insta_*, recent_mids_sorted)` returns a `Recommendation` whose `price` has already passed through `round_for_side`. Instant = current insta side; hours = p20/p80 of the recent fill distribution; patient = p10/p90, with regime nudges (seller's market pushes buys up, volatile stability widens cushion on both sides) and liquidity widening on thin markets. All three modules are pure — no I/O, no DB — and pinned by 23 tests.
+**Files touched**:
+- `pipeline/src/geoffery_pipeline/rounding.py` — new module.
+- `pipeline/src/geoffery_pipeline/regime.py` — new module (2×2 classifier + liquidity helper).
+- `pipeline/src/geoffery_pipeline/recommend.py` — new module (the engine, `ENGINE_VERSION = 1` constant for calibration grouping).
+- `pipeline/tests/test_rounding.py` — 9 tests pin examples from the spec and the buy-up / sell-down invariant.
+- `pipeline/tests/test_regime.py` — 6 tests cover the 2×2 cells + liquidity bands.
+- `pipeline/tests/test_recommend.py` — 8 tests cover instant/hours/patient × side, regime/liquidity nudges, and the universal 4-sig-fig invariant.
+**Affected agents**: algorithms (owns all three modules).
+**Verification**: `uv run pytest` → 38 pass (15 prior + 9 + 6 + 8). No site rebuild; helpers aren't called from anywhere yet — that wires up in Phase 2b.
+
+---
+
 ## 2026-06-11 — product-lead — SCOPE: CROSS-MODULE
 **Summary**: D-011 "The Butler's Bell" enters MVP scope as the product's differentiating feature. The bell is a fixed UI element on every page; clicking opens a consultation dialogue tree that converts user intent (buy/sell + time tolerance) into a concrete recommended price, backed by a continuously measured accuracy record. Companion decisions: D-012 amends the "descriptive, never prescriptive" rule to **"prescriptive only where measured"** — Geoffery may recommend when the recommendation class is logged, scored, and has a published fill rate. D-015 commits the implementation runtime to Cloudflare Pages Functions + D1 (already in-stack per D-003). D-010 is amended to include bell + consultation + regime classifier + scorer + backtest-published record in MVP. Five agent prompts updated to absorb their new responsibilities — algorithms (regime + recommend + scorer + 4-sig-fig rounding), frontend (Bell + Consultation dialog + Meter), design-character (full buy/sell trees with distinct sell-branch language + regime descriptors + limit copy), data-engineer (consultation + outcomes + calibration tables; D1 sync), monetization (limit as supporter prompt, unlimited bell as headline supporter benefit). This is governance only; Phase 2 (pipeline modules) and beyond land in subsequent commits.
 **Files touched**:
