@@ -4,6 +4,18 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — algorithms — SCOPE: LOCAL
+**Summary**: Phase 2c of D-011 — the scorer and the cold-start backtest. `scorer.score_pending(conn)` walks every consultation whose tolerance window has elapsed but lacks an outcome row, scans `prices_5m` within the per-tolerance window (instant: 0–30 min; hours: 4–8 h; patient: 48–72 h), and decides whether the recommended level was crossed with nonzero volume on the user's side (buy → any `avg_low` ≤ rec with `low_vol > 0`; sell → any `avg_high` ≥ rec with `high_vol > 0`). Outcomes write to `consultation_outcomes`; `calibration` is re-tabulated per `confidence_bucket` after each scoring pass. `backtest.backtest(conn, …)` replays the same recommendation engine across the trailing 21 days at a 12-hour cadence and writes the synthetic fill rates straight into `calibration` so the methodology page reads from one table whether the data is live or backtest — engine version is pinned by D-011 so the blend is honest. Both modules exposed via `./scripts/run.sh <env> {scorer|backtest}`.
+**Files touched**:
+- `pipeline/src/geoffery_pipeline/scorer.py` — new module: `score_pending`, `recompute_calibration`, `_filled_within_window`, `WINDOWS` constants.
+- `pipeline/src/geoffery_pipeline/backtest.py` — new module: synthetic-consultation replay across history.
+- `pipeline/tests/test_scorer.py` — 6 tests pin buy/sell/no-volume/window-not-closed and per-bucket calibration tabulation.
+- `scripts/run.sh` — `scorer` and `backtest` commands routed.
+**Affected agents**: algorithms (owns the scorer + backtest).
+**Verification**: `uv run pytest` → 44 pass (38 prior + 6). The backtest will run for real once the headless 30-day backfill completes (Phase 5).
+
+---
+
 ## 2026-06-11 — algorithms + data-engineer — SCOPE: CROSS-MODULE
 **Summary**: Phase 2b of D-011 — schema additions + aggregates wire-up. `aggregates` table gains ten new columns: `regime_power`, `regime_stability`, `liquidity_band`, six rounded `rec_<tolerance>_<side>` prices, and `engine_version`. Three new tables for the consultation log + scorer output + per-cohort calibration (`consultations`, `consultation_outcomes`, `calibration`) — schema mirrors the D1 schema at the edge so sync is byte-for-byte (D-015). Idempotent ALTER TABLE migrations added so existing DBs roll forward without surgery. `aggregates.compute_for_item` now invokes `regime.classify` + `regime.liquidity_band` + `recommend.recommend` after the gauge math, returning the six recommendation prices alongside the band. `export.export_aggregates` emits a new `regime` block and `recommendations` block per item, plus `engine_version`. Verified live: 4,572 items computed, regime distribution: 1,502 buyer/steady · 1,369 seller/steady · 1,006 balanced/steady · 53 seller/volatile · 40 buyer/volatile · 15 balanced/volatile. Twisted bow's six recommendations look right (instant_buy 1,558M > instant_sell 1,551M; hours_buy 1,554M < instant_buy as expected; patient_buy 1,551M < hours_buy as expected). All 38 unit tests still pass.
 **Files touched**:

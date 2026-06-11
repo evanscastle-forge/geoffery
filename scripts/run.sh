@@ -19,6 +19,9 @@
 #           news          — poll news RSS
 #           backfill      — fetch historical /5m buckets from the wiki
 #                           (use `--days N` to control horizon; resumable)
+#           scorer        — evaluate pending consultations against 5m data
+#           backtest      — cold-start: replay engine across history,
+#                           seed calibration with synthetic fill rates
 #           export        — write JSON snapshots for the frontend
 #           cron          — collect + aggregates + news + export, in order
 #           build         — astro build (uses GEOFFERY_SITE_URL)
@@ -171,6 +174,13 @@ case "${CMD}" in
     backfill)
         cd "${REPO_ROOT}/pipeline"
         uv run python -m geoffery_pipeline.backfill "$@"
+        ;;
+    scorer)
+        run_pipeline scorer
+        ;;
+    backtest)
+        cd "${REPO_ROOT}/pipeline"
+        uv run python -m geoffery_pipeline.backtest "$@"
         ;;
     export)
         cd "${REPO_ROOT}/pipeline"
