@@ -12,6 +12,12 @@ const sample = Object.values(aggregates)
 const settled = Object.values(aggregates).filter((a) => a.band !== 'unsettled').length;
 const total = Object.values(aggregates).length;
 const exportedISO = new Date(meta.exported_at * 1000).toISOString();
+const bandWord: Record<string, string> = {
+  good: 'good',
+  average: 'average',
+  poor: 'poor',
+  unsettled: 'unsettled',
+};
 ---
 
 <Base title={`Geoffery — ${lines.tagline_long}`} description={lines.tagline_long}>
@@ -19,23 +25,25 @@ const exportedISO = new Date(meta.exported_at * 1000).toISOString();
 
   <Search />
 
-  <section class="lead">
-    <p class="ui muted">{settled.toLocaleString()} of {total.toLocaleString()} items appraised. Snapshot exported <time datetime={exportedISO}>{exportedISO}</time>.</p>
-  </section>
+  <p class="lede ui">
+    <span>{settled.toLocaleString()} of {total.toLocaleString()} items appraised</span>
+    <span class="sep" aria-hidden="true">·</span>
+    <time datetime={exportedISO}>Exported {exportedISO.slice(0, 10)}</time>
+  </p>
 
   {sample.length > 0 && (
     <section>
       <h2>What the household is checking</h2>
-      <ul class="card-grid">
-        {sample.map((a) => (
-          <li class={`card band-${a.band}`}>
-            <a href={`/item/${a.slug}`}>
-              <strong>{a.name}</strong>
-              <span class="ui muted">{a.verdict_text}</span>
-            </a>
+      <ol class="watchlist">
+        {sample.map((a, i) => (
+          <li>
+            <span class="num ui">{String(i + 1).padStart(2, '0')}</span>
+            <a href={`/item/${a.slug}`} class="name">{a.name}</a>
+            <span class={`band band-${a.band} ui`}>{bandWord[a.band]}</span>
+            <span class="verdict">{a.verdict_text}</span>
           </li>
         ))}
-      </ul>
+      </ol>
     </section>
   )}
 
@@ -54,24 +62,71 @@ const exportedISO = new Date(meta.exported_at * 1000).toISOString();
 </Base>
 
 <style>
-  .lead { margin-top: var(--s-4); }
-  .muted { color: var(--c-ink-faint); }
-  .card-grid {
-    list-style: none; margin: 0; padding: 0;
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  .lede {
+    color: var(--c-ink-faint);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin: var(--s-6) 0 0;
+    display: flex;
     gap: var(--s-3);
+    flex-wrap: wrap;
   }
-  .card { border: 1px solid var(--c-rule); background: var(--c-bg-raised); border-radius: var(--radius-2); }
-  .card a {
-    display: flex; flex-direction: column; gap: var(--s-2);
-    padding: var(--s-3) var(--s-4);
-    color: var(--c-ink); text-decoration: none;
+  .lede .sep { color: var(--c-rule); }
+
+  .watchlist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
   }
-  .card a:hover { color: var(--c-accent); }
-  .card a strong { font-family: var(--font-sans); font-weight: 600; font-size: 1rem; }
-  .card.band-good     { border-left: 3px solid var(--c-good); }
-  .card.band-average  { border-left: 3px solid var(--c-average); }
-  .card.band-poor     { border-left: 3px solid var(--c-poor); }
-  .card.band-unsettled{ border-left: 3px solid var(--c-unsettled); }
-  .card span.muted { font-size: 0.88rem; }
+  .watchlist li {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "num name band"
+      "num verdict verdict";
+    column-gap: var(--s-4);
+    row-gap: var(--s-1);
+    align-items: baseline;
+    padding: var(--s-4) 0;
+    border-bottom: 1px solid var(--c-rule);
+  }
+  .watchlist li:last-child { border-bottom: none; }
+  .num {
+    grid-area: num;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    color: var(--c-ink-faint);
+    font-variant-numeric: tabular-nums;
+    align-self: start;
+    padding-top: 0.35em;
+  }
+  .name {
+    grid-area: name;
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--c-ink);
+    text-decoration: none;
+    line-height: 1.25;
+  }
+  .name:hover { color: var(--c-accent); text-decoration: none; }
+  .band {
+    grid-area: band;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+    align-self: center;
+  }
+  .band-good     { color: var(--c-good); }
+  .band-average  { color: var(--c-average); }
+  .band-poor     { color: var(--c-poor); }
+  .band-unsettled{ color: var(--c-unsettled); }
+  .verdict {
+    grid-area: verdict;
+    color: var(--c-ink-dim);
+    font-size: 0.95rem;
+    font-style: italic;
+  }
 </style>

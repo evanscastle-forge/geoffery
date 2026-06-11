@@ -4,6 +4,20 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — design-character + frontend — SCOPE: CROSS-MODULE
+**Summary**: Added an "Output discipline — do the work, don't explain it" section to the `design-character` agent prompt and a parallel "Output discipline — markup, not lecture" section to the `frontend` agent prompt. Both pin the same rule: state changes in one sentence in chat, no decorative comments in code explaining design intent, no app-text that lectures the user on the design. Then dispatched the `frontend-craftsman` consultant subagent to do a UI polish pass under the new guidance. Aesthetic direction committed to: **Editorial Ledger** — Swiss-influenced editorial typography on dark, display-serif at scale, hairline rules replacing card chrome, all-caps tracked eyebrows, brass accent reserved for the brand mark and live verdicts. Visible changes: homepage card grid became a numbered watchlist with tabular numerals; item page replaced four bordered quote-cards with a serif `dl` table over a single hairline; gauge lost its container box and reads as a typographic verdict over a 4px segmented rule; dialogue panel dropped the monogrammed-G placeholder for a quill-on-ledger glyph and shed its card chrome for top/bottom hairlines; `h2`s became tracked uppercase eyebrows; brand brass now reserved for hover.
+**Files touched**:
+- `.claude/agents/design-character.md` — appended "Output discipline" section.
+- `.claude/agents/frontend.md` — appended "Output discipline" section.
+- `web/src/styles/tokens.css` — display-serif stack, line-height + features, h2 as eyebrow, narrower content width, refined accent rules.
+- `web/src/layouts/Base.astro` — tighter header, tracked-caps nav, refined env banner.
+- `web/src/pages/index.astro` — watchlist replaces card grid.
+- `web/src/pages/item/[slug].astro` — `<dl>` quote table; ledger-entry crumbs; colophon footer line.
+- `web/src/components/Gauge.astro` — hairline-rule-only treatment; 4px segmented band.
+- `web/src/components/Dialogue.astro` — new glyph; chromeless panel between hairlines.
+**Affected agents**: design-character (initiator), frontend, product-lead (commit/push discipline applied).
+**Verification**: `./scripts/run.sh prod build` → 4,578 pages in 6.9s; preview at :4321 shows homepage ~24 KB, item page ~32 KB; new structural markers (`<dl class="quote">`, `class="badge ui"`, watchlist) present in rendered output.
+
 ## 2026-06-11 — product-lead — SCOPE: CROSS-MODULE
 **Summary**: Folded ten settled product decisions from a parallel Claude thread (`local/DECISIONS.md`) into `.claude/DECISIONS.md`, adopting that thread's `D-NNN` numbered-ID format so future references are stable. Six are genuinely new (brand-name spelling D-001, Porkbun registrar D-002, Cloudflare DNS/CDN/Pages D-003, programmatic-SEO program D-005, eight-tier ledger sequence D-007 including the previously-missing "black" tier, NPC Geoffrey collision-cleared D-008). Four overlap with what we already had — kept the parallel's tighter language. My three prior build-time decisions (stack, deployment split, repo layout) are preserved as D-011..D-013. Re-rendered the `growth-seo` and `ops` agent prompts to point at the now-settled D-002/D-003/D-004/D-005 with explicit "do not re-decide" guardrails — settled-decision pointers borrowed from the parallel thread's `growth-seo.md` and `ops.md`. Updated `web/src/content/ledger.json` to D-007's eight-tier sequence (`bronze → iron → steel → black → mithril → adamant → rune → dragon`); previously had seven. Added two copy lines + a small dialogue panel to `/about` answering the spelling FAQ and a dry no-relation line for the OSRS NPC Geoffrey (D-001 + D-008). Updated `local/launch-checklist.md` so the owner's punchlist reflects the now-concrete domain choices (Porkbun, not unspecified registrar; Cloudflare Pages, not Tunnel-by-default).
 **Files touched**:

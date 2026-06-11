@@ -1,22 +1,16 @@
 ---
-/*
- * Geoffery dialogue panel — portrait-left, parchment-adjacent treatment.
- * NOT OSRS chatbox trade dress (Compliance veto on textures/borders/fonts).
- * Voice strings come from content/geoffery-lines.json — no improvising.
- */
 type Props = { text: string; small?: boolean };
 const { text, small = false } = Astro.props;
 ---
 
 <aside class={`dialogue ${small ? 'small' : ''}`} role="note">
   <div class="portrait" aria-hidden="true">
-    <svg viewBox="0 0 80 80" width="56" height="56">
-      <!-- Placeholder Geoffery mark: monogrammed G with pince-nez bridge. -->
-      <!-- Final character art is a Compliance-reviewed commission (see design-character.md). -->
-      <circle cx="40" cy="40" r="36" fill="var(--c-surface)" stroke="var(--c-accent-dim)" stroke-width="1.5" />
-      <text x="40" y="50" font-family="ui-serif, Georgia, serif" font-size="32" fill="var(--c-accent)" text-anchor="middle" font-style="italic">G</text>
-      <line x1="20" y1="38" x2="36" y2="38" stroke="var(--c-accent-dim)" stroke-width="1" />
-      <line x1="44" y1="38" x2="60" y2="38" stroke="var(--c-accent-dim)" stroke-width="1" />
+    <svg viewBox="0 0 64 64" width="48" height="48">
+      <line x1="6" y1="54" x2="58" y2="54" stroke="var(--c-accent-dim)" stroke-width="1" />
+      <line x1="6" y1="58" x2="58" y2="58" stroke="var(--c-accent-dim)" stroke-width="0.75" opacity="0.6" />
+      <path d="M44 8 L48 12 L22 38 L18 42 L14 50 L22 46 L26 42 L52 16 Z"
+            fill="none" stroke="var(--c-accent)" stroke-width="1.25" stroke-linejoin="round" />
+      <line x1="40" y1="12" x2="48" y2="20" stroke="var(--c-accent)" stroke-width="0.75" opacity="0.7" />
     </svg>
   </div>
   <p class="said">{text}</p>
@@ -26,16 +20,22 @@ const { text, small = false } = Astro.props;
   .dialogue {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: var(--s-4);
+    gap: var(--s-5);
     align-items: center;
-    padding: var(--s-4) var(--s-5);
-    background: var(--c-bg-raised);
-    border: 1px solid var(--c-rule);
-    border-left: 3px solid var(--c-accent);
-    border-radius: var(--radius-2);
-    margin: var(--s-4) 0;
+    padding: var(--s-4) 0;
+    border-top: 1px solid var(--c-rule);
+    border-bottom: 1px solid var(--c-rule);
+    margin: var(--s-5) 0 var(--s-6);
   }
-  .dialogue.small { padding: var(--s-3) var(--s-4); }
-  .portrait { display: flex; align-items: center; justify-content: center; }
-  .said { margin: 0; font-style: italic; color: var(--c-ink); }
+  .dialogue.small { padding: var(--s-3) 0; gap: var(--s-4); }
+  .portrait { display: flex; align-items: center; justify-content: center; padding-inline-start: var(--s-1); }
+  .said {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 1.15rem;
+    line-height: 1.45;
+    color: var(--c-ink);
+  }
+  .dialogue.small .said { font-size: 1rem; }
 </style>
