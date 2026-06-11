@@ -2,6 +2,8 @@
 import '../styles/tokens.css';
 import lines from '../content/geoffery-lines.json';
 import TipJar from '../components/TipJar.astro';
+import Bell from '../components/Bell.astro';
+import Consultation from '../components/Consultation.astro';
 import { deployment, isProd, robotsContent, buildVersion } from '../lib/env';
 
 type Props = {
@@ -52,6 +54,7 @@ const canonical = isProd ? new URL(Astro.url.pathname, Astro.site).toString() : 
         <a href="/methodology">Methodology</a>
         <a href="/tip-jar">Tip jar</a>
       </nav>
+      <div class="site-bell"><Bell /></div>
     </header>
 
     <main class="wrap">
@@ -64,6 +67,7 @@ const canonical = isProd ? new URL(Astro.url.pathname, Astro.site).toString() : 
     </footer>
 
     <TipJar />
+    <Consultation />
 
     <style>
       .env-banner {
@@ -83,13 +87,16 @@ const canonical = isProd ? new URL(Astro.url.pathname, Astro.site).toString() : 
       .env-banner-build { color: rgba(220, 203, 160, 0.7); font-weight: 500; }
       .site-header {
         display: flex;
-        align-items: baseline;
+        align-items: center;
         justify-content: space-between;
+        gap: var(--s-4);
+        flex-wrap: wrap;
         padding-top: var(--s-6);
         padding-bottom: var(--s-5);
         margin-bottom: var(--s-6);
         border-bottom: 1px solid var(--c-rule);
       }
+      .site-bell { display: flex; align-items: center; }
       .brand {
         font-family: var(--font-serif);
         font-size: 1.35rem;

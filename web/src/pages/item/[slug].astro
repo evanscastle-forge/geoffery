@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro';
 import Dialogue from '../../components/Dialogue.astro';
 import Gauge from '../../components/Gauge.astro';
 import Sparkline from '../../components/Sparkline.astro';
+import RecommendationPanel from '../../components/RecommendationPanel.astro';
 import lines from '../../content/geoffery-lines.json';
 import { items, getAggregate, getSparkline } from '../../lib/data';
 import { formatGp, formatVolume, timeAgo } from '../../lib/format';
@@ -23,11 +24,19 @@ const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0
 ---
 
 <Base title={title} description={description}>
+  <script is:inline define:vars={{ id: item.id, slug: item.slug, name: item.name }}>
+    // Bell reads these to skip the pick-item node on item pages.
+    document.body.dataset.itemId = String(id);
+    document.body.dataset.itemSlug = slug;
+    document.body.dataset.itemName = name;
+  </script>
   <p class="crumbs ui"><a href="/">Geoffery</a> <span aria-hidden="true">·</span> Ledger entry</p>
   <h1>
     {item.name}
     {item.members && <span class="members" title="Members item">★</span>}
   </h1>
+
+  {agg && <RecommendationPanel agg={agg} />}
 
   {agg ? (
     <section class="headline panel">

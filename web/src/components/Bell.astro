@@ -1,0 +1,55 @@
+---
+/* The bell that summons Geoffery. Top-right header inset on every page.
+ * Click → opens the Consultation dialog. Item context (when the bell is
+ * rung from /item/<slug>) is read by Consultation.astro from the page's
+ * <body data-item-slug=…> attribute, which the item page sets. */
+import lines from '../content/geoffery-lines.json';
+---
+
+<button
+  id="bell-trigger"
+  class="bell"
+  aria-haspopup="dialog"
+  aria-controls="consultation-panel"
+  aria-label={lines.bell_label}
+  title={lines.bell_label}
+>
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+    {/* Original rope-pull bell silhouette. Not an OSRS sprite. */}
+    <path d="M12 2 L12 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+    <path
+      d="M6 17.5 Q6 11 9.5 8.5 Q10.5 7 12 7 Q13.5 7 14.5 8.5 Q18 11 18 17.5 L19.5 17.5 L19.5 18.5 L4.5 18.5 L4.5 17.5 Z"
+      fill="currentColor"
+    />
+    <circle cx="12" cy="20.5" r="1.4" fill="currentColor" />
+    {/* Rope */}
+    <path d="M12 4.5 Q11 5.5 11.5 6.5" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round" />
+  </svg>
+  <span class="bell-label">{lines.bell_label}</span>
+</button>
+
+<style>
+  .bell {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    background: transparent;
+    color: var(--c-accent);
+    border: 1px solid var(--c-rule);
+    border-radius: var(--radius-1);
+    padding: var(--s-1) var(--s-3);
+    font: inherit;
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    cursor: pointer;
+  }
+  .bell:hover { color: var(--c-parchment-raised); border-color: var(--c-accent); }
+  .bell:active { transform: translateY(1px); }
+  .bell svg { display: block; }
+  @media (max-width: 480px) {
+    .bell-label { display: none; }
+    .bell { padding: var(--s-1) var(--s-2); }
+  }
+</style>

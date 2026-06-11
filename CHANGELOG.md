@@ -4,6 +4,22 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — frontend + design-character — SCOPE: CROSS-MODULE
+**Summary**: Phase 4 of D-011 — the Butler's Bell ships. `Bell.astro` is a top-right header inset on every page (original rope-pull SVG, no Jagex sprite, per D-008). `Consultation.astro` is a `<dialog>` modal containing a small state machine over five nodes — `pick-item` (search-as-dialogue, reuses `/items.json`), `pick-side` (buy/sell), `pick-tolerance` (instant/hours/patient with side-specific button copy), `show-recommendation` (renders a side+tolerance-specific copy line with the regime descriptor and a calibrated confidence statement), and `limit-reached` (5-per-UTC-day soft meter in localStorage; doubles as the supporter prompt). When the bell is rung from an item page, `document.body.dataset.item*` is set by an inline script and the dialog skips `pick-item`. On `show-recommendation` the close button is a link to `/item/<slug>#consulted=<bucket>-<price>` so the item page's new `RecommendationPanel.astro` hydrates the same recommendation above the gauge for landing visitors. Copy added to `geoffery-lines.json`: 27 new lines covering greetings, both branches with distinct sell-branch language ("How swiftly does sir require the gold?"), all six recommendation templates, the four 2×2 regime descriptors, three confidence tiers (gated per D-012 on calibration `n_total ≥ 50`), soft-meter exhaustion + supporter hint, and the record-page intro. POST to `/api/consult` is fire-and-forget — it will hit the Cloudflare Pages Function in Phase 3; for now it silently 404s and the UX continues, which is the correct fail-open posture.
+**Files touched**:
+- `web/src/components/Bell.astro` — new component.
+- `web/src/components/Consultation.astro` — new component (dialog + state machine + localStorage meter + edge POST).
+- `web/src/components/RecommendationPanel.astro` — new component (hydrates from URL hash on /item/<slug>).
+- `web/src/layouts/Base.astro` — Bell in header, Consultation in chrome footer, header reflowed.
+- `web/src/pages/item/[slug].astro` — sets `<body>` data attributes; renders `RecommendationPanel` above the gauge.
+- `web/src/lib/data.ts` — `Regime`, `Recommendations`, `Side`, `Tolerance` types; `Aggregate` extended.
+- `web/src/content/geoffery-lines.json` — 27 new copy lines.
+**Affected agents**: frontend (initiator, owns components), design-character (copy + bell SVG silhouette).
+**Verification**: `npm run build` → 4,578 pages in 23.5s; spot-check confirms `<button id="bell-trigger">`, `<dialog id="consultation-panel">`, and the inline `document.body.dataset` script all present. Aggregates JSON now carries `regime` + `recommendations` for every item (twisted bow: instant_buy 1.558B → hours_buy 1.554B → patient_buy 1.551B; declining as patience grows, as designed).
+**Follow-on**: Phase 3 wires `/api/consult` to Cloudflare D1; Phase 5 runs `backtest` to populate `/methodology-stats.json` so the confidence statement gets real numbers.
+
+---
+
 ## 2026-06-11 — algorithms — SCOPE: LOCAL
 **Summary**: Phase 2c of D-011 — the scorer and the cold-start backtest. `scorer.score_pending(conn)` walks every consultation whose tolerance window has elapsed but lacks an outcome row, scans `prices_5m` within the per-tolerance window (instant: 0–30 min; hours: 4–8 h; patient: 48–72 h), and decides whether the recommended level was crossed with nonzero volume on the user's side (buy → any `avg_low` ≤ rec with `low_vol > 0`; sell → any `avg_high` ≥ rec with `high_vol > 0`). Outcomes write to `consultation_outcomes`; `calibration` is re-tabulated per `confidence_bucket` after each scoring pass. `backtest.backtest(conn, …)` replays the same recommendation engine across the trailing 21 days at a 12-hour cadence and writes the synthetic fill rates straight into `calibration` so the methodology page reads from one table whether the data is live or backtest — engine version is pinned by D-011 so the blend is honest. Both modules exposed via `./scripts/run.sh <env> {scorer|backtest}`.
 **Files touched**:

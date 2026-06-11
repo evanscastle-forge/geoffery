@@ -21,6 +21,25 @@ export type Band = 'good' | 'average' | 'poor' | 'unsettled';
 
 export type NewsCitation = { title: string; url: string; published_at: number };
 
+export type RegimePower = 'buyer' | 'seller' | 'balanced';
+export type RegimeStability = 'steady' | 'volatile';
+export type LiquidityBand = 'thick' | 'medium' | 'thin';
+
+export type Regime = {
+  power: RegimePower | null;
+  stability: RegimeStability | null;
+  liquidity: LiquidityBand | null;
+};
+
+export type Side = 'buy' | 'sell';
+export type Tolerance = 'instant' | 'hours' | 'patient';
+
+export type Recommendations = {
+  instant: { buy: number | null; sell: number | null };
+  hours:   { buy: number | null; sell: number | null };
+  patient: { buy: number | null; sell: number | null };
+};
+
 export type Aggregate = {
   slug: string;
   name: string;
@@ -41,6 +60,9 @@ export type Aggregate = {
   low: number | null;
   low_ts: number | null;
   news_citations: NewsCitation[];
+  regime: Regime;
+  recommendations: Recommendations;
+  engine_version: number;
 };
 
 export type Sparkline = Record<'1d' | '1w' | '1m', Array<[number, number]>>;

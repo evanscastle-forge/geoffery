@@ -1,0 +1,96 @@
+---
+/*
+ * Renders above the gauge on /item/<slug> when the user has just
+ * completed a consultation. Reads `#consulted=<bucket>-<price>` from
+ * the URL hash and pulls the matching regime descriptor + confidence
+ * statement client-side (the page itself can't read the hash at SSR
+ * time, so this is a hydration node).
+ */
+import lines from '../content/geoffery-lines.json';
+import type { Aggregate } from '../lib/data';
+
+type Props = { agg: Aggregate };
+const { agg } = Astro.props;
+
+const regimeKey = agg.regime?.power && agg.regime?.stability
+  ? `regime_${agg.regime.power}_${agg.regime.stability}`
+  : null;
+const regimeText = regimeKey ? (lines as any)[regimeKey] : '';
+---
+
+<aside id="rec-panel" class="rec" hidden aria-live="polite">
+  <p class="rec-name">Geoffery</p>
+  <p class="rec-line" data-rec-line></p>
+  {regimeText && <p class="rec-regime">{regimeText}</p>}
+  <p class="rec-confidence" data-rec-conf></p>
+</aside>
+
+<style>
+  .rec {
+    background: var(--c-parchment);
+    color: var(--c-parchment-ink);
+    border: 2px solid var(--c-parchment-rule);
+    border-radius: var(--radius-1);
+    padding: var(--s-4) var(--s-5);
+    margin: var(--s-5) 0 0;
+  }
+  .rec-name {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    color: var(--c-parchment-red);
+    margin: 0 0 var(--s-2);
+  }
+  .rec-line {
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    line-height: 1.4;
+    margin: 0;
+  }
+  .rec-regime {
+    font-style: italic;
+    color: var(--c-parchment-ink-dim);
+    margin: var(--s-2) 0 0;
+  }
+  .rec-confidence {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--c-parchment-ink-faint);
+    margin: var(--s-2) 0 0;
+  }
+</style>
+
+<script define:vars={{ lines, slug: agg.slug, recs: agg.recommendations }}>
+  const panel = document.getElementById('rec-panel');
+  if (panel && location.hash.startsWith('#consulted=')) {
+    const raw = decodeURIComponent(location.hash.slice('#consulted='.length));
+    // raw is `<tolerance>/<side>/<liquidity>/<stability>-<price>`
+    const dash = raw.lastIndexOf('-');
+    const bucket = dash > 0 ? raw.slice(0, dash) : raw;
+    const price = dash > 0 ? Number(raw.slice(dash + 1)) : null;
+    const [tolerance, side] = bucket.split('/');
+    if (tolerance && side && (recs as any)?.[tolerance]?.[side] != null) {
+      const lineKey = `${side}_rec_${tolerance}`;
+      const fmtPrice = (n: number) => n.toLocaleString('en-US') + ' gp';
+      const recCopy = ((lines as any)[lineKey] || '')
+        .replace('{price}', fmtPrice((recs as any)[tolerance][side]));
+      (panel.querySelector('[data-rec-line]') as HTMLElement).textContent = recCopy;
+
+      // confidence — read methodology-stats.json
+      fetch('/methodology-stats.json')
+        .then((r) => r.ok ? r.json() : null)
+        .then((j) => {
+          const cal = j?.cohorts?.[bucket];
+          const confEl = panel.querySelector('[data-rec-conf]') as HTMLElement;
+          if (cal && cal.n_total >= 50) {
+            const pct = Math.round(cal.fill_rate * 100);
+            const tmpl = cal.fill_rate >= 0.8 ? lines.consult_confidence_high : lines.consult_confidence_mid;
+            confEl.textContent = (tmpl as string).replace('{pct}', String(pct));
+          } else {
+            confEl.textContent = lines.consult_confidence_low as string;
+          }
+        })
+        .catch(() => {});
+      panel.hidden = false;
+    }
+  }
+</script>
