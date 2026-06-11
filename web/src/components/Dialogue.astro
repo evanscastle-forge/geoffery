@@ -5,15 +5,19 @@ const { text, small = false } = Astro.props;
 
 <aside class={`dialogue ${small ? 'small' : ''}`} role="note">
   <div class="portrait" aria-hidden="true">
-    <svg viewBox="0 0 64 64" width="48" height="48">
-      <line x1="6" y1="54" x2="58" y2="54" stroke="var(--c-accent-dim)" stroke-width="1" />
-      <line x1="6" y1="58" x2="58" y2="58" stroke="var(--c-accent-dim)" stroke-width="0.75" opacity="0.6" />
+    <svg viewBox="0 0 64 64" width="56" height="56">
+      <rect x="0" y="0" width="64" height="64" fill="#1a1610" />
+      <circle cx="32" cy="26" r="14" fill="#c89a3c" />
+      <rect x="18" y="40" width="28" height="20" fill="#3a342a" />
+      <line x1="6" y1="58" x2="58" y2="58" stroke="#c89a3c" stroke-width="0.75" opacity="0.6" />
       <path d="M44 8 L48 12 L22 38 L18 42 L14 50 L22 46 L26 42 L52 16 Z"
-            fill="none" stroke="var(--c-accent)" stroke-width="1.25" stroke-linejoin="round" />
-      <line x1="40" y1="12" x2="48" y2="20" stroke="var(--c-accent)" stroke-width="0.75" opacity="0.7" />
+            fill="none" stroke="#e6d7b0" stroke-width="1.25" stroke-linejoin="round" />
     </svg>
   </div>
-  <p class="said">{text}</p>
+  <div class="said">
+    <p class="name">Geoffery</p>
+    <p class="line">{text}</p>
+  </div>
 </aside>
 
 <style>
@@ -22,20 +26,37 @@ const { text, small = false } = Astro.props;
     grid-template-columns: auto 1fr;
     gap: var(--s-5);
     align-items: center;
-    padding: var(--s-4) 0;
-    border-top: 1px solid var(--c-rule);
-    border-bottom: 1px solid var(--c-rule);
+    padding: var(--s-4) var(--s-5);
+    background: var(--c-parchment);
+    color: var(--c-parchment-ink);
+    border: 2px solid var(--c-parchment-rule);
+    border-radius: var(--radius-1);
     margin: var(--s-5) 0 var(--s-6);
   }
-  .dialogue.small { padding: var(--s-3) 0; gap: var(--s-4); }
-  .portrait { display: flex; align-items: center; justify-content: center; padding-inline-start: var(--s-1); }
-  .said {
+  .dialogue.small { padding: var(--s-3) var(--s-4); gap: var(--s-4); }
+  .portrait {
+    display: flex; align-items: center; justify-content: center;
+    width: 56px; height: 56px;
+    flex-shrink: 0;
+    border: 1px solid var(--c-parchment-rule);
+  }
+  .said { display: flex; flex-direction: column; gap: var(--s-1); }
+  .name {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+    color: var(--c-parchment-red);
+  }
+  .line {
     margin: 0;
     font-family: var(--font-serif);
     font-style: italic;
     font-size: 1.15rem;
     line-height: 1.45;
-    color: var(--c-ink);
+    color: var(--c-parchment-ink);
   }
-  .dialogue.small .said { font-size: 1rem; }
+  .dialogue.small .line { font-size: 1rem; }
+  .dialogue.small .name { font-size: 0.9rem; }
 </style>

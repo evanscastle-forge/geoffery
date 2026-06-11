@@ -25,7 +25,7 @@ const canonical = isProd ? new URL(Astro.url.pathname, Astro.site).toString() : 
     <meta name="description" content={description} />
     <meta name="robots" content={robotsContent} />
     {canonical && <link rel="canonical" href={canonical} />}
-    <meta name="theme-color" content="#15140f" />
+    <meta name="theme-color" content="#1f1d18" />
     {isProd && <meta property="og:title" content={title} />}
     {isProd && <meta property="og:description" content={description} />}
     {isProd && <meta property="og:type" content="website" />}
@@ -66,8 +66,8 @@ const canonical = isProd ? new URL(Astro.url.pathname, Astro.site).toString() : 
 
     <style>
       .env-banner {
-        background: var(--c-poor);
-        color: #15140f;
+        background: var(--c-parchment-red);
+        color: var(--c-parchment);
         font-size: 0.72rem;
         font-weight: 600;
         letter-spacing: 0.12em;
@@ -77,9 +77,9 @@ const canonical = isProd ? new URL(Astro.url.pathname, Astro.site).toString() : 
         justify-content: space-between;
         gap: var(--s-4);
       }
-      html[data-deployment="qa"] .env-banner { background: var(--c-average); }
-      html[data-deployment="local"] .env-banner { background: var(--c-unsettled); }
-      .env-banner-build { color: rgba(21, 20, 15, 0.7); font-weight: 500; }
+      html[data-deployment="qa"] .env-banner { background: var(--c-accent); color: var(--c-parchment-ink); }
+      html[data-deployment="local"] .env-banner { background: var(--c-unsettled); color: var(--c-parchment); }
+      .env-banner-build { color: rgba(220, 203, 160, 0.7); font-weight: 500; }
       .site-header {
         display: flex;
         align-items: baseline;

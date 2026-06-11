@@ -46,8 +46,9 @@ const bandLabel: Record<string, string> = {
   .gauge {
     padding: var(--s-5) 0 var(--s-4);
     margin: var(--s-4) 0 0;
-    border-top: 1px solid var(--c-rule);
+    border-top: 1px solid var(--c-parchment-rule-faint);
   }
+  .gauge:first-child { border-top: none; padding-top: 0; }
   .gauge-head {
     display: flex;
     gap: var(--s-5);
@@ -58,7 +59,7 @@ const bandLabel: Record<string, string> = {
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.22em;
-    font-weight: 600;
+    font-weight: 700;
     border-bottom: 2px solid currentColor;
     padding-bottom: 2px;
     flex-shrink: 0;
@@ -74,7 +75,7 @@ const bandLabel: Record<string, string> = {
     font-size: 1.25rem;
     font-style: italic;
     line-height: 1.4;
-    color: var(--c-ink);
+    color: var(--c-parchment-ink);
   }
   .band {
     margin-top: var(--s-5);
@@ -83,24 +84,24 @@ const bandLabel: Record<string, string> = {
     grid-template-columns: 1fr 1fr 1fr;
     height: 4px;
   }
-  .seg-good    { background: color-mix(in oklab, var(--c-good) 55%, transparent); }
-  .seg-average { background: color-mix(in oklab, var(--c-average) 55%, transparent); }
-  .seg-poor    { background: color-mix(in oklab, var(--c-poor) 55%, transparent); }
+  .seg-good    { background: var(--c-good); }
+  .seg-average { background: var(--c-average); }
+  .seg-poor    { background: var(--c-poor); }
   .marker {
     position: absolute; top: -6px; bottom: -6px; width: 2px;
-    background: var(--c-ink);
+    background: var(--c-parchment-ink);
     transform: translateX(-1px);
   }
   .legend {
     display: flex; justify-content: space-between;
-    color: var(--c-ink-faint);
+    color: var(--c-parchment-ink-faint);
     font-size: 0.68rem;
     text-transform: uppercase;
     letter-spacing: 0.14em;
     margin: var(--s-3) 0 0;
   }
   .unsettled-note {
-    color: var(--c-ink-dim);
+    color: var(--c-parchment-ink-dim);
     font-style: italic;
     font-size: 1rem;
     margin: var(--s-3) 0 0;

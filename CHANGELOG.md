@@ -4,6 +4,24 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — design-character + frontend — SCOPE: CROSS-MODULE
+**Summary**: Palette overhaul to **OSRS Chatbox Modern**. Page chrome stays dark warm (#1f1d18) but content lives on flat aged-parchment panels (`--c-parchment` #dccba0) with dark stone borders and brick-red headings (`--c-parchment-red` #8c2b1f). Body ink on parchment is near-black with warm cast (`--c-parchment-ink` #1a1610); in-panel links are muted blue (#22468f). Gold accent recalibrated (`--c-accent` #c89a3c). Per the compliance rule (D-008, "rhyme don't quote"): colour system only, no paper texture, no stone-bevel border-image, no blackletter — the brick-red on cream + dark border carries the OSRS callback typographically. New `.panel` wrapper applied to body content on `/item/<slug>`, `/methodology`, `/wages`, `/ledger`, `/about`; the dialogue component is itself a parchment panel and carries the homepage. Reference assets the user supplied (Gemini-generated panel mock + close-up screenshot) committed alongside the change for future calibration. Supersedes the Editorial Ledger pass from earlier today.
+**Files touched**:
+- `web/src/styles/tokens.css` — new `--c-parchment*` family; page-chrome warm-dark recalibration; gold tweaked.
+- `web/src/layouts/Base.astro` — chrome/nav/footer recoloured for the warm-dark page bg.
+- `web/src/components/Dialogue.astro` — render as parchment panel with dark border and brick-red name.
+- `web/src/components/Gauge.astro` — band/badge/marker colours retuned for AA contrast on parchment.
+- `web/src/components/Sparkline.astro` — stroke uses `--c-parchment-red`.
+- `web/src/components/TipJar.astro` — recalibrated coin/option chrome against new tokens.
+- `web/src/pages/index.astro` — homepage adopts the parchment dialogue panel + recoloured cards.
+- `web/src/pages/item/[slug].astro` — gauge/quote table/sparklines in a single parchment "ledger entry" panel.
+- `web/src/pages/methodology.astro`, `wages.astro`, `ledger.astro`, `about.astro` — body content moved into `.panel`s.
+- `assets/Gemini_Generated_Image_*.png`, `assets/Screenshot 2026-06-11 141556.png`, `assets/prompt_instructions.txt` — reference material the user supplied; commits for traceability.
+**Affected agents**: design-character (initiator), frontend, compliance (passed: no textures, no blackletter, no Jagex fonts).
+**Verification**: `./scripts/run.sh prod build` → 4,578 pages in 13.8s; preview at :4321 confirms all five chrome pages render (homepage 26 KB, item page 36 KB, ledger 21 KB, methodology 26 KB, about 25 KB); `.panel` present on every chrome page that needed it.
+
+---
+
 ## 2026-06-11 — data-engineer — SCOPE: LOCAL
 **Summary**: Added `pipeline/src/geoffery_pipeline/backfill.py` to fetch historical `/5m` buckets from the wiki API by walking the timestamp parameter backward from now. Idempotent (REPLACE INTO), resumable (`--resume` default — picks up from the oldest existing bucket so re-running a partial doesn't re-burn the rate budget), and wiki-polite (1 req/s sustained, 2s pause every 100 requests, descriptive User-Agent). The gauge uses a 30-day window, so without backfill every reading is "unsettled (thin-history)" until 30 calendar days of live collection accrue; with backfill, the gauges become real on day one. Exposed via `./scripts/run.sh <env> backfill --days N`.
 **Files touched**:

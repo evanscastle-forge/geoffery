@@ -8,20 +8,22 @@ import lines from '../content/geoffery-lines.json';
   <h1>About</h1>
   <Dialogue text={lines.tagline_long} />
 
-  <p>
-    Geoffery is a small, independent project: a place to check what an item is currently
-    worth on the Grand Exchange, rated against its own thirty-day history, before you
-    place an offer. He is run by one person, kept honest by a single rule —
-    <em>everything about the market is free, and stays free</em> — and is not affiliated
-    with Jagex Ltd. in any way.
-  </p>
-  <p>
-    Prices are sourced from the <a href="https://oldschool.runescape.wiki/w/RuneScape:Real-time_Prices" target="_blank" rel="noopener">OSRS Wiki real-time prices API</a>.
-    Geoffery would not exist without it.
-  </p>
+  <section class="panel">
+    <p>
+      Geoffery is a small, independent project: a place to check what an item is currently
+      worth on the Grand Exchange, rated against its own thirty-day history, before you
+      place an offer. He is run by one person, kept honest by a single rule —
+      <em>everything about the market is free, and stays free</em> — and is not affiliated
+      with Jagex Ltd. in any way.
+    </p>
+    <p>
+      Prices are sourced from the <a href="https://oldschool.runescape.wiki/w/RuneScape:Real-time_Prices" target="_blank" rel="noopener">OSRS Wiki real-time prices API</a>.
+      Geoffery would not exist without it.
+    </p>
 
-  <h2>A note on the spelling</h2>
-  <p>{lines.spelling_faq_short}</p>
+    <h2>A note on the spelling</h2>
+    <p>{lines.spelling_faq_short}</p>
+  </section>
 
   <h2>Aren't you that flax farmer?</h2>
   <Dialogue text={lines.npc_geoffrey_no_relation} small={true} />

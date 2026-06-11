@@ -31,7 +31,7 @@ const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0
   </h1>
 
   {agg ? (
-    <section class="headline">
+    <section class="headline panel">
       <Gauge agg={agg} />
 
       <dl class="quote">
@@ -67,7 +67,7 @@ const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0
   )}
 
   {(spark['1d'] || spark['1w'] || spark['1m']) && (
-    <section>
+    <section class="panel">
       <h2>Recent figures</h2>
       <div class="sparks">
         {spark['1d'] && <Sparkline points={spark['1d']} label="last 24 hours" />}
@@ -122,7 +122,7 @@ const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0
   .quote {
     margin: var(--s-5) 0 0;
     padding: var(--s-4) 0 0;
-    border-top: 1px solid var(--c-rule);
+    border-top: 1px solid var(--c-parchment-rule-faint);
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: var(--s-4) var(--s-6);
@@ -133,7 +133,7 @@ const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    color: var(--c-ink-faint);
+    color: var(--c-parchment-ink-faint);
     font-weight: 600;
   }
   .quote dd {
@@ -141,7 +141,7 @@ const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0
     font-family: var(--font-serif);
     font-size: 1.45rem;
     font-weight: 500;
-    color: var(--c-ink);
+    color: var(--c-parchment-ink);
     font-variant-numeric: tabular-nums lining-nums;
     letter-spacing: -0.01em;
   }
@@ -150,12 +150,12 @@ const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0
     list-style: none;
     padding: 0;
     margin: var(--s-4) 0 0;
-    color: var(--c-ink-dim);
+    color: var(--c-parchment-ink-dim);
     font-style: italic;
     font-size: 0.98rem;
   }
   .flags li { padding: var(--s-1) 0; }
-  .flags li::before { content: "— "; color: var(--c-ink-faint); }
+  .flags li::before { content: "— "; color: var(--c-parchment-ink-faint); }
 
   .sparks { display: grid; gap: var(--s-5); margin-top: var(--s-3); }
   @media (min-width: 600px) { .sparks { grid-template-columns: repeat(3, 1fr); } }

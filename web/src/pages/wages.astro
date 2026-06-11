@@ -8,30 +8,33 @@ import lines from '../content/geoffery-lines.json';
   <h1>How Geoffery is kept</h1>
   <Dialogue text={lines.money_intro} />
 
-  <h2>What is free, always</h2>
-  <ul>
-    <li>Every price, every chart, every gauge, every context flag.</li>
-    <li>Search, item pages, the methodology page, the ledger.</li>
-  </ul>
-  <p class="ui muted"><strong>Nothing currently free will ever move behind a wall.</strong> New paid features may be added. Existing free ones never migrate.</p>
+  <section class="panel">
+    <h2>What is free, always</h2>
+    <ul>
+      <li>Every price, every chart, every gauge, every context flag.</li>
+      <li>Search, item pages, the methodology page, the ledger.</li>
+    </ul>
+    <p class="ui muted"><strong>Nothing currently free will ever move behind a wall.</strong> New paid features may be added. Existing free ones never migrate.</p>
 
-  <h2>Where the wages come from</h2>
-  <ol>
-    <li><strong>Tame advertisements</strong> on the website — no autoplay video, no layout shift, no spyware. If an ad looks user-hostile, Geoffery declines the placement.</li>
-    <li><strong>The tip jar.</strong> Gold ($1), Platinum ($10), or any amount. One-time, no account required.</li>
-    <li><em>Eventually</em>, a Supporter wage (~$3 / month) and a Patron wage (~$8 / month) — for personal services (alerts, watchlists, an appraisal of your own offer) and cosmetic gratitude. These are not yet available; when they are, they will obey the rule above.</li>
-  </ol>
+    <h2>Where the wages come from</h2>
+    <ol>
+      <li><strong>Tame advertisements</strong> on the website — no autoplay video, no layout shift, no spyware. If an ad looks user-hostile, Geoffery declines the placement.</li>
+      <li><strong>The tip jar.</strong> Gold ($1), Platinum ($10), or any amount. One-time, no account required.</li>
+      <li><em>Eventually</em>, a Supporter wage (~$3 / month) and a Patron wage (~$8 / month) — for personal services (alerts, watchlists, an appraisal of your own offer) and cosmetic gratitude. These are not yet available; when they are, they will obey the rule above.</li>
+    </ol>
 
-  <h2>How Geoffery conducts himself</h2>
-  <ul>
-    <li>No dark patterns. One-click cancel on any future subscription. No auto-converting trials.</li>
-    <li>No advertising of real-money trading, gold sales, account services, or anything Jagex would frown upon.</li>
-    <li>Geoffery is not affiliated with Jagex, and never speaks as if he were.</li>
-  </ul>
+    <h2>How Geoffery conducts himself</h2>
+    <ul>
+      <li>No dark patterns. One-click cancel on any future subscription. No auto-converting trials.</li>
+      <li>No advertising of real-money trading, gold sales, account services, or anything Jagex would frown upon.</li>
+      <li>Geoffery is not affiliated with Jagex, and never speaks as if he were.</li>
+    </ul>
 
-  <p class="ui muted">If you spot Geoffery breaking any of these promises, write in. He would consider it a grave embarrassment.</p>
+    <p class="ui muted">If you spot Geoffery breaking any of these promises, write in. He would consider it a grave embarrassment.</p>
+  </section>
 </Base>
 
 <style>
-  .muted { color: var(--c-ink-faint); }
+  .muted { color: var(--c-parchment-ink-faint); }
+  .panel h2:first-child { margin-top: 0; }
 </style>
