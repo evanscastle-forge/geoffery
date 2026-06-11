@@ -1,36 +1,76 @@
 # Decisions Log
 
-Append-only record of cross-agent decisions and their rationale. Newest on top. Per charter §conflict-resolution: every resolved option lands here so debates aren't repeated.
+Settled decisions. Agents treat these as resolved — **do not re-litigate.** New entries follow the same format and get the next available `D-NNN` ID. Format and conflict-resolution protocol live in `.claude/CHARTER.md`.
 
-Entry format:
-
-```
-## YYYY-MM-DD — <decision title> — <decider>
-**Options considered**: brief list.
-**Chosen**: which one and why (cite charter constraints / tie-breakers).
-**Affected agents**: list.
-**Reversibility**: one-way-door | reversible.
-**Follow-ons**: optional pending work.
-```
+Status values:
+- **Locked** — settled. Charter constraints, public promises, or one-way doors. Re-opening requires an explicit user directive, not an agent's reweighting.
+- **Provisional** — settled enough to act on, revisitable if a new constraint surfaces.
 
 ---
 
-## 2026-06-11 — Three deployments: local / qa / prod, qa hidden behind Cloudflare Access — ops + product-lead
-**Options considered**: (a) prod-only, no qa zone; (b) two zones with qa publicly reachable but noindex'd; (c) mirror the dexter-dev posture with three deployments and qa locked behind Zero Trust.
-**Chosen**: (c). Tie-breakers 1 (less ongoing maintenance — "works in qa ⇒ works in prod" eliminates a class of "but it worked locally" bugs at the cost of one extra env file) and 3 (easier to reverse — qa is the place to verify a wiki API change or a gauge tuning without burning prod history). Defence-in-depth on qa hiding: Cloudflare Access (primary, email allowlist), `<meta robots noindex,nofollow>`, robots.txt `Disallow: /`, no `<link rel=canonical>` from qa to prod, no sitemap on qa. Live Stripe tip-jar URLs only render when DEPLOYMENT_NAME=prod, so an accidental real-money flow on qa is structurally impossible.
-**Affected agents**: ops, frontend, data-engineer, monetization.
-**Reversibility**: reversible — qa can be deleted without prod impact. The env-var shape (`GEOFFERY_DEPLOYMENT_NAME`) is the one one-way door; mirrors the dexter-dev `DEXTER_DEPLOYMENT_NAME` literal so the patterns travel.
-**Follow-ons**: owner runs the Cloudflare Access setup (subdomain CNAME + Access app + email allowlist) — see `docs/deployments.md`. Prod tip jar fills only after Stripe Payment Links are created in the dashboard.
+## D-001 · Brand name and spelling
+**Decision:** The product and character are named **Geoffery** (nonstandard spelling, contains "offer": GE-OFFER-y). Logo may stylize as `GEOFFERy`; all body text uses "Geoffery"; the site never uses "Geoffrey" except one FAQ line explaining the spelling.
+**Rationale:** Completes the GE/offer pun; SEO-ownable vs. the common name (Lyft/Tumblr pattern); distances from the minor OSRS NPC Geoffrey (flax farmer — name collision checked 2026-06, cleared: common given name, different spelling, entirely different original character; never reference flax/Seers' Village).
+**Status:** Locked.
 
-## 2026-06-11 — Stack: Python pipeline + Astro static site + SQLite — product-lead
-**Options considered**: (a) Python+SQLite+Astro, (b) Full TypeScript (Node + Next.js), (c) defer choice.
-**Chosen**: (a). Charter tie-breaker 1 (less maintenance) and 4 (cheaper). SQLite for a single-writer cron-driven pipeline is set-and-forget; Astro static-generates all ~4,600 item pages at build time so request-path is pure CDN. One DB file is trivially backed up — irreplaceable raw history is satisfied. Python ecosystem (`httpx`, `pandas`, plain stdlib) is the boring choice for ETL.
-**Affected agents**: data-engineer, frontend, ops.
-**Reversibility**: storage choice is reversible while the dataset is small; URL structure and DB schema are the one-way doors that ride on it.
-**Follow-ons**: data-engineer + algorithms agree the `aggregates` row shape (the gauge contract) before either builds against it.
+## D-002 · Primary domain and registrar
+**Decision:** Register **geoffery.gg** at **Porkbun** (~$51/yr flat renewal). Do NOT purchase geoffery.com (premium, ~$4,088 — rejected). Register the standard-spelling redirect (`geoffrey.com`/`.gg` variant as available) and optionally one `askgeoffery`/`geofferys` variant, also at Porkbun (~$10–15 ea).
+**Rationale:** GoDaddy quoted $99.99/yr — roughly double market; Porkbun is top-3 of 56 registrars on .gg registration, renewal, and 5-yr cost with flat renewals, free WHOIS redaction, free URL forwarding. Note: `.gg` is the Guernsey ccTLD — no full WHOIS privacy (redaction only); 60-day age + unlock required for future transfers.
+**Status:** Locked. Action: purchase ASAP; domains precede everything.
 
-## 2026-06-11 — Repo reorganization — product-lead
-**Options considered**: leave files at root vs. canonical layout.
-**Chosen**: canonical layout (`docs/`, `.claude/agents/`, `pipeline/`, `web/`, `data/`). Agent files placed in `.claude/agents/` so Claude Code loads them automatically.
-**Affected agents**: all.
-**Reversibility**: trivially reversible.
+## D-003 · DNS / CDN / hosting architecture
+**Decision:** Registration stays at Porkbun; the site runs on **Cloudflare** (free tier): add `geoffery.gg` as a Cloudflare zone, point Porkbun nameservers at Cloudflare. All redirect domains added the same way; 301s to `geoffery.gg` implemented as Cloudflare redirect rules (not registrar forwarding). **Hosting default: Cloudflare Pages/Workers** unless the Ops agent documents a blocker.
+**Rationale:** Cloudflare Registrar does not support the `.gg` TLD (confirmed 2026-06; no ETA), but Cloudflare DNS/CDN/SSL works with any registrar. This split is standard for `.gg` gaming sites. Verify nameserver propagation immediately after purchase before building against the domain (`.gg` registry-side nameserver issues occasionally reported).
+**Status:** Locked.
+**Compatibility note:** The local/qa/prod deployment split (D-012) layers cleanly on top — Cloudflare Access (Zero Trust) gates the qa subdomain to an email allowlist regardless of which Cloudflare origin (Pages, Workers, or Tunnel) ultimately serves the bytes.
+
+## D-004 · Canonical URL & title architecture (one-way door)
+**Decision:** Canonical host: `https://geoffery.gg`. Item pages: `/item/<slug>` with readable slugs (e.g. `/item/twisted-bow`), no IDs or query strings, never changed after launch. Title pattern: `<Item> GE price & deal rating — Geoffery`. H1 matches. Meta descriptions in Geoffery's voice but containing "OSRS", "Grand Exchange", "current price". All non-canonical domains and spellings 301 to canonical.
+**Rationale:** Long-tail intent targeting ("X ge price", "is X worth buying osrs") where the wiki under-serves; URL stability is non-negotiable for SEO equity.
+**Status:** Locked. Slug collision resolution: lowest-id item with a given name gets the bare slug; collisions get `-<id>` appended; assignment is stable across wiki updates (already implemented in `pipeline/src/geoffery_pipeline/collect.py`).
+
+## D-005 · SEO program (growth-seo agent owns execution)
+**Decision:** Programmatic SEO only — no blog, no editorial content. Requirements: sitemap with `lastmod` tied to real price movement; breadcrumb + FAQ schema (methodology page); internal linking via related/same-category items; Search Console verified at launch; OSRS tool-directory and wiki external-tools submissions; Core Web Vitals green by architecture (static/cached pages). Freshness (visible price/verdict/timestamp updates) is the crawl-priority lever. Expected ramp: 6–12 months.
+**Status:** Locked.
+
+## D-006 · Monetization model
+**Decision:** Free forever (no account): all prices, charts, deal gauge, context flags — ad-supported, tame ads only (no autoplay video, no layout shift). Tips: Gold $1 / Platinum $10 / custom, one-time Stripe. Supporter ~$3/mo or ~$25/yr: ad-free, alerts, synced watchlists, rate-my-offer, badge. Patron ~$8/mo: pure prestige/cosmetics. Public promise: **nothing currently free ever moves behind the wall.** No dark patterns; one-click cancel; public how-we-make-money page.
+**Status:** Locked. Supporter/Patron billing is post-MVP; launch is ads + tips only.
+
+## D-007 · Exchange Ledger (donor wall) mechanics
+**Decision:** One cumulative lifetime score across all support lanes. **Tiers (low → high): bronze → iron → steel → black → mithril → adamant → rune → dragon** (eight generic-word tiers; original iconography, no sprite copying). Amounts never shown; within-tier order alphabetical/join-date. Launch with fixed exponential thresholds; switch to percentile-based tiers (passive drift) once the ledger has a few hundred names — framed in-voice as Geoffery reorganizing the ledger. Monthly recalculation; demotions silent. Early supporters get a permanent "founding household" notation. Noisy early tiers are accepted as a momentum feature.
+**Status:** Locked.
+
+## D-008 · Character & IP guardrails
+**Decision:** Geoffery is an original creature of ambiguous ancient species — ledger-keeper in waistcoat with pince-nez, quill, ledger. Dialogue presented in a portrait-left RPG dialogue panel of original design (explicitly NOT OSRS chatbox trade dress). Rule for all assets: **"rhyme, don't quote"** — no Jagex characters, names, sprites, fonts, or interface replication. Compliance agent reviews every outward-facing asset pre-commission and holds veto on Jagex/IP violations. Tip coin and tier art: generic fantasy metals in house style, labeled plainly ("Gold", "Platinum") — callbacks stay unspoken. Footer disclaimer: not affiliated with Jagex (full wording rendered from `web/src/content/geoffery-lines.json` → `footer_disclaimer`). If asked about the OSRS NPC Geoffrey: acknowledged only via one dry in-character no-relation line; no flax references in product copy.
+**Status:** Locked.
+
+## D-009 · Data sourcing
+**Decision:** OSRS Wiki real-time prices API (`/latest` / `/5m` / `/1h` + `/mapping`) is the sole price source; Jagex news/RSS for event flags. Proper user-agent, rate-limit respect, attribution. No scraping outside community-blessed APIs. The collector starts before all other build work and gets day-one monitoring — history cannot be backfilled and the gauge needs 30+ days.
+**Status:** Locked.
+
+## D-010 · MVP scope boundary
+**Decision:** MVP = item pages (search, prices, sparklines, deal gauge with unsettled state), mobile-first PWA, Geoffery dialogue component + ~25 core copy lines, tip jar, ledger page (fixed thresholds), methodology + money pages, tame ads, monitoring. Explicitly deferred: accounts, alerts, watchlists, Supporter/Patron billing, share cards, sentiment features, native app, percentile ledger, Discord anything.
+**Status:** Locked.
+
+---
+
+## Build-time decisions (added during implementation)
+
+## D-011 · Implementation stack
+**Decision:** Python + uv for the pipeline (collector, aggregates, news poller, exporter) writing to SQLite (WAL mode) at `data/geoffery.db`. Astro for the static-generated frontend reading JSON snapshots the pipeline exports to `web/src/content/generated/`. No request-path Python or SQL; the site is pure static HTML + a tiny client-side search index.
+**Rationale:** Tie-breaker 1 (less ongoing maintenance) and 4 (cheaper). SQLite for a single-writer cron-driven pipeline is set-and-forget; Astro static-generates all ~4,600 item pages at build time so request-path is pure CDN. One DB file is trivially backed up — D-009's irreplaceable-raw-history requirement is satisfied. Python `httpx`/stdlib is the boring choice for ETL.
+**Affected agents:** data-engineer, frontend, ops.
+**Status:** Locked (storage choice reversible while the dataset is small; URL and DB schema are the one-way doors riding on it).
+
+## D-012 · Deployment posture: local / qa / prod
+**Decision:** Three deployments with code-path identical between them; the only differences are the env file sourced and the `GEOFFERY_DEPLOYMENT_NAME` label. Dispatched by `scripts/run.sh <env> <cmd>`. qa is hidden from the public via Cloudflare Access (Zero Trust) gating the qa subdomain to an email allowlist; `<meta robots noindex,nofollow>` + `robots.txt` deny-all + omitted canonical from non-prod are belt-and-suspenders. Live Stripe URLs structurally refuse to render outside `DEPLOYMENT_NAME=prod`. Per-deploy cache-bust via `GEOFFERY_BUILD_VERSION` derived from `git rev-parse --short HEAD`. Borrowed from dexter-dev's `DEXTER_DEPLOYMENT_NAME` pattern.
+**Rationale:** Tie-breaker 1 (less maintenance — "works in qa ⇒ works in prod" eliminates a class of "but it worked locally" bugs at the cost of one extra env file) and 3 (easier to reverse — qa is the place to verify a wiki API change or a gauge tuning without burning prod history).
+**Affected agents:** ops, frontend, data-engineer, monetization.
+**Status:** Locked. Stacks cleanly under D-003's Cloudflare Pages/Workers default — Access gating is per-subdomain regardless of origin.
+**Follow-ons:** owner sets up Cloudflare Access on the qa subdomain (see `docs/deployments.md`); prod tip jar fills only after Stripe Payment Links are created.
+
+## D-013 · Repo layout
+**Decision:** Source-of-truth files live where their primary readers live. Agent material (`.claude/CHARTER.md`, `.claude/DECISIONS.md`, agent prompts, dispatch rules, proposals) is under `.claude/`. User-facing docs (`design-spec.md`, `deployments.md`) under `docs/`. Repo root carries only what humans skim regularly: `README.md`, `CHANGELOG.md`, `.gitignore`. Code in `pipeline/` and `web/`; env templates in `env/`; operator notes in `local/` (gitignored).
+**Rationale:** Discoverability — agents find load-bearing rules next to their own prompts; humans find context next to the README.
+**Status:** Locked (trivially reversible).

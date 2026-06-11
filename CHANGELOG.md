@@ -4,6 +4,19 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — product-lead — SCOPE: CROSS-MODULE
+**Summary**: Folded ten settled product decisions from a parallel Claude thread (`local/DECISIONS.md`) into `.claude/DECISIONS.md`, adopting that thread's `D-NNN` numbered-ID format so future references are stable. Six are genuinely new (brand-name spelling D-001, Porkbun registrar D-002, Cloudflare DNS/CDN/Pages D-003, programmatic-SEO program D-005, eight-tier ledger sequence D-007 including the previously-missing "black" tier, NPC Geoffrey collision-cleared D-008). Four overlap with what we already had — kept the parallel's tighter language. My three prior build-time decisions (stack, deployment split, repo layout) are preserved as D-011..D-013. Re-rendered the `growth-seo` and `ops` agent prompts to point at the now-settled D-002/D-003/D-004/D-005 with explicit "do not re-decide" guardrails — settled-decision pointers borrowed from the parallel thread's `growth-seo.md` and `ops.md`. Updated `web/src/content/ledger.json` to D-007's eight-tier sequence (`bronze → iron → steel → black → mithril → adamant → rune → dragon`); previously had seven. Added two copy lines + a small dialogue panel to `/about` answering the spelling FAQ and a dry no-relation line for the OSRS NPC Geoffrey (D-001 + D-008). Updated `local/launch-checklist.md` so the owner's punchlist reflects the now-concrete domain choices (Porkbun, not unspecified registrar; Cloudflare Pages, not Tunnel-by-default).
+**Files touched**:
+- `.claude/DECISIONS.md` — full rewrite into D-NNN format; D-001..D-013.
+- `.claude/agents/growth-seo.md` — URL/title + domain bullets retitled "SETTLED" with D-NNN pointers; programmatic-SEO bullet expanded from D-005.
+- `.claude/agents/ops.md` — new "Domain / DNS / hosting architecture — SETTLED" bullet citing D-002/D-003.
+- `web/src/content/ledger.json` — inserted `black` tier between `steel` and `mithril`; updated header comment with D-007 pointer.
+- `web/src/content/geoffery-lines.json` — added `npc_geoffrey_no_relation` and `spelling_faq_short` keys.
+- `web/src/pages/about.astro` — added "A note on the spelling" + "Aren't you that flax farmer?" sections wired to the new copy lines.
+- `local/launch-checklist.md` — domain/Cloudflare TODO concretized; trademark task collapsed into a status update.
+**Affected agents**: product-lead (initiator, owns DECISIONS), growth-seo, ops, frontend, design-character.
+**Verification**: `./scripts/run.sh prod build` succeeds in 8.1s; about page renders the new sections; ledger source shows 8 tiers (rendered-empty state is unchanged because no names are loaded yet).
+
 ## 2026-06-11 — product-lead — SCOPE: LOCAL
 **Summary**: Agents now `git push` by default after committing. `.claude/prompts.md` renamed its section to "Commit + push discipline" and pinned the rules: `git push` no-args (uses tracked upstream `origin/main`), never `--force`, never `--no-verify`, retry once on transient failure then surface the error, do nothing if no upstream is tracked, never configure remotes on the user's behalf. `.claude/CHARTER.md` "Logging and commits" section retitled and aligned. The cache-bust + audit-trail value of CHANGELOG + git history only pays off when origin reflects HEAD; the prior "agent commits, user pushes" split was leaving the remote a step behind.
 **Files touched**:

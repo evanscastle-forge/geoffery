@@ -1,5 +1,5 @@
 {
-  "_about": "Donor wall. Edited manually at launch (charter tie-breaker: less maintenance). Tier names are generic metals; the sequence is the wink. Within-tier ordering is alphabetical — amounts stay anonymous (spec §4).",
+  "_about": "Donor wall. Edited manually at launch (charter tie-breaker: less maintenance). Tier sequence per DECISIONS.md D-007: bronze → iron → steel → black → mithril → adamant → rune → dragon (eight generic-metal names; the sequence is the wink). Within-tier ordering is alphabetical — amounts stay anonymous (spec §4).",
   "tiers": [
     {
       "key": "dragon",
@@ -23,6 +23,12 @@
       "key": "mithril",
       "label": "Mithril",
       "geoffery": "Of mithril standing.",
+      "names": []
+    },
+    {
+      "key": "black",
+      "label": "Black",
+      "geoffery": "Of black standing.",
       "names": []
     },
     {

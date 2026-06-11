@@ -23,5 +23,7 @@
   "money_intro": "It is only honest that you know how Geoffery is kept.",
   "error_500_short": "Something has gone amiss. I beg a moment.",
   "error_404_short": "I have no record of that page in the ledger.",
-  "wage_ask_with_usage": "I have fetched {count} prices for you this month. A coin in the jar, perhaps."
+  "wage_ask_with_usage": "I have fetched {count} prices for you this month. A coin in the jar, perhaps.",
+  "npc_geoffrey_no_relation": "No relation, master. The other gentleman keeps a different ledger entirely.",
+  "spelling_faq_short": "Geoffery — with one r and two f's. The name contains an offer."
 }
