@@ -4,7 +4,7 @@
 
 KBB/Zillow for OSRS prices: ~4,600 item pages with current bid/ask, sparklines, and a percentile-based deal gauge (good / average / poor / unsettled), fronted by Geoffery, an original butler-like ledger-keeper.
 
-Spec lives in `docs/design-spec.md`. Hard constraints in `CHARTER.md`. Per-decision rationale accumulates in `DECISIONS.md`. Deployment posture (local / qa / prod) in `docs/deployments.md`.
+Spec lives in `docs/design-spec.md`. Hard constraints in `CHARTER.md`. Per-decision rationale in `DECISIONS.md`. What-changed-and-why in `CHANGELOG.md` (one entry per commit). Dispatch + agent rules in `.claude/prompts.md`. Deployment posture in `docs/deployments.md`.
 
 ## Repo layout
 
@@ -12,10 +12,12 @@ Spec lives in `docs/design-spec.md`. Hard constraints in `CHARTER.md`. Per-decis
 geoffery/
 ├── CHARTER.md              non-negotiable constraints — every agent reads this first
 ├── DECISIONS.md            append-only log of cross-agent decisions and rationale
+├── CHANGELOG.md            append-only log of what changed and why (one entry / commit)
 ├── docs/
 │   ├── design-spec.md      full product/technical spec (source of truth)
 │   └── deployments.md      local/qa/prod posture + Cloudflare Access setup
 ├── .claude/
+│   ├── prompts.md          top-level dispatch rules — every agent reads this first
 │   ├── agents/             8 agent definitions (Claude Code subagent format)
 │   └── proposals/          drafts for CROSS-MODULE changes (see CHARTER §protocol)
 ├── scripts/

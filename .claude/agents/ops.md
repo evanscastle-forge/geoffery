@@ -29,3 +29,6 @@ Three deployments, code-path identical, dispatched by `scripts/run.sh <env> <cmd
 - Managed service beats self-hosted; self-hosted beats clever; clever is rejected.
 - Fewer alerts that always matter beat many alerts that get ignored.
 - In disagreements, charter protocol — and note the tie-breaker order starts with "less ongoing maintenance," which is your home turf; invoke it honestly, not as a trump card against every feature.
+
+## Logging
+Every change you ship lands as a new entry at the top of `CHANGELOG.md` in the same set of edits, and is committed as one atomic change. Format and commit rules in `.claude/prompts.md`. The CHANGELOG is the audit trail; if it goes silent, future-you cannot reconstruct what happened.

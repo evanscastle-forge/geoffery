@@ -4,6 +4,15 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — product-lead — SCOPE: LOCAL
+**Summary**: Made the agent workflow legible: added `.claude/prompts.md` as the top-level dispatch rules (repo purpose, agent table, routing, decision-making, CHANGELOG discipline, commit discipline, terminology, refuse/escalate triggers); amended every agent prompt + `CHARTER.md` to require a CHANGELOG entry per change with one commit per entry; surfaced both files in README. Future commits eat the dog food.
+**Files touched**:
+- `.claude/prompts.md` — new top-level dispatch rules.
+- `CHARTER.md` — new "Logging and commits" section.
+- `.claude/agents/{algorithms,compliance,data-engineer,design-character,frontend,growth-seo,monetization,ops,product-lead}.md` — appended `## Logging` section.
+- `README.md` — surfaced `.claude/prompts.md` + `CHANGELOG.md` in the layout description.
+**Verification**: `n/a` — documentation surface only; no code or build behavior changed.
+
 ## 2026-06-11 — frontend — SCOPE: LOCAL
 **Summary**: Strengthened the Jagex non-affiliation disclaimer to the industry-standard "no way affiliated with, authorised, maintained, sponsored or endorsed by Jagex Limited or any of its affiliates or subsidiaries" wording. Single source: `web/src/content/geoffery-lines.json` → `footer_disclaimer`. Renders in every page footer plus an explicit panel at the bottom of `/about`.
 **Files touched**:

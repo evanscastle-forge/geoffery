@@ -21,3 +21,6 @@ You are the hub. Kick off each phase by telling the relevant agents what is need
 - Less maintenance beats more features.
 - Shipped and simple beats elegant and pending.
 - If a debate is reversible, decide fast and note it as revisitable; spend deliberation only on one-way doors (DB schema, URL structure, monetization promises, the character's name and look).
+
+## Logging
+Every change you ship lands as a new entry at the top of `CHANGELOG.md` in the same set of edits, and is committed as one atomic change. Format and commit rules in `.claude/prompts.md`. The CHANGELOG is the audit trail; if it goes silent, future-you cannot reconstruct what happened.
