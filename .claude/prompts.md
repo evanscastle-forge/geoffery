@@ -82,9 +82,9 @@ Entry format (newest at top):
 
 **Trim the prose.** Three sentences is plenty for most entries. Bigger changes deserve a longer summary, but resist the temptation to write essays — anyone reading later wants the *why* in one read.
 
-## Commit discipline
+## Commit + push discipline
 
-After you append a CHANGELOG entry and finish the code edits, **commit them as one atomic change**. Each commit corresponds to one CHANGELOG entry.
+After you append a CHANGELOG entry and finish the code edits, **commit them as one atomic change AND push to the tracked upstream.** Each commit corresponds to one CHANGELOG entry; each commit is pushed before you hand control back to the user.
 
 ```bash
 git add -A
@@ -93,6 +93,7 @@ git commit -m "<summary line matching the CHANGELOG entry>
 
 <optional longer body if the entry warranted one>
 "
+git push                      # defaults to the tracked upstream of the current branch
 ```
 
 Rules:
@@ -100,10 +101,13 @@ Rules:
 - **Never commit secret-shaped values** (Stripe URLs, Fernet keys, API tokens). Refuse if asked to paste a secret into chat — direct the user to edit the file themselves.
 - **Commit message subject** is the first line, ≤72 chars, mirrors the CHANGELOG `Summary`.
 - **Do not amend a published commit.** If a hook fails, fix the issue and create a NEW commit.
-- **Do not push** unless the user explicitly asks. The local commit is the agent's responsibility; pushing is a user action.
+- **`git push` with no arguments.** It picks up the tracked upstream (currently `origin/main`). Never `--force` and never `--no-verify` — if a remote hook rejects, surface the rejection to the user and stop; do not bypass.
+- **If push fails for a recoverable reason** (network blip, transient auth refresh), retry once. If it still fails, leave the commit in place locally, surface the error to the user, and let them resolve. Do NOT undo the commit to "clean up."
+- **If no upstream is tracked** (fresh branch, no remote configured) — commit locally and tell the user that push was skipped because no upstream is set; do not configure remotes or branches on the user's behalf.
+- **Do not push to a branch other than the tracked upstream.** No cross-branch pushes, no `--set-upstream` to a new remote, no force-pushing main/master under any circumstance.
 - **One commit per logical change.** A coupled pair of edits in two files for one feature is one commit. Don't squash unrelated work into the same commit because it happens to be the same session.
 
-The `GEOFFERY_BUILD_VERSION` cache-bust token (in `<meta name="x-geoffery-build">` and asset URLs) reads `git rev-parse --short HEAD`, so each commit produces a fresh asset bust automatically. Skipping commits breaks that signal.
+The `GEOFFERY_BUILD_VERSION` cache-bust token (in `<meta name="x-geoffery-build">` and asset URLs) reads `git rev-parse --short HEAD`, so each pushed commit produces a fresh asset bust automatically. Skipping the push leaves origin stale.
 
 ## Terminology
 

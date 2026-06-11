@@ -25,11 +25,11 @@ When two or more agents disagree on a decision:
 5. **Escalate only true deadlocks.** If positions remain incompatible after steps 1–4, present both options to the Product Lead agent with the written analysis; the Product Lead decides and records the rationale in `.claude/DECISIONS.md`.
 6. **Record every resolved decision** in `.claude/DECISIONS.md` (decision, options considered, rationale, date) so no debate is repeated.
 
-## Logging and commits
+## Logging, commits, and pushing
 - **Every change ships with an entry at the top of `CHANGELOG.md`** in the format defined in `.claude/prompts.md` — same edit, same commit.
 - Each commit corresponds to one CHANGELOG entry. Commit-message subject mirrors the entry summary.
 - Never commit `.env*` files, anything under `local/`, or secret-shaped values. Refuse if asked to paste a secret in chat; direct the user to edit the file themselves.
-- Push is a user action; agents do not push.
+- **Push by default.** After committing, run `git push` (no arguments — uses the tracked upstream). Never `--force`, never `--no-verify`. If push fails, retry once; if it still fails, surface the error and leave the commit in place. Full rules in `.claude/prompts.md` "Commit + push discipline".
 
 ## Definition of MVP-done
 Search → item page → price + gauge + sparklines, mobile-first PWA, all ~4,600 items, sub-second cached loads, Geoffery dialogue component with core copy, tip jar live, ledger page live (fixed thresholds), methodology + how-we-make-money pages live, ads integrated tamely, data collector running for 30+ days, deploy + monitoring requiring no daily attention.

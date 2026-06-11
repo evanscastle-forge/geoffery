@@ -5,6 +5,13 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 ---
 
 ## 2026-06-11 — product-lead — SCOPE: LOCAL
+**Summary**: Agents now `git push` by default after committing. `.claude/prompts.md` renamed its section to "Commit + push discipline" and pinned the rules: `git push` no-args (uses tracked upstream `origin/main`), never `--force`, never `--no-verify`, retry once on transient failure then surface the error, do nothing if no upstream is tracked, never configure remotes on the user's behalf. `.claude/CHARTER.md` "Logging and commits" section retitled and aligned. The cache-bust + audit-trail value of CHANGELOG + git history only pays off when origin reflects HEAD; the prior "agent commits, user pushes" split was leaving the remote a step behind.
+**Files touched**:
+- `.claude/prompts.md` — "Commit discipline" → "Commit + push discipline"; full rule set rewritten.
+- `.claude/CHARTER.md` — "Logging and commits" → "Logging, commits, and pushing"; bullet rewritten.
+**Verification**: this commit is the dog food — it gets pushed.
+
+## 2026-06-11 — product-lead — SCOPE: LOCAL
 **Summary**: Moved `CHARTER.md` and `DECISIONS.md` from the repo root into `.claude/`, next to `prompts.md` and `agents/`. They are load-bearing agent material — every agent prompt reads the charter before acting and `product-lead` writes to decisions — so `.claude/` is their natural home. The repo root is now only files humans skim regularly (`README.md`, `CHANGELOG.md`). Every reference across agent prompts, prompts.md, proposals/README.md, README.md, and the charter's own text was rewritten to `.claude/CHARTER.md` / `.claude/DECISIONS.md` so future agents discover both regardless of which file they land in first. `git mv` preserved file history.
 **Files touched**:
 - `.claude/CHARTER.md`, `.claude/DECISIONS.md` — moved here via `git mv`.
