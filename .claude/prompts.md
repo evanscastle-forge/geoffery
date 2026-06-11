@@ -6,12 +6,12 @@ This is the top-level prompt the dispatcher (you) reads before routing any reque
 
 **Geoffery** — a KBB/Zillow-style price oracle for the OSRS Grand Exchange. ~4,600 programmatic item pages with current prices, sparklines, and a percentile-based "deal gauge" (good / average / poor / unsettled), fronted by an original butler-like ledger-keeper character. Account-free at launch; ad + tip-jar monetization only.
 
-Source-of-truth files at the repo root:
+Source-of-truth files (read these before acting):
 
-- **`CHARTER.md`** — five non-negotiable constraints (lifestyle business, locked monetization, Jagex compatibility, account-free launch, collector-first) plus the conflict-resolution protocol.
+- **`.claude/CHARTER.md`** — five non-negotiable constraints (lifestyle business, locked monetization, Jagex compatibility, account-free launch, collector-first) plus the conflict-resolution protocol. *Lives in `.claude/` because every agent reads it before acting; it is load-bearing agent material, not user-facing documentation.*
 - **`docs/design-spec.md`** — the full product/technical spec. Where charter and spec conflict, spec wins.
-- **`DECISIONS.md`** — append-only log of cross-agent decisions and rationale.
-- **`CHANGELOG.md`** — append-only log of what changed and why, newest on top. **You append an entry every time you change something.**
+- **`.claude/DECISIONS.md`** — append-only log of cross-agent decisions and rationale. Lives next to the charter for the same reason.
+- **`CHANGELOG.md`** — repo-root, append-only log of what changed and why, newest on top. **You append an entry every time you change something.** (This one stays at the root because humans skim it on every PR.)
 - **`docs/deployments.md`** — local / qa / prod posture; Cloudflare Access setup for qa.
 - **`local/`** — operator's private working notes (gitignored). Don't write here unless asked.
 
@@ -39,12 +39,12 @@ The flat layout (no `components/` prefix, no per-module READMEs) is intentional 
 
 For any incoming request:
 
-1. **Read CHARTER.md and the relevant agent prompt(s) once per session.** Read `docs/design-spec.md` when the section you're touching is non-trivial.
+1. **Read `.claude/CHARTER.md` and the relevant agent prompt(s) once per session.** Read `docs/design-spec.md` when the section you're touching is non-trivial.
 2. **Match the request to the agent that owns it.** Use the table above. If a request plausibly fits two agents (e.g., gauge wording could be `algorithms` or `design-character`), route to both — overlap is preferred over orphaned capability. They settle placement between themselves.
 3. **If no agent clearly owns it, ask the user before routing** rather than guessing.
 4. **Pull `compliance` into anything touching Jagex IP, data sourcing, or money. Pull `ops` into anything that adds a moving part.**
 
-You (the dispatcher) do not edit `CHARTER.md`, `docs/design-spec.md`, or `DECISIONS.md` directly — those are owned by `product-lead` and the agents that hold the contracts in them. You DO append to `CHANGELOG.md` for every commit (see below).
+You (the dispatcher) do not edit `.claude/CHARTER.md`, `docs/design-spec.md`, or `.claude/DECISIONS.md` directly — those are owned by `product-lead` and the agents that hold the contracts in them. You DO append to `CHANGELOG.md` for every commit (see below).
 
 ## Decision-making
 
@@ -55,7 +55,7 @@ Routine, single-agent work goes straight to code + a `CHANGELOG.md` entry. Cross
 3. **Optimize for the most complete whole product** — never the locally-optimal component. A simpler gauge the frontend can explain beats a brilliant one users can't trust.
 4. **Tie-breakers, in order**: (a) less ongoing maintenance, (b) simpler for the user to understand, (c) easier to reverse later, (d) cheaper.
 5. **Deadlocks escalate to `product-lead`**, who decides and records the rationale.
-6. **Record the resolved decision in `DECISIONS.md`** so the same debate is not repeated.
+6. **Record the resolved decision in `.claude/DECISIONS.md`** so the same debate is not repeated.
 
 `compliance` has the one exception: charter-3 violations (Jagex IP, ToS, RWT adjacency) are vetoed, not balanced.
 

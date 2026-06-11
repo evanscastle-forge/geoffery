@@ -5,10 +5,21 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 ---
 
 ## 2026-06-11 — product-lead — SCOPE: LOCAL
-**Summary**: Made the agent workflow legible: added `.claude/prompts.md` as the top-level dispatch rules (repo purpose, agent table, routing, decision-making, CHANGELOG discipline, commit discipline, terminology, refuse/escalate triggers); amended every agent prompt + `CHARTER.md` to require a CHANGELOG entry per change with one commit per entry; surfaced both files in README. Future commits eat the dog food.
+**Summary**: Moved `CHARTER.md` and `DECISIONS.md` from the repo root into `.claude/`, next to `prompts.md` and `agents/`. They are load-bearing agent material — every agent prompt reads the charter before acting and `product-lead` writes to decisions — so `.claude/` is their natural home. The repo root is now only files humans skim regularly (`README.md`, `CHANGELOG.md`). Every reference across agent prompts, prompts.md, proposals/README.md, README.md, and the charter's own text was rewritten to `.claude/CHARTER.md` / `.claude/DECISIONS.md` so future agents discover both regardless of which file they land in first. `git mv` preserved file history.
+**Files touched**:
+- `.claude/CHARTER.md`, `.claude/DECISIONS.md` — moved here via `git mv`.
+- `.claude/prompts.md` — source-of-truth list updated to reflect new locations with a comment explaining why they live in `.claude/`.
+- `.claude/agents/*.md` (×9) — bare `CHARTER.md` / `DECISIONS.md` references rewritten with the `.claude/` prefix.
+- `.claude/proposals/README.md` — same rewrite.
+- `README.md` — repo-layout ascii block updated; charter / decisions move into the `.claude/` subtree.
+- `CHANGELOG.md` — this entry; retroactive seed entries also touched up where they named the old paths.
+**Verification**: `grep -rE '(CHARTER|DECISIONS)\.md'` confirms every reference now resolves through `.claude/`; the only remaining bare names are inside the README ascii tree, which is intentional (labels in a directory listing, not paths).
+
+## 2026-06-11 — product-lead — SCOPE: LOCAL
+**Summary**: Made the agent workflow legible: added `.claude/prompts.md` as the top-level dispatch rules (repo purpose, agent table, routing, decision-making, CHANGELOG discipline, commit discipline, terminology, refuse/escalate triggers); amended every agent prompt + `.claude/CHARTER.md` to require a CHANGELOG entry per change with one commit per entry; surfaced both files in README. Future commits eat the dog food.
 **Files touched**:
 - `.claude/prompts.md` — new top-level dispatch rules.
-- `CHARTER.md` — new "Logging and commits" section.
+- `.claude/CHARTER.md` — new "Logging and commits" section.
 - `.claude/agents/{algorithms,compliance,data-engineer,design-character,frontend,growth-seo,monetization,ops,product-lead}.md` — appended `## Logging` section.
 - `README.md` — surfaced `.claude/prompts.md` + `CHANGELOG.md` in the layout description.
 **Verification**: `n/a` — documentation surface only; no code or build behavior changed.
@@ -47,13 +58,13 @@ The two entries below describe work that landed in the repo's initial commit, be
 - `web/src/pages/robots.txt.ts` — deployment-aware robots.txt.
 - `docs/deployments.md` — Cloudflare Access setup, behavior matrix.
 - `.claude/agents/ops.md` — deployment posture section.
-- `DECISIONS.md`, `README.md`, `pipeline/README.md` — updates.
+- `.claude/DECISIONS.md`, `README.md`, `pipeline/README.md` — updates.
 - `.gitignore` — exclude all three filled env files.
 **Affected agents**: ops (initiator), data-engineer, frontend, monetization.
 **Verification**: built all three envs in sequence; verified robots/canonical/sitemap/banner/tip-jar matrix against the build matrix in `docs/deployments.md`; `uv run pytest` still passes 4/4.
 
 ## 2026-06-11 — product-lead — SCOPE: CROSS-MODULE
-**Summary**: Initial Geoffery MVP. Repo scaffolded: `CHARTER.md`, `docs/design-spec.md`, eight agent prompts under `.claude/agents/`, `.claude/proposals/` for cross-module changes, `DECISIONS.md`. `pipeline/` (uv) runs the OSRS Wiki API collector, computes percentile-based deal-gauge aggregates, polls the OSRS news RSS, and exports JSON snapshots. `web/` (Astro) static-generates ~4,600 item pages + chrome (search, methodology, how-we-make-money, ledger, about, 404), with Geoffery dialogue component, tip jar dialog, PWA manifest + service worker. Charter constraint 5 honoured: collector lives before anything else.
+**Summary**: Initial Geoffery MVP. Repo scaffolded: `.claude/CHARTER.md`, `docs/design-spec.md`, eight agent prompts under `.claude/agents/`, `.claude/proposals/` for cross-module changes, `.claude/DECISIONS.md`. `pipeline/` (uv) runs the OSRS Wiki API collector, computes percentile-based deal-gauge aggregates, polls the OSRS news RSS, and exports JSON snapshots. `web/` (Astro) static-generates ~4,600 item pages + chrome (search, methodology, how-we-make-money, ledger, about, 404), with Geoffery dialogue component, tip jar dialog, PWA manifest + service worker. Charter constraint 5 honoured: collector lives before anything else.
 **Files touched**: ~70 files across `.claude/`, `docs/`, `pipeline/`, `web/`, root.
 **Affected agents**: all eight.
 **Verification**: pipeline collected 4,572 items, 4,420 latest prices, 1,588 active 5m buckets; aggregates computed for all items (unsettled until 30d history accrues, as designed); news poller pulled 15 RSS entries; Astro build produced 4,578 pages in 7.4s; `uv run pytest` passes 4/4 (gauge math: thin-history / good / poor / news-forces-unsettled).

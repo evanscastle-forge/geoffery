@@ -9,7 +9,7 @@ Drafts for CROSS-MODULE changes — anything that requires coordinated edits by 
 - A new Geoffery dialogue state. (design-character + frontend + algorithms)
 - Anything Compliance flags before art/branding is commissioned.
 
-LOCAL changes (single agent, internal detail) skip this and go straight to the relevant code + a one-line `DECISIONS.md` entry only if the choice is interesting.
+LOCAL changes (single agent, internal detail) skip this and go straight to the relevant code + a one-line `.claude/DECISIONS.md` entry only if the choice is interesting.
 
 ## Format
 
@@ -33,4 +33,4 @@ concrete diff or spec
 how to undo if it goes sideways
 ```
 
-Once every affected agent has signed off (`## RATIFY — <agent> — <date>` appended to the file), move to `accepted/` and add an entry to `DECISIONS.md`.
+Once every affected agent has signed off (`## RATIFY — <agent> — <date>` appended to the file), move to `accepted/` and add an entry to `.claude/DECISIONS.md`.

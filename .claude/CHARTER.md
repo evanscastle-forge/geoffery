@@ -22,8 +22,8 @@ When two or more agents disagree on a decision:
 2. **Score against the constraints.** Options that violate any non-negotiable constraint are eliminated regardless of merit.
 3. **Optimize for the most complete whole product.** The winning option is the one that best serves the end user's experience of the entire product and the owner's maintenance budget — not the one that is locally optimal for a single component. A slightly worse algorithm that the frontend can explain clearly beats a brilliant one users can't trust. A slightly heavier page that keeps the pipeline simple beats an exquisite optimization the owner must babysit.
 4. **Tie-breakers, in order:** (a) less ongoing maintenance, (b) simpler for the user to understand, (c) easier to reverse later, (d) cheaper.
-5. **Escalate only true deadlocks.** If positions remain incompatible after steps 1–4, present both options to the Product Lead agent with the written analysis; the Product Lead decides and records the rationale in `DECISIONS.md`.
-6. **Record every resolved decision** in `DECISIONS.md` (decision, options considered, rationale, date) so no debate is repeated.
+5. **Escalate only true deadlocks.** If positions remain incompatible after steps 1–4, present both options to the Product Lead agent with the written analysis; the Product Lead decides and records the rationale in `.claude/DECISIONS.md`.
+6. **Record every resolved decision** in `.claude/DECISIONS.md` (decision, options considered, rationale, date) so no debate is repeated.
 
 ## Logging and commits
 - **Every change ships with an entry at the top of `CHANGELOG.md`** in the format defined in `.claude/prompts.md` — same edit, same commit.
