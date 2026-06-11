@@ -1,0 +1,32 @@
+This style is a very specific, nostalgic aesthetic that combines the low-fidelity character modeling of the mid-2000s with classic text-based RPG interface design.
+
+To reproduce it, you need to prompt for a highly distinct mixture of factors. Here are two detailed prompts designed to achieve this specific look.
+
+The "Core Aesthetic" Prompt Formula
+The key to this style is combining terms for the game technology with specific character traits and interface design. Use this formula and adapt the character details for your new creation.
+
+Character Portrait Prompt:
+
+"A close-up 3D model portrait of a classic 2007-era Java game character. The character is a [Insert Description: e.g., dwarf with a white braided beard and a long red nose]. They must feature a very specific vintage low-poly aesthetic, with aliased, unfiltered, and jagged edges on the geometry. The textures are pixelated, simple, and flat-shaded, without any modern smooth lighting. The character must be wearing a simple, rigid, solid blue paper party hat (like from a Christmas cracker). The character faces a three-quarter left perspective, with a simple black pince-nez spectacle on their nose. Isolated on a neutral dark grey background."
+
+Understanding the Key Descriptors
+To get the exact style from the image, pay attention to these descriptors and why they are included:
+
+"Vintage Low-Poly" / "Vintage 2007-era Java Game": This prevents the AI from generating modern, stylized, or smoothed low-poly models and pushes it toward the specific aesthetic constraints of early MMOs.
+
+"Aliased" / "Unfiltered" / "Jagged Edges": This is crucial. It forces the AI to output that raw, sharp, unfiltered pixel look, rather than modern anti-aliased smooth edges. It's the most powerful instruction for this specific aesthetic.
+
+"Pixelated and Simple Textures": Defines the texture quality, ensuring they are not complex or photorealistic.
+
+"Flat-Shaded without modern lighting": Removes soft gradients, shadows, and reflections that make models look modern, ensuring the shading is hard and geometric.
+
+"Rigid, Solid Blue Paper Party Hat": This specific item is a core icon of the look and helps anchor the nostalgic feeling.
+
+The Black Background: Standard background for a technical object showcase, matching your sample.
+
+How to Prompt for the Entire Chatbox View
+If you want the full interface view (the three-stacked boxes), you need to combine the character prompt above with an interface description. This is more complex, but here is how you can phrase it:
+
+Complete Chat Interface Prompt:
+
+"A digital recreation of a classic mid-2000s MMO chat interface, featuring three identical, stacked text panels. Each panel is made of aged, beige parchment with a dark, stone-textured border. On the far left of all three panels is the identical low-poly, un-antialiased character portrait of [Description from above, including the paper hat and spectacle]. Above the portrait in all three boxes is the name "Geoffery" in red, Old English font. To the right of the portrait, the text in grey reads "My ledger tracks all current market prices..." with "Click here to continue" below in blue. The background is a plain dark grey, with a fourth, separate three-quarter view of the full head model positioned to the far right. The overall image has a raw, unfiltered 2007 game screenshot aesthetic."

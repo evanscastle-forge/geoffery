@@ -4,6 +4,14 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — data-engineer — SCOPE: LOCAL
+**Summary**: Added `pipeline/src/geoffery_pipeline/backfill.py` to fetch historical `/5m` buckets from the wiki API by walking the timestamp parameter backward from now. Idempotent (REPLACE INTO), resumable (`--resume` default — picks up from the oldest existing bucket so re-running a partial doesn't re-burn the rate budget), and wiki-polite (1 req/s sustained, 2s pause every 100 requests, descriptive User-Agent). The gauge uses a 30-day window, so without backfill every reading is "unsettled (thin-history)" until 30 calendar days of live collection accrue; with backfill, the gauges become real on day one. Exposed via `./scripts/run.sh <env> backfill --days N`.
+**Files touched**:
+- `pipeline/src/geoffery_pipeline/backfill.py` — new module.
+- `scripts/run.sh` — `backfill` dispatcher command.
+**Verification**: ran `./scripts/run.sh local backfill --days 1` → 268 requests, 391,548 rows written in ~6 min. Re-ran `aggregates` + sampled twisted-bow: 121 samples, p25/p50/p75 populated, current price computed at percentile 0.55 — the gauge math now resolves to a real band; the live `band='unsettled'` is the news-blanket rule (3 recent news entries within 3-day lookback) which is the designed behaviour until per-item category mapping lands.
+**Follow-on**: owner runs `./scripts/run.sh local backfill --days 30` overnight (~2.4 hours at 1 req/s) to fill the full gauge window. Cron-jobbing this is unnecessary — backfill is one-shot; the live collector keeps history forward.
+
 ## 2026-06-11 — frontend + growth-seo — SCOPE: CROSS-MODULE
 **Summary**: Renamed chrome URLs so they match their nav labels: `/how-we-rate` → `/methodology`, `/how-we-make-money` → `/wages`. Logged the convention as D-014. Old URLs 301 to new at three layers: Astro `redirects` config (HTTP 301 in preview/local), Cloudflare Pages `_redirects` (true 301 at the edge in prod), and an HTML meta-refresh as host-agnostic fallback. Service worker `VERSION` bumped to `v2` so stale shell caches with the old paths are invalidated on next visit.
 **Files touched**:

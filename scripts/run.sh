@@ -17,6 +17,8 @@
 #           collect       — one-shot price ingestion
 #           aggregates    — recompute gauges
 #           news          — poll news RSS
+#           backfill      — fetch historical /5m buckets from the wiki
+#                           (use `--days N` to control horizon; resumable)
 #           export        — write JSON snapshots for the frontend
 #           cron          — collect + aggregates + news + export, in order
 #           build         — astro build (uses GEOFFERY_SITE_URL)
@@ -166,6 +168,10 @@ case "${CMD}" in
     collect)    run_pipeline collect ;;
     aggregates) run_pipeline aggregates ;;
     news)       run_pipeline news_poller ;;
+    backfill)
+        cd "${REPO_ROOT}/pipeline"
+        uv run python -m geoffery_pipeline.backfill "$@"
+        ;;
     export)
         cd "${REPO_ROOT}/pipeline"
         uv run python -m geoffery_pipeline.export "${REPO_ROOT}/web/src/content/generated"
