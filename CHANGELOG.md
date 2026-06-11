@@ -4,6 +4,23 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — design-character + frontend — SCOPE: LOCAL
+**Summary**: Chrome housekeeping bundle. (1) Nav renamed and reordered: `Home` (new) · `Patrons` (was `Ledger`) · `Methodology` · `Tip jar` (was `Wages`). (2) Page files renamed via `git mv`: `ledger.astro` → `patrons.astro`, `wages.astro` → `tip-jar.astro`. (3) Redirects added at all three layers (Astro config, Cloudflare `_redirects`, meta-refresh fallback) so `/ledger`, `/wages`, `/how-we-make-money` all resolve to the new URLs. SW `VERSION` bumped to `v3` to invalidate stale shell caches. (4) `Tip jar` nav link no longer navigates — JS handler in `TipJar.astro` intercepts clicks on `a[href="/tip-jar"]` and opens the existing dialog, matching the bottom-right floating icon's behaviour. The `/tip-jar` page still renders for users without JS and for search engines. (5) Methodology page trimmed: removed the "When the figures are unsettled" enumeration, the "What Geoffery never does" list, and the "Sources" block — those reasons surface on the item page itself when the gauge is unsettled (the methodology page now just defines the four bands). (6) Added an agent-guidance section to `design-character.md` directing future agents to borrow heavily from the OSRS Wiki (https://oldschool.runescape.wiki/) — layout grammar (infobox-right + body-left), tabular density, editorial voice for non-Geoffery prose, internal-linking conventions. The wiki is community-owned (not Jagex) and our blessed price source (D-009), so its conventions sit inside the "rhyme, don't quote" rule.
+**Files touched**:
+- `web/src/pages/ledger.astro` → `web/src/pages/patrons.astro` (git mv).
+- `web/src/pages/wages.astro` → `web/src/pages/tip-jar.astro` (git mv).
+- `web/src/layouts/Base.astro` — nav reordered, `Home` added, labels updated.
+- `web/src/components/TipJar.astro` — progressive-enhancement handler on `a[href="/tip-jar"]`.
+- `web/astro.config.mjs` — `/ledger → /patrons`, `/wages → /tip-jar`, `/how-we-make-money → /tip-jar`.
+- `web/public/_redirects` — same rules at the Cloudflare edge.
+- `web/public/sw.js` — VERSION `v2 → v3`, SHELL paths updated.
+- `web/src/pages/methodology.astro` — three sections removed.
+- `.claude/agents/design-character.md` — new "Borrow heavily from the OSRS Wiki" section.
+**Affected agents**: design-character (initiator), frontend, growth-seo.
+**Verification**: `./scripts/run.sh prod build` succeeds; all five new chrome pages serve 200; old URLs serve a redirect to the new URL; nav renders Home / Patrons / Methodology / Tip jar in that order.
+
+---
+
 ## 2026-06-11 — design-character + frontend — SCOPE: CROSS-MODULE
 **Summary**: Palette overhaul to **OSRS Chatbox Modern**. Page chrome stays dark warm (#1f1d18) but content lives on flat aged-parchment panels (`--c-parchment` #dccba0) with dark stone borders and brick-red headings (`--c-parchment-red` #8c2b1f). Body ink on parchment is near-black with warm cast (`--c-parchment-ink` #1a1610); in-panel links are muted blue (#22468f). Gold accent recalibrated (`--c-accent` #c89a3c). Per the compliance rule (D-008, "rhyme don't quote"): colour system only, no paper texture, no stone-bevel border-image, no blackletter — the brick-red on cream + dark border carries the OSRS callback typographically. New `.panel` wrapper applied to body content on `/item/<slug>`, `/methodology`, `/wages`, `/ledger`, `/about`; the dialogue component is itself a parchment panel and carries the homepage. Reference assets the user supplied (Gemini-generated panel mock + close-up screenshot) committed alongside the change for future calibration. Supersedes the Editorial Ledger pass from earlier today.
 **Files touched**:

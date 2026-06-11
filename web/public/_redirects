@@ -4,4 +4,6 @@
 # Per D-004: every non-canonical URL 301s to the canonical one.
 
 /how-we-rate          /methodology          301
-/how-we-make-money    /wages                301
+/how-we-make-money    /tip-jar              301
+/wages                /tip-jar              301
+/ledger               /patrons              301

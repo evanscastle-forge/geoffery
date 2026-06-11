@@ -118,14 +118,21 @@ const configured = isProd && linksFilled;
   const dlg = document.getElementById('tip-jar-panel') as HTMLDialogElement;
   const btn = document.getElementById('tip-jar-toggle')!;
   const close = document.getElementById('tip-close')!;
-  btn.addEventListener('click', () => {
+  function open() {
     btn.setAttribute('aria-expanded', 'true');
     if (typeof dlg.showModal === 'function') dlg.showModal();
     else dlg.setAttribute('open', '');
-  });
+  }
+  btn.addEventListener('click', open);
   close.addEventListener('click', () => {
     btn.setAttribute('aria-expanded', 'false');
     dlg.close();
   });
   dlg.addEventListener('close', () => btn.setAttribute('aria-expanded', 'false'));
+  // Progressive enhancement: any link to /tip-jar opens the dialog
+  // instead of navigating. The /tip-jar page still renders for users
+  // without JS and for search engines.
+  document.querySelectorAll<HTMLAnchorElement>('a[href="/tip-jar"]').forEach((a) => {
+    a.addEventListener('click', (e) => { e.preventDefault(); open(); });
+  });
 </script>

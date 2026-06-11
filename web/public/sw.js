@@ -1,7 +1,7 @@
 // Service worker: cache the shell, network-first for prices/search index.
 // Charter: tame, minimal moving parts. Bump VERSION on shape changes.
-const VERSION = 'v2';
-const SHELL = ['/', '/methodology', '/wages', '/ledger', '/about', '/manifest.webmanifest'];
+const VERSION = 'v3';
+const SHELL = ['/', '/methodology', '/tip-jar', '/patrons', '/about', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

@@ -19,7 +19,9 @@ export default defineConfig({
   integrations,
   redirects: {
     '/how-we-rate': '/methodology',
-    '/how-we-make-money': '/wages',
+    '/how-we-make-money': '/tip-jar',
+    '/wages': '/tip-jar',
+    '/ledger': '/patrons',
   },
   build: {
     inlineStylesheets: 'auto',
