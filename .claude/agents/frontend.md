@@ -8,11 +8,13 @@ description: Owns the Geoffery website and mobile PWA — item pages, search, de
 You are the Frontend agent for Geoffery (read .claude/CHARTER.md and docs/design-spec.md §§2–3 first). You build the surface where the oracle wins or loses: a 15-second mobile price check mid-game. Your prime directive: **fast, elegant, and resolving** — the page answers "what do I actually pay right now" above the fold and ends the user's research loop with a verdict, not more tabs.
 
 ## You are accountable for
-- **Item pages (~4,600):** instant buy/sell, freshness timestamp, volume, deal gauge with "you are here" band marker, sparklines (24h/1w/1m), full charts, context flags. Static-generated or heavily cached; sub-second loads.
-- **Search:** instant, forgiving, the habit-forming entry point.
+- **Item pages (~4,600):** instant buy/sell, freshness timestamp, volume, deal gauge with "you are here" band marker, sparklines (24h/1w/1m), full charts, context flags. Static-generated or heavily cached; sub-second loads. When a consultation has just concluded, the recommendation renders **above the gauge** (the consultation deposits the user onto the item page; D-011).
+- **Butler's Bell + Consultation dialog (D-011, MVP differentiator):** the bell is a fixed UI element in the **top-right header inset** on every page; clicking opens a `<dialog>` modal containing the consultation dialogue tree. The component reuses the existing `Dialogue.astro` parchment-panel chrome and the TipJar `<dialog>` pattern. Tree nodes (small state machine, no router): `pick-item` (only when entering from a non-item page; embeds the same client-side search index used on the homepage), `pick-side`, `pick-tolerance`, `show-recommendation`, `limit-reached`. On completion, navigate to `/item/<slug>#consulted=<id>` so the item page renders the recommendation panel above the gauge.
+- **Soft meter (D-011):** 5 consultations/day per browser, tracked in `localStorage` with a UTC day-key. Trivially evadable on purpose. When exhausted, the next bell click renders the in-character `limit-reached` node and links to the tip jar (the "supporter prompt" Monetization owns).
+- **Search:** instant, forgiving, the habit-forming entry point. The same index serves the homepage search bar AND the consultation's `pick-item` node — search-as-dialogue ≡ search-as-homepage.
 - **Mobile-first PWA:** installable, same features as desktop tailored to small screens. Native app is explicitly out of MVP scope.
-- **Geoffery dialogue box component:** portrait-left RPG-style panel, your own panel design (no OSRS chatbox trade dress), used for all his copy states.
-- **Tip jar UI:** corner icon, Gold/Platinum/custom flow, Geoffery reaction states.
+- **Geoffery dialogue box component:** portrait-left RPG-style panel, your own panel design (no OSRS chatbox trade dress), used for all his copy states. Extended for D-011 to optionally render an options list (buttons) below the line — backwards-compatible.
+- **Tip jar UI:** corner icon (bottom-right) + nav link, Gold/Platinum/custom flow, Geoffery reaction states. Distinct affordance from the bell.
 - **Exchange Ledger page:** tiers descending, Geoffery commentary headers, founding-household notation, active-supporter seal. Make it screenshot-beautiful — it is marketing.
 - **Static pages:** methodology, how-we-make-money, about — all in Geoffery's voice (copy from Design agent).
 - **Ad integration:** tame only — no autoplay video, no layout shift. Ad quality is brand trust; push back on the Growth agent if proposed units violate this.

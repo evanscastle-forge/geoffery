@@ -50,8 +50,66 @@ Status values:
 **Status:** Locked.
 
 ## D-010 · MVP scope boundary
-**Decision:** MVP = item pages (search, prices, sparklines, deal gauge with unsettled state), mobile-first PWA, Geoffery dialogue component + ~25 core copy lines, tip jar, ledger page (fixed thresholds), methodology + money pages, tame ads, monitoring. Explicitly deferred: accounts, alerts, watchlists, Supporter/Patron billing, share cards, sentiment features, native app, percentile ledger, Discord anything.
+**Decision:** MVP = item pages (search, prices, sparklines, deal gauge with unsettled state), mobile-first PWA, Geoffery dialogue component + ~25 core copy lines, tip jar, ledger page (fixed thresholds), methodology + money pages, tame ads, monitoring, **plus the Butler's Bell consultation engine (D-011): bell UI on every page, full buy/sell dialogue trees, recommendation engine, 2×2 market-regime classifier, accuracy scorer, backtest-published track record, soft daily meter.** Explicitly deferred: accounts, alerts, watchlists, Supporter/Patron billing, share cards, sentiment features, native app, percentile ledger, Discord anything, hard meter enforcement, unlimited-bell-for-supporters (slots into D-006 supporter billing when accounts ship).
 **Status:** Locked.
+**Amendment 2026-06-11:** Bell + consultation engine entered MVP scope; they are the differentiator (D-011 rationale). Launching without them ships another reference dashboard.
+
+---
+
+## D-011 · The Butler's Bell consultation (MVP differentiator)
+**Decision:** The product's signature feature is a persistent, context-aware NPC-dialogue consultation in which Geoffery converts the user's intent (buy/sell) and time tolerance into a concrete recommended price, backed by a continuously measured accuracy record. Interface paradigm: competitors are dashboards (data the user must interpret); Geoffery is a conversation (intent in, answer out), rendered as an OSRS-native dialogue tree — a UI pattern the entire audience has pre-learned.
+
+**Entry points (one tree, context-aware):**
+- Bell is a fixed UI element on **every page** (top-right header inset; opens a dialog modal).
+- From an item page: item context is pre-filled; dialogue opens at the buy/sell node ("Ah, the Twisted bow. Buying or selling, [sir]?").
+- From any non-item page: dialogue opens one node earlier — "Which item shall we discuss?" — with item search rendered **inside** the dialogue panel. Search-as-dialogue makes the homepage's primary interaction and the consultation the same component.
+- Every consultation **ends on the item page** with the recommendation displayed above the gauge/charts. Consultations deposit users onto ad-bearing, SEO-relevant pages; the reference layer and consultation layer reinforce each other.
+
+**Dialogue trees:**
+- **Buy branch:** item → "When do you need it?" → [Right now / I can wait a few hours / I can wait a long time] → recommendation.
+- **Sell branch:** item → urgency framed around the coin, not the goods ("How swiftly does sir require the gold?") → same three tolerance classes → recommendation. The sell branch uses **distinct language throughout**; Geoffery may be knowing about urgent sales.
+- **Recommendation node** includes: recommended price (rounded), measured fill confidence in character ("Offers so placed have filled nine times in ten within the hour"), market-state coloring from the regime.
+
+**Market-state characterization (2×2 regime):**
+- **Power axis:** buyer's market vs. seller's market (price trend + spread asymmetry).
+- **Stability axis:** steady vs. volatile (volatility/volume z-score against the item's own baseline; generalization of the prior "unsettled" flag — "volatile" is its replacement).
+- Regime colors Geoffery's advice ("A seller's market, and a volatile one — patience may not be rewarded this week") and feeds the recommendation engine's calibration buckets.
+
+**Recommendation engine:**
+- Targets a **fill probability**, not a best price. Indicative targets: 95% (instant), 85% (hours), 75% (patient) — tunable per tolerance × liquidity × regime.
+- Implementation: instant ≈ current insta-buy/sell; hours ≈ percentile of recent fill distribution (p20 buy / p80 sell, regime-adjusted); patient ≈ favorable band edge (p10 / p90, liquidity-adjusted) — all derived from existing collector aggregates.
+
+**Price rounding rule (binding, product-wide):**
+- All recommended prices round to **no more than 4 significant figures** (1,594,231 → 1,594,000; 23,847 → 23,850).
+- Rounding direction favors fill: **buys round up, sells round down** to the nearest 4-sig-fig step.
+- The accuracy scorer evaluates the rounded price as shown to the user, never the internal unrounded value.
+- Rule applies to recommended/suggested prices everywhere; live market data on item pages may remain exact.
+
+**Accuracy ledger (the moat):**
+- Every consultation logs a falsifiable prediction at the moment it is given: item, side, rounded recommended price, tolerance class, timestamp, regime label.
+- A scorer evaluates each prediction against subsequent wiki 5-minute data: did the price series trade through the recommended level with nonzero volume within the tolerance window (indicative: instant ≈ immediate; hours ≈ 4–8h; patient ≈ 48–72h — tunable)? No user feedback required.
+- Outcomes feed back into engine offsets (weekly calibration), surface as in-dialogue confidence statements, and publish as a site-wide and per-item fill-rate track record on `/methodology`. The published record is the trust asset competitors cannot quickly replicate.
+- **Cold start:** before launch, backtest the recommendation rules against the collector's accumulated history so Geoffery opens with a defensible record. This compounds the collector-first rule (D-009 / charter constraint 5).
+- The accuracy log IS Geoffery's ledger. Character prop and feedback loop are the same object; copy treats them as such.
+
+**Free allowance & metering (MVP, account-free):**
+- Soft meter: 5 consultations/day tracked via localStorage. Trivially evadable; the limit's job at MVP is to establish the norm, not to enforce.
+- Limit delivered in character ("I have attended sir thrice today. Even I must rest the quill.") and doubles as the natural in-context supporter prompt.
+- Hard enforcement and unlimited-bell for supporters arrive with accounts post-MVP, per D-010's boundary. The consultation is a personal service, so paywalling unlimited access is fully consistent with the locked "free = the market, paid = you" model (D-006). The reference layer remains free forever.
+
+**Affected agents:** algorithms (recommendation engine, regime classifier, scorer, calibration, rounding), frontend (bell, dialogue component with embedded search, ends-on-item-page flow, soft meter), design-character (full buy/sell tree copy with distinct sell-branch language, regime descriptors, limit-reached lines, confidence phrasing), data-engineer (consultation log, prediction outcomes, regime snapshots), monetization (limit as supporter prompt, unlimited-bell as benefit).
+**Status:** Locked. The consultation engine, accuracy scorer, regime classifier, bell UI, and dialogue component are the MVP differentiator.
+
+## D-012 · Prescriptiveness amendment ("prescriptive only where measured")
+**Decision:** The previously-locked principle "descriptive, never prescriptive" (algorithms agent prime directive) is amended to **"prescriptive only where measured."** Geoffery may say "I recommend X" if and only if that class of recommendation is logged, scored, and has a published fill rate; the measured record is what earns the right to recommend. The butler framing preserves the social contract (a butler advises; the master decides), and the user's tolerance choice preserves their agency in the outcome. Unmeasured judgments remain descriptive only (the deal gauge stays descriptive; the consultation's recommendation node becomes prescriptive once calibration has enough samples).
+**Rationale:** Without measurement we'd be a guess; with measurement we're a butler. The amendment is conservative — it requires the moat (calibration data) to exist before allowing the prescriptive voice, and so it cannot be abused.
+**Status:** Locked. Supersedes the prior version of the algorithms agent's prime directive.
+
+## D-015 · Cloudflare Pages Functions + D1 for consultation logging
+**Decision:** Live consultations log globally via a Cloudflare Pages Function (`/api/consult`) writing to Cloudflare D1. Same Cloudflare account already chosen for hosting per D-003; D1 is in-stack. Pages Functions are zero-additional-host (Pages already deploys the static site). Free tier covers expected MVP traffic (5 consultations/day × ~1k DAU at launch = ~5k writes/day, well inside D1's daily free quota).
+**Rationale:** Without global logging, the published fill-rate track record is per-user-only — that defeats the moat. The Ops "additional moving parts" tax is paid because the feature IS the moat (D-011 rationale). Backtest seeds the track record at cold start; live logging compounds it after launch.
+**Affected agents:** ops (adds D1 + Pages Function as managed moving parts; monitoring via Cloudflare dashboards), data-engineer (mirrors D1 schema locally for offline scoring), frontend (POSTs to `/api/consult` after each consultation).
+**Status:** Locked. Sync direction: D1 is the source of truth for raw consultations; local pipeline pulls them for scoring; outcomes write back to D1; the static-site build reads aggregated calibration from local SQLite (already exported).
 
 ---
 

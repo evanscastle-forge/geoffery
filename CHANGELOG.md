@@ -4,6 +4,20 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — product-lead — SCOPE: CROSS-MODULE
+**Summary**: D-011 "The Butler's Bell" enters MVP scope as the product's differentiating feature. The bell is a fixed UI element on every page; clicking opens a consultation dialogue tree that converts user intent (buy/sell + time tolerance) into a concrete recommended price, backed by a continuously measured accuracy record. Companion decisions: D-012 amends the "descriptive, never prescriptive" rule to **"prescriptive only where measured"** — Geoffery may recommend when the recommendation class is logged, scored, and has a published fill rate. D-015 commits the implementation runtime to Cloudflare Pages Functions + D1 (already in-stack per D-003). D-010 is amended to include bell + consultation + regime classifier + scorer + backtest-published record in MVP. Five agent prompts updated to absorb their new responsibilities — algorithms (regime + recommend + scorer + 4-sig-fig rounding), frontend (Bell + Consultation dialog + Meter), design-character (full buy/sell trees with distinct sell-branch language + regime descriptors + limit copy), data-engineer (consultation + outcomes + calibration tables; D1 sync), monetization (limit as supporter prompt, unlimited bell as headline supporter benefit). This is governance only; Phase 2 (pipeline modules) and beyond land in subsequent commits.
+**Files touched**:
+- `.claude/DECISIONS.md` — D-010 amended; D-011, D-012, D-015 added.
+- `.claude/agents/algorithms.md` — prime directive updated; new ownership of regime + recommend + scorer + rounding + backtest.
+- `.claude/agents/frontend.md` — Bell + Consultation + Meter accountabilities; search-as-dialogue equivalence noted.
+- `.claude/agents/design-character.md` — bell-icon discipline; consultation copy surface defined; sell-branch distinct-language rule + recommendation-gating rule per D-012.
+- `.claude/agents/data-engineer.md` — consultation + outcomes + calibration + D1 sync; heartbeat extends to scorer + d1_sync jobs.
+- `.claude/agents/monetization.md` — bell limit as supporter prompt; unlimited bell as supporter benefit.
+**Affected agents**: product-lead (initiator), algorithms, frontend, design-character, data-engineer, monetization, ops (D-015 adds D1 + Functions as managed moving parts), compliance (bell icon IP review).
+**Verification**: documentation surface only; no code, build, or behavior changed. Existing tests still pass. Plan file `/Users/evancastle/.claude/plans/in-this-folder-are-snuggly-melody.md` carries the implementation sequencing for Phases 2–5.
+
+---
+
 ## 2026-06-11 — algorithms + data-engineer — SCOPE: CROSS-MODULE
 **Summary**: News articles now influence the gauge **per item, not as a blanket**. New `news_matcher` module compiles one alternation regex over all sufficiently-distinctive item names (>=4 chars; common-noun denylist for "hat", "key", "log", "bar", "ring", etc.) and returns matched item IDs from arbitrary text. `news_poller` stores each article's plain-text `summary` and runs the matcher over `title+summary` to populate `affected_items_json` on each `news_events` row. Every poll re-runs the matcher over the full table so denylist or catalog changes propagate without a migration. `aggregates.recompute_all` now builds `{item_id: [news_event_id, ...]}` for the trailing news lookback and per-item flips to `unsettled` only when that specific item appears in the affected set; items unmentioned by recent news get real bands. `export.export_aggregates` hydrates `news_citations: [{title, url, published_at}, ...]` per item from the same lookback so the frontend can render the source articles directly under an unsettled gauge — "Why unsettled" panel on the item page (per the user's "citations are good if Geoffery uses them"). Sample band distribution after the change: `1,584 average · 1,134 good · 825 poor · 1,029 unsettled` (down from previously 100% unsettled because every news article was firing the blanket rule).
 **Files touched**:
