@@ -63,6 +63,39 @@ def export_items(conn, out_dir: Path) -> int:
     return len(items)
 
 
+def _build_news_citations_by_item(conn, lookback_days: int = 3) -> dict[int, list[dict]]:
+    """Per-item list of recent news articles that named it.
+
+    Matches the per-item rule in `aggregates.recompute_all`: lookback window
+    is the same NEWS_LOOKBACK_DAYS so citations and the unsettled-by-news
+    band stay in lockstep.
+    """
+    cutoff = int(time.time()) - lookback_days * ONE_DAY
+    rows = conn.execute(
+        """
+        SELECT published_at, title, url, affected_items_json
+        FROM news_events
+        WHERE published_at >= ?
+        ORDER BY published_at DESC
+        """,
+        (cutoff,),
+    ).fetchall()
+    by_item: dict[int, list[dict]] = {}
+    for r in rows:
+        try:
+            affected = json.loads(r["affected_items_json"] or "[]")
+        except (TypeError, ValueError):
+            continue
+        citation = {
+            "title": r["title"],
+            "url": r["url"],
+            "published_at": r["published_at"],
+        }
+        for iid in affected:
+            by_item.setdefault(int(iid), []).append(citation)
+    return by_item
+
+
 def export_aggregates(conn, out_dir: Path) -> int:
     rows = conn.execute(
         """
@@ -78,6 +111,7 @@ def export_aggregates(conn, out_dir: Path) -> int:
             "SELECT item_id, high, high_ts, low, low_ts, fetched_at FROM prices_latest"
         ).fetchall()
     }
+    citations_by_item = _build_news_citations_by_item(conn)
     for r in rows:
         latest = latest_rows.get(r["item_id"])
         agg[r["slug"]] = {
@@ -99,6 +133,7 @@ def export_aggregates(conn, out_dir: Path) -> int:
             "high_ts": latest["high_ts"] if latest else None,
             "low": latest["low"] if latest else None,
             "low_ts": latest["low_ts"] if latest else None,
+            "news_citations": citations_by_item.get(r["item_id"], []),
         }
     _atomic_write(out_dir / "aggregates.json", agg)
     return len(agg)

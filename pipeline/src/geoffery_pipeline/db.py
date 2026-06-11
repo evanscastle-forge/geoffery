@@ -74,8 +74,10 @@ CREATE TABLE IF NOT EXISTS news_events (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     published_at    INTEGER NOT NULL,
     title           TEXT NOT NULL,
+    summary         TEXT NOT NULL DEFAULT '',
     url             TEXT NOT NULL UNIQUE,
-    categories_json TEXT NOT NULL DEFAULT '[]'
+    categories_json TEXT NOT NULL DEFAULT '[]',
+    affected_items_json TEXT NOT NULL DEFAULT '[]'
 );
 CREATE INDEX IF NOT EXISTS news_events_published_at ON news_events(published_at);
 
@@ -89,11 +91,25 @@ CREATE TABLE IF NOT EXISTS pipeline_health (
 """
 
 
+# Idempotent ALTER statements for DBs created before a column was added.
+# Each runs after the CREATE TABLE pass; "duplicate column name" errors are
+# swallowed so re-running on a current DB is a no-op.
+_MIGRATIONS = (
+    "ALTER TABLE news_events ADD COLUMN summary TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE news_events ADD COLUMN affected_items_json TEXT NOT NULL DEFAULT '[]'",
+)
+
+
 def connect(path: Path = DB_PATH) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path, isolation_level=None)  # autocommit; we manage txns
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
+    for stmt in _MIGRATIONS:
+        try:
+            conn.execute(stmt)
+        except sqlite3.OperationalError:
+            pass
     return conn
 
 

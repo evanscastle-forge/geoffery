@@ -19,6 +19,8 @@ export type Item = {
 
 export type Band = 'good' | 'average' | 'poor' | 'unsettled';
 
+export type NewsCitation = { title: string; url: string; published_at: number };
+
 export type Aggregate = {
   slug: string;
   name: string;
@@ -38,6 +40,7 @@ export type Aggregate = {
   high_ts: number | null;
   low: number | null;
   low_ts: number | null;
+  news_citations: NewsCitation[];
 };
 
 export type Sparkline = Record<'1d' | '1w' | '1m', Array<[number, number]>>;

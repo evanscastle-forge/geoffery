@@ -15,9 +15,10 @@ Gauge v1 (intentionally simple per spec §4):
   * Unsettled when:
       - sample_count < MIN_SAMPLES (history too thin to be honest), or
       - 24h volume > VOLUME_SPIKE_MULTIPLE * 30-day baseline, or
-      - a news event in the last NEWS_LOOKBACK_DAYS touched a category we'd
-        match to this item (currently: every item; v1 has no category map yet
-        so news events flip the entire market briefly — surface-honest), or
+      - **this specific item is mentioned by a Jagex news article** within
+        the last NEWS_LOOKBACK_DAYS (per-item check via
+        `news_events.affected_items_json` populated by news_poller +
+        news_matcher), or
       - prices are missing.
 
 Wording is **descriptive, not prescriptive**: "12% above 30-day average",
@@ -106,11 +107,25 @@ def _verdict_text(band: str, percent_vs_p50: float) -> str:
     return f"{pct}% {sign} the 30-day median — the market does not favour you."
 
 
-def _has_recent_news(conn: sqlite3.Connection, since: int) -> bool:
-    row = conn.execute(
-        "SELECT 1 FROM news_events WHERE published_at >= ? LIMIT 1", (since,)
-    ).fetchone()
-    return row is not None
+def _recent_news_by_item(conn: sqlite3.Connection, since: int) -> dict[int, list[int]]:
+    """Return {item_id: [news_event_id, ...]} for events newer than `since`.
+
+    Reads `news_events.affected_items_json` populated by the news poller +
+    matcher. An item not present in the returned map has no recent news
+    against it and (per the per-item rule) should get a real band.
+    """
+    out: dict[int, list[int]] = {}
+    for r in conn.execute(
+        "SELECT id, affected_items_json FROM news_events WHERE published_at >= ?",
+        (since,),
+    ).fetchall():
+        try:
+            affected = json.loads(r["affected_items_json"] or "[]")
+        except (TypeError, ValueError):
+            continue
+        for iid in affected:
+            out.setdefault(int(iid), []).append(int(r["id"]))
+    return out
 
 
 def compute_for_item(
@@ -212,12 +227,12 @@ def compute_for_item(
 def recompute_all(conn: sqlite3.Connection) -> int:
     now = int(time.time())
     news_since = now - NEWS_LOOKBACK_DAYS * ONE_DAY
-    has_recent_news = _has_recent_news(conn, news_since)
+    affected_map = _recent_news_by_item(conn, news_since)
     items = [r["id"] for r in conn.execute("SELECT id FROM items")]
     written = 0
     with conn:
         for iid in items:
-            row = compute_for_item(conn, iid, now, has_recent_news)
+            row = compute_for_item(conn, iid, now, iid in affected_map)
             if row is None:
                 continue
             conn.execute(

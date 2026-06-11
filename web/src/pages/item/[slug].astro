@@ -4,7 +4,7 @@ import Dialogue from '../../components/Dialogue.astro';
 import Gauge from '../../components/Gauge.astro';
 import Sparkline from '../../components/Sparkline.astro';
 import lines from '../../content/geoffery-lines.json';
-import { items, getAggregate, getSparkline, news } from '../../lib/data';
+import { items, getAggregate, getSparkline } from '../../lib/data';
 import { formatGp, formatVolume, timeAgo } from '../../lib/format';
 
 export function getStaticPaths() {
@@ -14,7 +14,6 @@ export function getStaticPaths() {
 const { item } = Astro.props;
 const agg = getAggregate(item.slug);
 const spark = getSparkline(item.slug);
-const recentNews = news.slice(0, 3);
 const title = `${item.name} GE price & deal rating — Geoffery`;
 const description = agg && agg.band !== 'unsettled' && agg.current_price
   ? `${item.name}: ${formatGp(agg.current_price)}. ${agg.verdict_text}`
@@ -58,12 +57,28 @@ const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0
           {agg.flags.includes('thin-history') && <li>{lines.thin_history}</li>}
           {agg.flags.includes('no-current-price') && <li>{lines.no_current_price}</li>}
           {agg.flags.includes('volume-spike') && <li>{lines.volume_spike}</li>}
-          {agg.flags.includes('recent-news') && <li>{lines.recent_news}</li>}
+          {agg.flags.includes('recent-news') && agg.news_citations.length === 0 && (
+            <li>{lines.recent_news}</li>
+          )}
         </ul>
       )}
     </section>
   ) : (
     <Dialogue text="I have not yet recorded a figure for this item, master." />
+  )}
+
+  {agg && agg.news_citations.length > 0 && (
+    <section class="panel news-cites">
+      <h2>Why unsettled</h2>
+      <ul>
+        {agg.news_citations.map((n) => (
+          <li>
+            <a href={n.url} target="_blank" rel="noopener">{n.title}</a>
+            <small class="ui muted"> · {timeAgo(n.published_at, now)}</small>
+          </li>
+        ))}
+      </ul>
+    </section>
   )}
 
   {(spark['1d'] || spark['1w'] || spark['1m']) && (
@@ -74,20 +89,6 @@ const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0
         {spark['1w'] && <Sparkline points={spark['1w']} label="last 7 days" />}
         {spark['1m'] && <Sparkline points={spark['1m']} label="last 30 days" />}
       </div>
-    </section>
-  )}
-
-  {recentNews.length > 0 && (
-    <section>
-      <h2>Game news</h2>
-      <ul class="news">
-        {recentNews.map((n) => (
-          <li>
-            <a href={n.url} target="_blank" rel="noopener">{n.title}</a>
-            <small class="ui muted"> · {timeAgo(n.published_at, now)}</small>
-          </li>
-        ))}
-      </ul>
     </section>
   )}
 
