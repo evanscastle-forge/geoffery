@@ -4,6 +4,11 @@ data/*.db-wal
 data/*.db-shm
 data/raw/
 data/log/
+# Same patterns under any subdirectory's data/ — pytest sometimes creates a
+# transient SQLite under pipeline/data/ depending on GEOFFERY_DB resolution.
+**/data/*.db
+**/data/*.db-wal
+**/data/*.db-shm
 
 # Python
 .venv/
