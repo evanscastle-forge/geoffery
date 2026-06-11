@@ -4,6 +4,19 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — frontend + growth-seo — SCOPE: CROSS-MODULE
+**Summary**: Renamed chrome URLs so they match their nav labels: `/how-we-rate` → `/methodology`, `/how-we-make-money` → `/wages`. Logged the convention as D-014. Old URLs 301 to new at three layers: Astro `redirects` config (HTTP 301 in preview/local), Cloudflare Pages `_redirects` (true 301 at the edge in prod), and an HTML meta-refresh as host-agnostic fallback. Service worker `VERSION` bumped to `v2` so stale shell caches with the old paths are invalidated on next visit.
+**Files touched**:
+- `web/src/pages/how-we-rate.astro` → `web/src/pages/methodology.astro` (via `git mv`).
+- `web/src/pages/how-we-make-money.astro` → `web/src/pages/wages.astro` (via `git mv`).
+- `web/src/layouts/Base.astro`, `web/src/pages/index.astro`, `web/src/pages/item/[slug].astro` — all internal links rewritten.
+- `web/astro.config.mjs` — `redirects` map added.
+- `web/public/_redirects` — new Cloudflare Pages-style 301 rules.
+- `web/public/sw.js` — `VERSION = 'v2'`; shell paths updated.
+- `.claude/DECISIONS.md` — D-014 added.
+**Affected agents**: frontend (initiator), growth-seo, ops (cache busting).
+**Verification**: `./scripts/run.sh prod build` succeeds; `curl -sI` against preview returns `200` for `/methodology`, `/wages`, `/ledger`, `/about` and `301` for `/how-we-rate`, `/how-we-make-money`; `404` for unknown paths.
+
 ## 2026-06-11 — design-character + frontend — SCOPE: CROSS-MODULE
 **Summary**: Added an "Output discipline — do the work, don't explain it" section to the `design-character` agent prompt and a parallel "Output discipline — markup, not lecture" section to the `frontend` agent prompt. Both pin the same rule: state changes in one sentence in chat, no decorative comments in code explaining design intent, no app-text that lectures the user on the design. Then dispatched the `frontend-craftsman` consultant subagent to do a UI polish pass under the new guidance. Aesthetic direction committed to: **Editorial Ledger** — Swiss-influenced editorial typography on dark, display-serif at scale, hairline rules replacing card chrome, all-caps tracked eyebrows, brass accent reserved for the brand mark and live verdicts. Visible changes: homepage card grid became a numbered watchlist with tabular numerals; item page replaced four bordered quote-cards with a serif `dl` table over a single hairline; gauge lost its container box and reads as a typographic verdict over a 4px segmented rule; dialogue panel dropped the monogrammed-G placeholder for a quill-on-ledger glyph and shed its card chrome for top/bottom hairlines; `h2`s became tracked uppercase eyebrows; brand brass now reserved for hover.
 **Files touched**:

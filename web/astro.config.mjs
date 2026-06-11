@@ -17,6 +17,10 @@ export default defineConfig({
   site: SITE,
   trailingSlash: 'never',
   integrations,
+  redirects: {
+    '/how-we-rate': '/methodology',
+    '/how-we-make-money': '/wages',
+  },
   build: {
     inlineStylesheets: 'auto',
   },

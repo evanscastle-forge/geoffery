@@ -70,6 +70,13 @@ Status values:
 **Status:** Locked. Stacks cleanly under D-003's Cloudflare Pages/Workers default — Access gating is per-subdomain regardless of origin.
 **Follow-ons:** owner sets up Cloudflare Access on the qa subdomain (see `docs/deployments.md`); prod tip jar fills only after Stripe Payment Links are created.
 
+## D-014 · Chrome URL naming convention
+**Decision:** Static-page URLs match their nav label, lower-cased, one word where possible: `/ledger`, `/methodology`, `/wages`, `/about`. No prepositions, no full-sentence URLs. Per D-004 every non-canonical URL 301s to the canonical one; this rule applies to chrome pages as well as items.
+**Rationale:** Consistency between nav text and URL is a small UX moat — users predict the URL from the label and vice versa. Also reduces the surface area of brand language (single nouns are easier to share, link to, and remember than verb-phrase URLs like `/how-we-rate`).
+**Status:** Locked.
+**Affected agents:** frontend, growth-seo.
+**Migration:** Old URLs (`/how-we-rate`, `/how-we-make-money`) 301 to new (`/methodology`, `/wages`) at three layers: Astro `redirects` config (HTTP 301 at the server), Cloudflare Pages `_redirects` file (true 301 at the edge in prod), and an HTML meta-refresh fallback. Service worker shell paths bumped to v2 to invalidate stale caches.
+
 ## D-013 · Repo layout
 **Decision:** Source-of-truth files live where their primary readers live. Agent material (`.claude/CHARTER.md`, `.claude/DECISIONS.md`, agent prompts, dispatch rules, proposals) is under `.claude/`. User-facing docs (`design-spec.md`, `deployments.md`) under `docs/`. Repo root carries only what humans skim regularly: `README.md`, `CHANGELOG.md`, `.gitignore`. Code in `pipeline/` and `web/`; env templates in `env/`; operator notes in `local/` (gitignored).
 **Rationale:** Discoverability — agents find load-bearing rules next to their own prompts; humans find context next to the README.
