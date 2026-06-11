@@ -36,6 +36,9 @@ import sys
 import time
 
 from .db import connect, heartbeat
+from .recommend import ENGINE_VERSION, recommend
+from .regime import classify as classify_regime
+from .regime import liquidity_band as compute_liquidity_band
 
 LOG = logging.getLogger("geoffery.aggregates")
 
@@ -188,6 +191,7 @@ def compute_for_item(
             "flags_json": json.dumps(flags),
             "volume_24h": vol_24h,
             "volume_baseline": 0,
+            **_default_recommendation_fields(),
         }
 
     p25, p50, p75 = _weighted_quantiles(prices, weights, (0.25, 0.5, 0.75))
@@ -207,6 +211,20 @@ def compute_for_item(
         band = _band(current, p25, p75)
         verdict = _verdict_text(band, ((current - p50) / p50) * 100 if p50 else 0.0)
 
+    # D-011: classify regime and pre-compute the six recommendations.
+    regime = classify_regime(
+        [dict(r) for r in rows],  # dict-row copies; classify is pure
+        now,
+    )
+    liquidity = compute_liquidity_band(int(avg_daily_volume))
+    recs = _compute_recommendations(
+        regime=regime,
+        liquidity=liquidity,
+        current_insta_buy=latest["high"] if latest else None,
+        current_insta_sell=latest["low"] if latest else None,
+        recent_prices=prices,
+    )
+
     return {
         "item_id": item_id,
         "computed_at": now,
@@ -221,7 +239,65 @@ def compute_for_item(
         "flags_json": json.dumps(flags),
         "volume_24h": vol_24h,
         "volume_baseline": int(avg_daily_volume),
+        "regime_power": regime.power if regime else None,
+        "regime_stability": regime.stability if regime else None,
+        "liquidity_band": liquidity,
+        "rec_instant_buy":   recs.get("instant_buy"),
+        "rec_instant_sell":  recs.get("instant_sell"),
+        "rec_hours_buy":     recs.get("hours_buy"),
+        "rec_hours_sell":    recs.get("hours_sell"),
+        "rec_patient_buy":   recs.get("patient_buy"),
+        "rec_patient_sell":  recs.get("patient_sell"),
+        "engine_version":    ENGINE_VERSION,
     }
+
+
+def _default_recommendation_fields() -> dict:
+    """Used in the thin-history early-return so the upsert always has these
+    columns. They're nullable so a NULL is the correct "we declined" signal."""
+    return {
+        "regime_power": None,
+        "regime_stability": None,
+        "liquidity_band": None,
+        "rec_instant_buy": None,
+        "rec_instant_sell": None,
+        "rec_hours_buy": None,
+        "rec_hours_sell": None,
+        "rec_patient_buy": None,
+        "rec_patient_sell": None,
+        "engine_version": ENGINE_VERSION,
+    }
+
+
+def _compute_recommendations(
+    *,
+    regime,
+    liquidity,
+    current_insta_buy: int | None,
+    current_insta_sell: int | None,
+    recent_prices: list[float],
+) -> dict[str, int]:
+    """Six recs per item. Returns whichever ones we have data for."""
+    if regime is None:
+        return {}
+    # Sort the trailing window once; recommend() expects ascending.
+    sorted_mids = sorted(recent_prices)
+    out: dict[str, int] = {}
+    for tolerance in ("instant", "hours", "patient"):
+        for side in ("buy", "sell"):
+            r = recommend(
+                side=side,  # type: ignore[arg-type]
+                tolerance=tolerance,  # type: ignore[arg-type]
+                regime=regime,
+                liquidity=liquidity,
+                current_insta_buy=current_insta_buy,
+                current_insta_sell=current_insta_sell,
+                recent_mids_sorted=sorted_mids,
+            )
+            if r is None:
+                continue
+            out[f"{tolerance}_{side}"] = r.price
+    return out
 
 
 def recompute_all(conn: sqlite3.Connection) -> int:
@@ -240,10 +316,20 @@ def recompute_all(conn: sqlite3.Connection) -> int:
                 INSERT INTO aggregates
                     (item_id, computed_at, sample_count, p25, p50, p75,
                      current_price, current_percentile, band, verdict_text, flags_json,
-                     volume_24h, volume_baseline)
+                     volume_24h, volume_baseline,
+                     regime_power, regime_stability, liquidity_band,
+                     rec_instant_buy, rec_instant_sell,
+                     rec_hours_buy, rec_hours_sell,
+                     rec_patient_buy, rec_patient_sell,
+                     engine_version)
                 VALUES (:item_id, :computed_at, :sample_count, :p25, :p50, :p75,
                         :current_price, :current_percentile, :band, :verdict_text, :flags_json,
-                        :volume_24h, :volume_baseline)
+                        :volume_24h, :volume_baseline,
+                        :regime_power, :regime_stability, :liquidity_band,
+                        :rec_instant_buy, :rec_instant_sell,
+                        :rec_hours_buy, :rec_hours_sell,
+                        :rec_patient_buy, :rec_patient_sell,
+                        :engine_version)
                 ON CONFLICT(item_id) DO UPDATE SET
                     computed_at=excluded.computed_at, sample_count=excluded.sample_count,
                     p25=excluded.p25, p50=excluded.p50, p75=excluded.p75,
@@ -251,7 +337,17 @@ def recompute_all(conn: sqlite3.Connection) -> int:
                     current_percentile=excluded.current_percentile,
                     band=excluded.band, verdict_text=excluded.verdict_text,
                     flags_json=excluded.flags_json,
-                    volume_24h=excluded.volume_24h, volume_baseline=excluded.volume_baseline
+                    volume_24h=excluded.volume_24h, volume_baseline=excluded.volume_baseline,
+                    regime_power=excluded.regime_power,
+                    regime_stability=excluded.regime_stability,
+                    liquidity_band=excluded.liquidity_band,
+                    rec_instant_buy=excluded.rec_instant_buy,
+                    rec_instant_sell=excluded.rec_instant_sell,
+                    rec_hours_buy=excluded.rec_hours_buy,
+                    rec_hours_sell=excluded.rec_hours_sell,
+                    rec_patient_buy=excluded.rec_patient_buy,
+                    rec_patient_sell=excluded.rec_patient_sell,
+                    engine_version=excluded.engine_version
                 """,
                 row,
             )

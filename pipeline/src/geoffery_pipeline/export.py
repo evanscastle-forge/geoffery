@@ -134,6 +134,17 @@ def export_aggregates(conn, out_dir: Path) -> int:
             "low": latest["low"] if latest else None,
             "low_ts": latest["low_ts"] if latest else None,
             "news_citations": citations_by_item.get(r["item_id"], []),
+            "regime": {
+                "power": r["regime_power"],
+                "stability": r["regime_stability"],
+                "liquidity": r["liquidity_band"],
+            },
+            "recommendations": {
+                "instant": {"buy": r["rec_instant_buy"], "sell": r["rec_instant_sell"]},
+                "hours":   {"buy": r["rec_hours_buy"],   "sell": r["rec_hours_sell"]},
+                "patient": {"buy": r["rec_patient_buy"], "sell": r["rec_patient_sell"]},
+            },
+            "engine_version": r["engine_version"] or 0,
         }
     _atomic_write(out_dir / "aggregates.json", agg)
     return len(agg)

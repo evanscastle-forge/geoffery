@@ -4,6 +4,17 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — algorithms + data-engineer — SCOPE: CROSS-MODULE
+**Summary**: Phase 2b of D-011 — schema additions + aggregates wire-up. `aggregates` table gains ten new columns: `regime_power`, `regime_stability`, `liquidity_band`, six rounded `rec_<tolerance>_<side>` prices, and `engine_version`. Three new tables for the consultation log + scorer output + per-cohort calibration (`consultations`, `consultation_outcomes`, `calibration`) — schema mirrors the D1 schema at the edge so sync is byte-for-byte (D-015). Idempotent ALTER TABLE migrations added so existing DBs roll forward without surgery. `aggregates.compute_for_item` now invokes `regime.classify` + `regime.liquidity_band` + `recommend.recommend` after the gauge math, returning the six recommendation prices alongside the band. `export.export_aggregates` emits a new `regime` block and `recommendations` block per item, plus `engine_version`. Verified live: 4,572 items computed, regime distribution: 1,502 buyer/steady · 1,369 seller/steady · 1,006 balanced/steady · 53 seller/volatile · 40 buyer/volatile · 15 balanced/volatile. Twisted bow's six recommendations look right (instant_buy 1,558M > instant_sell 1,551M; hours_buy 1,554M < instant_buy as expected; patient_buy 1,551M < hours_buy as expected). All 38 unit tests still pass.
+**Files touched**:
+- `pipeline/src/geoffery_pipeline/db.py` — extended `aggregates` schema, three new tables, idempotent ALTER statements for existing DBs.
+- `pipeline/src/geoffery_pipeline/aggregates.py` — `compute_for_item` returns regime + recommendations; `recompute_all` upserts the new columns.
+- `pipeline/src/geoffery_pipeline/export.py` — emits the `regime` + `recommendations` + `engine_version` blocks per item.
+**Affected agents**: algorithms (wires its modules into aggregates), data-engineer (owns the schema + new tables).
+**Verification**: `uv run pytest` → 38 pass; `./scripts/run.sh local aggregates` populates the new columns for all items; sqlite spot-check confirms regime + six rounded recommendations on twisted-bow; regime distribution across all items is realistic.
+
+---
+
 ## 2026-06-11 — algorithms — SCOPE: LOCAL
 **Summary**: Phase 2a of D-011 — three pure pipeline helpers and their tests, with no schema or wiring changes yet. (1) `rounding.py`: `round_sig(value, sigs, direction)` + the convenience `round_for_side(value, side)` that rounds buys up and sells down at 4 sig figs (binding rule per D-011). (2) `regime.py`: `classify(rows, now)` returns a `RegimeResult` with `power` (`buyer|seller|balanced`, derived from a 3-day trend and spread-share asymmetry) and `stability` (`steady|volatile`, derived from a 30-day-baseline volatility z-score). Generalises the prior single-axis "unsettled" flag — "volatile" is its replacement. Plus `liquidity_band(volume_baseline)` for the `thick|medium|thin` classification the recommend engine consumes. (3) `recommend.py`: `recommend(side, tolerance, regime, liquidity, current_insta_*, recent_mids_sorted)` returns a `Recommendation` whose `price` has already passed through `round_for_side`. Instant = current insta side; hours = p20/p80 of the recent fill distribution; patient = p10/p90, with regime nudges (seller's market pushes buys up, volatile stability widens cushion on both sides) and liquidity widening on thin markets. All three modules are pure — no I/O, no DB — and pinned by 23 tests.
 **Files touched**:

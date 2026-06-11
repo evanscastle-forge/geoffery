@@ -67,7 +67,64 @@ CREATE TABLE IF NOT EXISTS aggregates (
     verdict_text    TEXT NOT NULL,
     flags_json      TEXT NOT NULL DEFAULT '[]',
     volume_24h      INTEGER NOT NULL DEFAULT 0,
-    volume_baseline INTEGER NOT NULL DEFAULT 0
+    volume_baseline INTEGER NOT NULL DEFAULT 0,
+    -- D-011 additions: regime classification + six rounded recommendations.
+    regime_power      TEXT,
+    regime_stability  TEXT,
+    liquidity_band    TEXT,
+    rec_instant_buy   INTEGER,
+    rec_instant_sell  INTEGER,
+    rec_hours_buy     INTEGER,
+    rec_hours_sell    INTEGER,
+    rec_patient_buy   INTEGER,
+    rec_patient_sell  INTEGER,
+    engine_version    INTEGER NOT NULL DEFAULT 0
+);
+
+-- D-011 / D-015: consultation log. Mirrors the Cloudflare D1 schema so the
+-- byte-for-byte sync direction is trivial. `client_id` is the browser's
+-- anonymous UUID; rows are inserted by the Pages Function and pulled here
+-- by `d1_sync.pull_consultations` for offline scoring.
+CREATE TABLE IF NOT EXISTS consultations (
+    id              TEXT PRIMARY KEY,
+    client_id       TEXT NOT NULL,
+    item_id         INTEGER NOT NULL REFERENCES items(id),
+    side            TEXT NOT NULL CHECK (side IN ('buy','sell')),
+    tolerance       TEXT NOT NULL CHECK (tolerance IN ('instant','hours','patient')),
+    recommended_price INTEGER NOT NULL,
+    regime_power      TEXT,
+    regime_stability  TEXT,
+    liquidity_band    TEXT,
+    confidence_bucket TEXT NOT NULL,
+    engine_version    INTEGER NOT NULL,
+    created_at      INTEGER NOT NULL,
+    synced_at       INTEGER
+);
+CREATE INDEX IF NOT EXISTS consultations_item ON consultations(item_id);
+CREATE INDEX IF NOT EXISTS consultations_created ON consultations(created_at);
+
+-- D-011: scorer output. One row per consultation once the tolerance window
+-- has elapsed and we have enough subsequent 5m data to evaluate.
+CREATE TABLE IF NOT EXISTS consultation_outcomes (
+    consultation_id   TEXT PRIMARY KEY REFERENCES consultations(id),
+    filled            INTEGER NOT NULL CHECK (filled IN (0, 1)),
+    filled_at         INTEGER,
+    eval_window_start INTEGER NOT NULL,
+    eval_window_end   INTEGER NOT NULL,
+    evaluated_at      INTEGER NOT NULL,
+    synced_at         INTEGER
+);
+CREATE INDEX IF NOT EXISTS outcomes_filled ON consultation_outcomes(filled);
+
+-- D-011: per-cohort fill rates. Cohorts key on (tolerance, side, liquidity,
+-- stability) — the same tuple the recommend engine returns as
+-- `confidence_bucket`. Rebuilt after every scorer pass.
+CREATE TABLE IF NOT EXISTS calibration (
+    cohort_key   TEXT PRIMARY KEY,
+    n_total      INTEGER NOT NULL DEFAULT 0,
+    n_filled     INTEGER NOT NULL DEFAULT 0,
+    fill_rate    REAL    NOT NULL DEFAULT 0.0,
+    updated_at   INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS news_events (
@@ -97,6 +154,17 @@ CREATE TABLE IF NOT EXISTS pipeline_health (
 _MIGRATIONS = (
     "ALTER TABLE news_events ADD COLUMN summary TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE news_events ADD COLUMN affected_items_json TEXT NOT NULL DEFAULT '[]'",
+    # D-011 aggregates extensions
+    "ALTER TABLE aggregates ADD COLUMN regime_power TEXT",
+    "ALTER TABLE aggregates ADD COLUMN regime_stability TEXT",
+    "ALTER TABLE aggregates ADD COLUMN liquidity_band TEXT",
+    "ALTER TABLE aggregates ADD COLUMN rec_instant_buy INTEGER",
+    "ALTER TABLE aggregates ADD COLUMN rec_instant_sell INTEGER",
+    "ALTER TABLE aggregates ADD COLUMN rec_hours_buy INTEGER",
+    "ALTER TABLE aggregates ADD COLUMN rec_hours_sell INTEGER",
+    "ALTER TABLE aggregates ADD COLUMN rec_patient_buy INTEGER",
+    "ALTER TABLE aggregates ADD COLUMN rec_patient_sell INTEGER",
+    "ALTER TABLE aggregates ADD COLUMN engine_version INTEGER NOT NULL DEFAULT 0",
 )
 
 
