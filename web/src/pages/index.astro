@@ -1,0 +1,77 @@
+---
+import Base from '../layouts/Base.astro';
+import Dialogue from '../components/Dialogue.astro';
+import Search from '../components/Search.astro';
+import lines from '../content/geoffery-lines.json';
+import { aggregates, meta } from '../lib/data';
+
+const sample = Object.values(aggregates)
+  .filter((a) => a.band !== 'unsettled' && a.volume_24h > 0)
+  .sort((a, b) => b.volume_24h - a.volume_24h)
+  .slice(0, 8);
+const settled = Object.values(aggregates).filter((a) => a.band !== 'unsettled').length;
+const total = Object.values(aggregates).length;
+const exportedISO = new Date(meta.exported_at * 1000).toISOString();
+---
+
+<Base title={`Geoffery — ${lines.tagline_long}`} description={lines.tagline_long}>
+  <Dialogue text={lines.homepage_intro} />
+
+  <Search />
+
+  <section class="lead">
+    <p class="ui muted">{settled.toLocaleString()} of {total.toLocaleString()} items appraised. Snapshot exported <time datetime={exportedISO}>{exportedISO}</time>.</p>
+  </section>
+
+  {sample.length > 0 && (
+    <section>
+      <h2>What the household is checking</h2>
+      <ul class="card-grid">
+        {sample.map((a) => (
+          <li class={`card band-${a.band}`}>
+            <a href={`/item/${a.slug}`}>
+              <strong>{a.name}</strong>
+              <span class="ui muted">{a.verdict_text}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <section>
+    <h2>How Geoffery appraises</h2>
+    <p>
+      For each item, Geoffery records every five-minute price the Grand Exchange yields,
+      across thirty days, weighted by volume. The current price's place in that
+      distribution is the verdict — <em>good</em> (below the interquartile range),
+      <em>average</em> (within), or <em>poor</em> (above). When volume or volatility
+      spike, or Jagex publishes news that touches the market, Geoffery marks the
+      figures <em>unsettled</em> and declines to stake his wages on them.
+    </p>
+    <p><a href="/how-we-rate">Read the methodology in full →</a></p>
+  </section>
+</Base>
+
+<style>
+  .lead { margin-top: var(--s-4); }
+  .muted { color: var(--c-ink-faint); }
+  .card-grid {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--s-3);
+  }
+  .card { border: 1px solid var(--c-rule); background: var(--c-bg-raised); border-radius: var(--radius-2); }
+  .card a {
+    display: flex; flex-direction: column; gap: var(--s-2);
+    padding: var(--s-3) var(--s-4);
+    color: var(--c-ink); text-decoration: none;
+  }
+  .card a:hover { color: var(--c-accent); }
+  .card a strong { font-family: var(--font-sans); font-weight: 600; font-size: 1rem; }
+  .card.band-good     { border-left: 3px solid var(--c-good); }
+  .card.band-average  { border-left: 3px solid var(--c-average); }
+  .card.band-poor     { border-left: 3px solid var(--c-poor); }
+  .card.band-unsettled{ border-left: 3px solid var(--c-unsettled); }
+  .card span.muted { font-size: 0.88rem; }
+</style>

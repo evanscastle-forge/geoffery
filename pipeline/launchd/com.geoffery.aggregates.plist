@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.geoffery.REPLACE_WITH_ENV.aggregates</string>
+  <key>WorkingDirectory</key>
+  <string>REPLACE_WITH_REPO_ROOT</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>REPLACE_WITH_REPO_ROOT/scripts/run.sh REPLACE_WITH_ENV aggregates &amp;&amp; REPLACE_WITH_REPO_ROOT/scripts/run.sh REPLACE_WITH_ENV export</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>StartInterval</key>
+  <integer>3600</integer>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StandardOutPath</key>
+  <string>REPLACE_WITH_REPO_ROOT/data/log/REPLACE_WITH_ENV.aggregates.log</string>
+  <key>StandardErrorPath</key>
+  <string>REPLACE_WITH_REPO_ROOT/data/log/REPLACE_WITH_ENV.aggregates.err</string>
+</dict>
+</plist>

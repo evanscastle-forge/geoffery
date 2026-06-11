@@ -1,0 +1,46 @@
+---
+type Props = {
+  points: Array<[number, number]>;
+  width?: number;
+  height?: number;
+  label: string;
+};
+const { points, width = 320, height = 60, label } = Astro.props;
+const ys = points.map(([, y]) => y);
+const minY = Math.min(...ys);
+const maxY = Math.max(...ys);
+const range = maxY - minY || 1;
+const xs = points.map(([x]) => x);
+const minX = Math.min(...xs);
+const maxX = Math.max(...xs);
+const xRange = maxX - minX || 1;
+const pad = 2;
+const path = points
+  .map(([x, y], i) => {
+    const px = pad + ((x - minX) / xRange) * (width - pad * 2);
+    const py = pad + (1 - (y - minY) / range) * (height - pad * 2);
+    return `${i === 0 ? 'M' : 'L'}${px.toFixed(1)},${py.toFixed(1)}`;
+  })
+  .join(' ');
+const last = points[points.length - 1];
+const lastX = pad + ((last[0] - minX) / xRange) * (width - pad * 2);
+const lastY = pad + (1 - (last[1] - minY) / range) * (height - pad * 2);
+---
+
+<figure class="spark">
+  <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} role="img" aria-label={label}>
+    <path d={path} fill="none" stroke="currentColor" stroke-width="1.5" />
+    <circle cx={lastX} cy={lastY} r="2" fill="currentColor" />
+  </svg>
+  <figcaption class="ui">{label}</figcaption>
+</figure>
+
+<style>
+  .spark { margin: 0; color: var(--c-accent); }
+  .spark figcaption {
+    color: var(--c-ink-faint);
+    font-size: 0.78rem;
+    margin-top: var(--s-1);
+    text-align: right;
+  }
+</style>

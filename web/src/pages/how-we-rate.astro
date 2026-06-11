@@ -1,0 +1,51 @@
+---
+import Base from '../layouts/Base.astro';
+import Dialogue from '../components/Dialogue.astro';
+import lines from '../content/geoffery-lines.json';
+---
+
+<Base title="How Geoffery rates — methodology" description="The exact arithmetic behind every deal gauge on Geoffery.">
+  <h1>How Geoffery rates</h1>
+  <Dialogue text={lines.methodology_intro} />
+
+  <h2>The gauge</h2>
+  <p>
+    For every tradeable item, Geoffery records every five-minute price the wiki API yields.
+    He keeps thirty days of these prices, weighted by traded volume, and forms a distribution.
+    The current price's percentile in that distribution becomes the verdict:
+  </p>
+  <ul>
+    <li><strong style="color: var(--c-good)">Good</strong> — current price at or below the 25th percentile of the 30-day weighted distribution. The market is, momentarily, favourable.</li>
+    <li><strong style="color: var(--c-average)">Average</strong> — between the 25th and 75th percentile. Typical.</li>
+    <li><strong style="color: var(--c-poor)">Poor</strong> — above the 75th percentile. The market is not in your favour.</li>
+    <li><strong style="color: var(--c-unsettled)">Unsettled</strong> — Geoffery declines to rate, for one of the reasons below.</li>
+  </ul>
+
+  <h2>When the figures are unsettled</h2>
+  <ul>
+    <li>Fewer than thirty samples on record — Geoffery has not kept the ledger long enough.</li>
+    <li>24-hour volume is more than three times the 30-day baseline — a market in motion.</li>
+    <li>Jagex has published news in the last three days — updates touch prices.</li>
+    <li>No current price has been quoted — the wiki has not seen a recent trade.</li>
+  </ul>
+  <p class="ui muted">
+    Unsettled is the trust-building state, not a failure. Geoffery would rather decline than guess.
+  </p>
+
+  <h2>What Geoffery never does</h2>
+  <ul>
+    <li>He does not say <em>buy</em> or <em>sell</em>. He describes the market; the call is yours.</li>
+    <li>He does not weigh in on the future. Past distributions are not promises.</li>
+    <li>He does not silently change the formula. Every adjustment is written down here.</li>
+  </ul>
+
+  <h2>Sources</h2>
+  <p>
+    Prices: the <a href="https://oldschool.runescape.wiki/w/RuneScape:Real-time_Prices" target="_blank" rel="noopener">OSRS Wiki real-time prices API</a> (community-blessed, attributed in the footer).
+    News: the official OSRS news RSS, polled hourly.
+  </p>
+</Base>
+
+<style>
+  .muted { color: var(--c-ink-faint); }
+</style>

@@ -1,0 +1,136 @@
+---
+import '../styles/tokens.css';
+import lines from '../content/geoffery-lines.json';
+import TipJar from '../components/TipJar.astro';
+import { deployment, isProd, robotsContent, buildVersion } from '../lib/env';
+
+type Props = {
+  title: string;
+  description?: string;
+  ogPath?: string;
+};
+const { title, description = lines.tagline_long } = Astro.props;
+// Canonical only points at the public site. On qa we deliberately omit
+// the canonical link entirely so a stray crawler that gets past Access
+// can never "consolidate" qa into prod's search rank.
+const canonical = isProd ? new URL(Astro.url.pathname, Astro.site).toString() : null;
+---
+
+<!doctype html>
+<html lang="en" data-deployment={deployment}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content={robotsContent} />
+    {canonical && <link rel="canonical" href={canonical} />}
+    <meta name="theme-color" content="#15140f" />
+    {isProd && <meta property="og:title" content={title} />}
+    {isProd && <meta property="og:description" content={description} />}
+    {isProd && <meta property="og:type" content="website" />}
+    {isProd && canonical && <meta property="og:url" content={canonical} />}
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="x-geoffery-deployment" content={deployment} />
+    <meta name="x-geoffery-build" content={buildVersion} />
+  </head>
+  <body>
+    {!isProd && (
+      <div class="env-banner ui" role="status">
+        <span><strong>{deployment.toUpperCase()}</strong> · not the public site</span>
+        <span class="env-banner-build">build {buildVersion}</span>
+      </div>
+    )}
+    <header class="wrap site-header">
+      <a href="/" class="brand" aria-label="Geoffery — home">
+        <span class="brand-mark">GE<span class="brand-mark-strong">OFFER</span>y</span>
+      </a>
+      <nav class="site-nav ui">
+        <a href="/ledger">Ledger</a>
+        <a href="/how-we-rate">Methodology</a>
+        <a href="/how-we-make-money">Wages</a>
+      </nav>
+    </header>
+
+    <main class="wrap">
+      <slot />
+    </main>
+
+    <footer class="wrap site-footer ui">
+      <p>{lines.footer_attribution}</p>
+      <p>{lines.footer_disclaimer}</p>
+    </footer>
+
+    <TipJar />
+
+    <style>
+      .env-banner {
+        background: var(--c-poor);
+        color: #15140f;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: var(--s-1) var(--s-4);
+        display: flex;
+        justify-content: space-between;
+        gap: var(--s-4);
+      }
+      html[data-deployment="qa"] .env-banner { background: var(--c-average); }
+      html[data-deployment="local"] .env-banner { background: var(--c-unsettled); }
+      .env-banner-build { color: rgba(21, 20, 15, 0.7); font-weight: 500; }
+      .site-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding-top: var(--s-5);
+        padding-bottom: var(--s-4);
+        border-bottom: 1px solid var(--c-rule);
+        margin-bottom: var(--s-5);
+      }
+      .brand {
+        font-family: var(--font-serif);
+        font-size: 1.5rem;
+        letter-spacing: 0.02em;
+        color: var(--c-ink);
+        text-decoration: none;
+      }
+      .brand-mark { font-weight: 600; }
+      .brand-mark-strong {
+        color: var(--c-accent);
+        font-style: italic;
+      }
+      .site-nav {
+        display: flex;
+        gap: var(--s-5);
+        font-size: 0.95rem;
+      }
+      .site-nav a {
+        color: var(--c-ink-dim);
+      }
+      .site-nav a:hover { color: var(--c-accent); text-decoration: none; }
+      .site-footer {
+        margin-top: var(--s-8);
+        padding-top: var(--s-4);
+        padding-bottom: var(--s-7);
+        border-top: 1px solid var(--c-rule);
+        color: var(--c-ink-faint);
+        font-size: 0.85rem;
+      }
+      .site-footer p { margin: var(--s-1) 0; }
+      @media (max-width: 480px) {
+        .site-header { flex-direction: column; gap: var(--s-3); align-items: flex-start; }
+        .site-nav { gap: var(--s-4); }
+      }
+    </style>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>

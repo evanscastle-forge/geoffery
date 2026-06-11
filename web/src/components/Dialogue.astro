@@ -1,0 +1,41 @@
+---
+/*
+ * Geoffery dialogue panel — portrait-left, parchment-adjacent treatment.
+ * NOT OSRS chatbox trade dress (Compliance veto on textures/borders/fonts).
+ * Voice strings come from content/geoffery-lines.json — no improvising.
+ */
+type Props = { text: string; small?: boolean };
+const { text, small = false } = Astro.props;
+---
+
+<aside class={`dialogue ${small ? 'small' : ''}`} role="note">
+  <div class="portrait" aria-hidden="true">
+    <svg viewBox="0 0 80 80" width="56" height="56">
+      <!-- Placeholder Geoffery mark: monogrammed G with pince-nez bridge. -->
+      <!-- Final character art is a Compliance-reviewed commission (see design-character.md). -->
+      <circle cx="40" cy="40" r="36" fill="var(--c-surface)" stroke="var(--c-accent-dim)" stroke-width="1.5" />
+      <text x="40" y="50" font-family="ui-serif, Georgia, serif" font-size="32" fill="var(--c-accent)" text-anchor="middle" font-style="italic">G</text>
+      <line x1="20" y1="38" x2="36" y2="38" stroke="var(--c-accent-dim)" stroke-width="1" />
+      <line x1="44" y1="38" x2="60" y2="38" stroke="var(--c-accent-dim)" stroke-width="1" />
+    </svg>
+  </div>
+  <p class="said">{text}</p>
+</aside>
+
+<style>
+  .dialogue {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--s-4);
+    align-items: center;
+    padding: var(--s-4) var(--s-5);
+    background: var(--c-bg-raised);
+    border: 1px solid var(--c-rule);
+    border-left: 3px solid var(--c-accent);
+    border-radius: var(--radius-2);
+    margin: var(--s-4) 0;
+  }
+  .dialogue.small { padding: var(--s-3) var(--s-4); }
+  .portrait { display: flex; align-items: center; justify-content: center; }
+  .said { margin: 0; font-style: italic; color: var(--c-ink); }
+</style>

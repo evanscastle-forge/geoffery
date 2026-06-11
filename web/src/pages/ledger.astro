@@ -1,0 +1,46 @@
+---
+import Base from '../layouts/Base.astro';
+import Dialogue from '../components/Dialogue.astro';
+import lines from '../content/geoffery-lines.json';
+import ledger from '../content/ledger.json';
+
+const tiers = ledger.tiers;
+const total = tiers.reduce((n, t) => n + t.names.length, 0);
+---
+
+<Base title="The Exchange Ledger — Geoffery" description="Households of the Exchange Ledger, in descending order of standing.">
+  <h1>The Exchange Ledger</h1>
+  <Dialogue text={lines.ledger_intro} />
+
+  {total === 0 ? (
+    <p class="ui muted">{lines.ledger_empty}</p>
+  ) : (
+    <ol class="tiers">
+      {tiers.map((tier) => (tier.names.length > 0 ? (
+        <li class={`tier tier-${tier.key}`}>
+          <header>
+            <h2>{tier.label}</h2>
+            <p class="ui">{tier.geoffery}</p>
+          </header>
+          <ul class="names">
+            {tier.names.map((n) => <li>{n}</li>)}
+          </ul>
+        </li>
+      ) : null))}
+    </ol>
+  )}
+
+  <hr />
+  <p class="ui muted">{ledger.founding_household_note}</p>
+</Base>
+
+<style>
+  .muted { color: var(--c-ink-faint); }
+  .tiers { list-style: none; padding: 0; margin: var(--s-5) 0; }
+  .tier { margin-bottom: var(--s-6); border-left: 3px solid var(--c-accent-dim); padding-left: var(--s-4); }
+  .tier header h2 { margin: 0 0 var(--s-1); font-size: 1.15rem; }
+  .tier header p { color: var(--c-ink-dim); margin: 0 0 var(--s-3); font-style: italic; }
+  .names { list-style: none; padding: 0; columns: 2; gap: var(--s-5); }
+  @media (min-width: 600px) { .names { columns: 3; } }
+  .names li { padding: var(--s-1) 0; break-inside: avoid; }
+</style>

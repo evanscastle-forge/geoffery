@@ -1,0 +1,38 @@
+# Data — irreplaceable raw history, but local-only; production has its own DB
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/raw/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node / Astro
+node_modules/
+dist/
+.astro/
+.cache/
+
+# Env — never commit filled env files; only the .example templates ship.
+.env
+.env.local
+.env.qa
+.env.prod
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# Owner's working notes — feedback, launch checklists, experiments.
+# Mirrors the dexter-dev `local/` convention: anything the owner wants to
+# keep next to the repo but never ship lives here.
+local/
+
+# Generated content indexes (rebuilt from DB at build time)
+web/src/content/generated/

@@ -1,0 +1,96 @@
+---
+import type { Aggregate } from '../lib/data';
+type Props = { agg: Aggregate };
+const { agg } = Astro.props;
+const band = agg.band;
+const pctMarker = (() => {
+  if (band === 'unsettled' || agg.percentile == null) return null;
+  return Math.max(0.02, Math.min(0.98, agg.percentile));
+})();
+
+const bandLabel: Record<string, string> = {
+  good: 'Good',
+  average: 'Average',
+  poor: 'Poor',
+  unsettled: 'Unsettled',
+};
+---
+
+<section class={`gauge gauge-${band}`} aria-label="Deal gauge">
+  <header class="gauge-head">
+    <span class="badge">{bandLabel[band]}</span>
+    <p class="verdict">{agg.verdict_text}</p>
+  </header>
+  {pctMarker !== null && (
+    <div class="band" aria-hidden="true">
+      <span class="seg seg-good" />
+      <span class="seg seg-average" />
+      <span class="seg seg-poor" />
+      <span class="marker" style={`left: ${(pctMarker * 100).toFixed(2)}%;`} />
+    </div>
+  )}
+  {pctMarker !== null && (
+    <p class="legend ui">
+      <span>Below 30-day median</span>
+      <span>Above 30-day median</span>
+    </p>
+  )}
+  {band === 'unsettled' && (
+    <p class="unsettled-note ui">{agg.flags.includes('thin-history')
+      ? 'I have not yet kept the ledger long enough to appraise this item.'
+      : 'The market is unsettled; readings may shift swiftly.'}</p>
+  )}
+</section>
+
+<style>
+  .gauge {
+    background: var(--c-bg-raised);
+    border: 1px solid var(--c-rule);
+    border-radius: var(--radius-2);
+    padding: var(--s-4) var(--s-5);
+    margin: var(--s-4) 0;
+  }
+  .gauge-head { display: flex; gap: var(--s-4); align-items: center; }
+  .badge {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: var(--s-1) var(--s-3);
+    border-radius: var(--radius-1);
+    border: 1px solid currentColor;
+  }
+  .gauge-good   .badge { color: var(--c-good); }
+  .gauge-average .badge { color: var(--c-average); }
+  .gauge-poor   .badge { color: var(--c-poor); }
+  .gauge-unsettled .badge { color: var(--c-unsettled); }
+  .verdict { margin: 0; flex: 1; font-size: 1.05rem; }
+  .band {
+    margin-top: var(--s-4);
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    height: 14px;
+    border-radius: var(--radius-1);
+    overflow: hidden;
+  }
+  .seg-good    { background: color-mix(in oklab, var(--c-good) 60%, transparent); }
+  .seg-average { background: color-mix(in oklab, var(--c-average) 60%, transparent); }
+  .seg-poor    { background: color-mix(in oklab, var(--c-poor) 60%, transparent); }
+  .marker {
+    position: absolute; top: -4px; bottom: -4px; width: 2px;
+    background: var(--c-ink);
+    transform: translateX(-1px);
+    box-shadow: 0 0 0 2px var(--c-bg-raised);
+  }
+  .legend {
+    display: flex; justify-content: space-between;
+    color: var(--c-ink-faint); font-size: 0.78rem;
+    margin: var(--s-2) 0 0;
+  }
+  .unsettled-note {
+    color: var(--c-ink-dim);
+    font-size: 0.92rem;
+    margin: var(--s-3) 0 0;
+  }
+</style>

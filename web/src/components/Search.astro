@@ -1,0 +1,140 @@
+---
+import lines from '../content/geoffery-lines.json';
+---
+
+<form class="search" role="search" autocomplete="off">
+  <input
+    type="search"
+    id="q"
+    name="q"
+    placeholder={lines.search_placeholder}
+    aria-label="Search items"
+    autocapitalize="off"
+    spellcheck="false"
+    enterkeyhint="search"
+  />
+  <ul id="results" class="results" hidden></ul>
+</form>
+
+<style>
+  .search { position: relative; margin: var(--s-4) 0 var(--s-6); }
+  .search input {
+    width: 100%;
+    font: inherit;
+    font-size: 1.1rem;
+    padding: var(--s-3) var(--s-4);
+    background: var(--c-bg-raised);
+    color: var(--c-ink);
+    border: 1px solid var(--c-rule);
+    border-radius: var(--radius-2);
+    outline: none;
+  }
+  .search input:focus { border-color: var(--c-accent); }
+  .results {
+    list-style: none;
+    margin: var(--s-2) 0 0;
+    padding: 0;
+    background: var(--c-bg-raised);
+    border: 1px solid var(--c-rule);
+    border-radius: var(--radius-2);
+    overflow: hidden;
+    position: absolute; left: 0; right: 0;
+    z-index: 10;
+    max-height: 360px; overflow-y: auto;
+  }
+  .results li { border-bottom: 1px solid var(--c-rule); }
+  .results li:last-child { border-bottom: none; }
+  .results a {
+    display: flex;
+    gap: var(--s-3);
+    padding: var(--s-2) var(--s-4);
+    color: var(--c-ink);
+    text-decoration: none;
+    align-items: center;
+  }
+  .results a[aria-selected="true"], .results a:hover {
+    background: var(--c-surface);
+    color: var(--c-accent);
+  }
+  .results .members::after { content: '★'; color: var(--c-accent-dim); margin-left: auto; font-size: 0.75rem; }
+</style>
+
+<script>
+  type Item = { id: number; slug: string; name: string; members: boolean; icon: string | null };
+  const input = document.getElementById('q') as HTMLInputElement;
+  const results = document.getElementById('results') as HTMLUListElement;
+  let items: Item[] = [];
+  let selectedIndex = -1;
+
+  async function loadItems() {
+    if (items.length) return items;
+    const res = await fetch('/items.json');
+    items = (await res.json()) as Item[];
+    return items;
+  }
+
+  function score(name: string, q: string): number {
+    name = name.toLowerCase();
+    if (name === q) return 1000;
+    if (name.startsWith(q)) return 500 + (100 - name.length);
+    const idx = name.indexOf(q);
+    if (idx >= 0) return 200 - idx;
+    // tolerant fuzzy: every char of q appears in order in name
+    let pos = -1;
+    for (const ch of q) {
+      pos = name.indexOf(ch, pos + 1);
+      if (pos === -1) return -1;
+    }
+    return 50 - name.length;
+  }
+
+  function render(matches: Item[]) {
+    selectedIndex = matches.length ? 0 : -1;
+    if (!matches.length) {
+      results.hidden = true;
+      results.innerHTML = '';
+      return;
+    }
+    results.hidden = false;
+    results.innerHTML = matches
+      .slice(0, 12)
+      .map((it, i) => `<li><a href="/item/${it.slug}" aria-selected="${i === 0 ? 'true' : 'false'}"${it.members ? ' class="members"' : ''}>${it.name}</a></li>`)
+      .join('');
+  }
+
+  input.addEventListener('input', async () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q) { render([]); return; }
+    const list = await loadItems();
+    const scored: Array<[number, Item]> = [];
+    for (const it of list) {
+      const s = score(it.name, q);
+      if (s > 0) scored.push([s, it]);
+    }
+    scored.sort((a, b) => b[0] - a[0]);
+    render(scored.map((p) => p[1]));
+  });
+
+  input.addEventListener('keydown', (e) => {
+    const links = results.querySelectorAll<HTMLAnchorElement>('a');
+    if (!links.length) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      links[selectedIndex]?.setAttribute('aria-selected', 'false');
+      selectedIndex = e.key === 'ArrowDown'
+        ? Math.min(links.length - 1, selectedIndex + 1)
+        : Math.max(0, selectedIndex - 1);
+      links[selectedIndex].setAttribute('aria-selected', 'true');
+      links[selectedIndex].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      links[selectedIndex]?.click();
+    } else if (e.key === 'Escape') {
+      input.value = ''; render([]);
+    }
+  });
+
+  // Warm the cache when the search box is focused, not on first paint —
+  // keeps the homepage payload lean.
+  input.addEventListener('focus', () => { void loadItems(); }, { once: true });
+</script>

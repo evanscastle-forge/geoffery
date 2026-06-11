@@ -1,0 +1,131 @@
+---
+import Base from '../../layouts/Base.astro';
+import Dialogue from '../../components/Dialogue.astro';
+import Gauge from '../../components/Gauge.astro';
+import Sparkline from '../../components/Sparkline.astro';
+import lines from '../../content/geoffery-lines.json';
+import { items, getAggregate, getSparkline, news } from '../../lib/data';
+import { formatGp, formatVolume, timeAgo } from '../../lib/format';
+
+export function getStaticPaths() {
+  return items.map((item) => ({ params: { slug: item.slug }, props: { item } }));
+}
+
+const { item } = Astro.props;
+const agg = getAggregate(item.slug);
+const spark = getSparkline(item.slug);
+const recentNews = news.slice(0, 3);
+const title = `${item.name} GE price & deal rating — Geoffery`;
+const description = agg && agg.band !== 'unsettled' && agg.current_price
+  ? `${item.name}: ${formatGp(agg.current_price)}. ${agg.verdict_text}`
+  : `${item.name} on the OSRS Grand Exchange — current price and deal rating, kept by Geoffery.`;
+const now = Date.now() / 1000;
+const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0), now) : 'unknown';
+---
+
+<Base title={title} description={description}>
+  <p class="crumbs ui"><a href="/">Geoffery</a> / <span>{item.name}</span></p>
+  <h1>{item.name} <small class="ui muted">{item.members ? '★ members' : ''}</small></h1>
+
+  {agg ? (
+    <section class="headline">
+      <div class="quote">
+        <div>
+          <span class="ui muted">Insta-buy</span>
+          <span class="big">{formatGp(agg.high)}</span>
+        </div>
+        <div>
+          <span class="ui muted">Insta-sell</span>
+          <span class="big">{formatGp(agg.low)}</span>
+        </div>
+        <div>
+          <span class="ui muted">24h volume</span>
+          <span class="big">{formatVolume(agg.volume_24h)}</span>
+        </div>
+        <div>
+          <span class="ui muted">Last quoted</span>
+          <span class="big">{fresh}</span>
+        </div>
+      </div>
+
+      <Gauge agg={agg} />
+
+      {agg.flags.length > 0 && (
+        <ul class="flags ui">
+          {agg.flags.includes('thin-history') && <li>{lines.thin_history}</li>}
+          {agg.flags.includes('no-current-price') && <li>{lines.no_current_price}</li>}
+          {agg.flags.includes('volume-spike') && <li>{lines.volume_spike}</li>}
+          {agg.flags.includes('recent-news') && <li>{lines.recent_news}</li>}
+        </ul>
+      )}
+    </section>
+  ) : (
+    <Dialogue text="I have not yet recorded a figure for this item, master." />
+  )}
+
+  {(spark['1d'] || spark['1w'] || spark['1m']) && (
+    <section>
+      <h2>Recent figures</h2>
+      <div class="sparks">
+        {spark['1d'] && <Sparkline points={spark['1d']} label="last 24 hours" />}
+        {spark['1w'] && <Sparkline points={spark['1w']} label="last 7 days" />}
+        {spark['1m'] && <Sparkline points={spark['1m']} label="last 30 days" />}
+      </div>
+    </section>
+  )}
+
+  {recentNews.length > 0 && (
+    <section>
+      <h2>Game news</h2>
+      <p class="ui muted">When Jagex touches the market, Geoffery marks the figures unsettled.</p>
+      <ul class="news">
+        {recentNews.map((n) => (
+          <li>
+            <a href={n.url} target="_blank" rel="noopener">{n.title}</a>
+            <small class="ui muted"> · {timeAgo(n.published_at, now)}</small>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <hr />
+  <p class="ui muted">
+    Item id <code>{item.id}</code>. <a href="/how-we-rate">How Geoffery rates →</a>
+  </p>
+</Base>
+
+<style>
+  .crumbs { color: var(--c-ink-faint); margin: 0 0 var(--s-2); }
+  .crumbs a { color: var(--c-ink-faint); }
+  h1 small { color: var(--c-ink-faint); font-weight: normal; margin-left: var(--s-2); }
+  .muted { color: var(--c-ink-faint); }
+  .quote {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--s-3);
+    margin: var(--s-4) 0 var(--s-3);
+  }
+  @media (min-width: 600px) { .quote { grid-template-columns: repeat(4, 1fr); } }
+  .quote > div {
+    border: 1px solid var(--c-rule);
+    background: var(--c-bg-raised);
+    padding: var(--s-3) var(--s-4);
+    border-radius: var(--radius-1);
+  }
+  .quote .big {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--c-ink);
+    margin-top: 2px;
+  }
+  .ui.muted { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; }
+  .flags { padding-left: var(--s-4); color: var(--c-ink-dim); font-size: 0.92rem; }
+  .sparks { display: grid; gap: var(--s-4); margin-top: var(--s-3); }
+  @media (min-width: 600px) { .sparks { grid-template-columns: repeat(3, 1fr); } }
+  .news { list-style: none; padding: 0; margin: 0; }
+  .news li { padding: var(--s-2) 0; border-bottom: 1px solid var(--c-rule); }
+  .news li:last-child { border-bottom: none; }
+</style>
