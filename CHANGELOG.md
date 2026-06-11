@@ -4,6 +4,13 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — frontend — SCOPE: LOCAL
+**Summary**: Strengthened the Jagex non-affiliation disclaimer to the industry-standard "no way affiliated with, authorised, maintained, sponsored or endorsed by Jagex Limited or any of its affiliates or subsidiaries" wording. Single source: `web/src/content/geoffery-lines.json` → `footer_disclaimer`. Renders in every page footer plus an explicit panel at the bottom of `/about`.
+**Files touched**:
+- `web/src/content/geoffery-lines.json` — `footer_disclaimer` rewritten.
+- `web/src/pages/about.astro` — added explicit disclaimer panel + `.disclaimer` style.
+**Verification**: `./scripts/run.sh prod build`; `grep` for the new string in homepage / item-page / about-page artifacts confirms it lands in all three.
+
 ## 2026-06-11 — ops — SCOPE: LOCAL
 **Summary**: `scripts/run.sh` is now the single verb-less serve script: `./scripts/run.sh <localhost|local|qa|prod>` defaults to `serve`. `localhost` runs `astro dev` (HMR, no build). `qa` / `prod` write a `web/dist/.build-stamp` of env+version+epoch, and `serve` rebuilds only if missing, env-mismatched, version-mismatched, or any source file newer than the stamp. Auto-installs `node_modules/` on first run.
 **Files touched**:
