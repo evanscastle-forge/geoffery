@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import AdSlot from '../../components/AdSlot.astro';
 import Dialogue from '../../components/Dialogue.astro';
 import Gauge from '../../components/Gauge.astro';
 import Sparkline from '../../components/Sparkline.astro';
@@ -76,6 +77,10 @@ const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0
     <Dialogue text="I have not yet recorded a figure for this item, master." />
   )}
 
+  {/* D-016b: the verdict has been delivered above; one ad-slot may follow. */}
+  <AdSlot kind="item-mid" />
+  <AdSlot kind="mobile-only" />
+
   {agg && agg.news_citations.length > 0 && (
     <section class="panel news-cites">
       <h2>Why unsettled</h2>
@@ -100,6 +105,9 @@ const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0
       </div>
     </section>
   )}
+
+  {/* D-016b: page-bottom unit, after all content. */}
+  <AdSlot kind="item-bottom" />
 
   <hr />
   <p class="colophon ui">

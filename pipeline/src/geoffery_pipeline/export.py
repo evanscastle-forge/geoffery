@@ -204,6 +204,73 @@ def export_news(conn, out_dir: Path) -> int:
     return len(out)
 
 
+def export_methodology_stats(conn, out_dir: Path) -> dict:
+    """Write methodology-stats.json — the published accuracy record (D-011).
+
+    Aggregates the `calibration` table into:
+      - overall fill rate
+      - per-cohort fill rates and sample counts
+      - per-tolerance roll-ups (instant/hours/patient)
+
+    Frontend uses these on /methodology and on the Bell consultation dialog
+    to render in-character confidence statements.
+    """
+    rows = conn.execute(
+        "SELECT cohort_key, n_total, n_filled, fill_rate FROM calibration"
+    ).fetchall()
+    cohorts: dict[str, dict] = {}
+    total_n = 0
+    total_f = 0
+    by_tolerance: dict[str, dict[str, int]] = {}
+    for r in rows:
+        key = r["cohort_key"]
+        n_total = int(r["n_total"])
+        n_filled = int(r["n_filled"])
+        cohorts[key] = {
+            "n_total": n_total,
+            "n_filled": n_filled,
+            "fill_rate": float(r["fill_rate"]),
+        }
+        total_n += n_total
+        total_f += n_filled
+        # cohort_key shape: tolerance/side/liquidity/stability
+        tol = key.split("/")[0] if "/" in key else "unknown"
+        bucket = by_tolerance.setdefault(tol, {"n_total": 0, "n_filled": 0})
+        bucket["n_total"] += n_total
+        bucket["n_filled"] += n_filled
+
+    for tol, b in by_tolerance.items():
+        if b["n_total"] > 0:
+            b["fill_rate"] = b["n_filled"] / b["n_total"]
+        else:
+            b["fill_rate"] = 0.0
+
+    stats = {
+        "overall": {
+            "n_total": total_n,
+            "n_filled": total_f,
+            "fill_rate": (total_f / total_n) if total_n else 0.0,
+        },
+        "by_tolerance": by_tolerance,
+        "cohorts": cohorts,
+        "engine_version": _engine_version_from_aggregates(conn),
+        "exported_at": int(time.time()),
+    }
+    _atomic_write(out_dir / "methodology-stats.json", stats)
+    # Also publish to /methodology-stats.json so the frontend's fetch() works.
+    public_path = out_dir.parent.parent.parent / "public" / "methodology-stats.json"
+    if public_path.parent.exists():
+        _atomic_write(public_path, stats)
+    return stats
+
+
+def _engine_version_from_aggregates(conn) -> int:
+    row = conn.execute(
+        "SELECT MAX(engine_version) AS v FROM aggregates"
+    ).fetchone()
+    return int(row["v"] or 0)
+
+
 def export_health(conn, out_dir: Path) -> None:
     rows = conn.execute("SELECT * FROM pipeline_health").fetchall()
     _atomic_write(
@@ -243,6 +310,14 @@ def main() -> int:
         n_news = export_news(conn, out_dir)
         export_health(conn, out_dir)
         export_meta(out_dir)
+        stats = export_methodology_stats(conn, out_dir)
+        LOG.info(
+            "methodology-stats: overall=%d/%d (%.1f%%) cohorts=%d",
+            stats["overall"]["n_filled"],
+            stats["overall"]["n_total"],
+            stats["overall"]["fill_rate"] * 100,
+            len(stats["cohorts"]),
+        )
         LOG.info(
             "export ok → %s (items=%d agg=%d sparklines=%d news=%d)",
             out_dir, n_items, n_agg, n_spark, n_news,

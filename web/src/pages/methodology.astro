@@ -2,6 +2,20 @@
 import Base from '../layouts/Base.astro';
 import Dialogue from '../components/Dialogue.astro';
 import lines from '../content/geoffery-lines.json';
+import statsRaw from '../content/generated/methodology-stats.json';
+
+type Stats = {
+  overall: { n_total: number; n_filled: number; fill_rate: number };
+  by_tolerance: Record<string, { n_total: number; n_filled: number; fill_rate: number }>;
+  cohorts: Record<string, { n_total: number; n_filled: number; fill_rate: number }>;
+  engine_version: number;
+  exported_at: number;
+};
+const stats = statsRaw as Stats;
+const hasRecord = stats.overall.n_total > 0;
+const fmtPct = (r: number) => (r * 100).toFixed(1) + '%';
+const fmtN = (n: number) => n.toLocaleString('en-US');
+const tolOrder: Array<keyof Stats['by_tolerance']> = ['instant', 'hours', 'patient'];
 ---
 
 <Base title="How Geoffery rates — methodology" description="The exact arithmetic behind every deal gauge on Geoffery.">
@@ -22,9 +36,62 @@ import lines from '../content/geoffery-lines.json';
       <li><strong style="color: var(--c-unsettled)">Unsettled</strong> — Geoffery declines to rate. When this happens, the item page itself explains why.</li>
     </ul>
   </section>
+
+  {hasRecord && (
+    <section class="panel">
+      <h2>Geoffery's record</h2>
+      <p>{lines.record_intro}</p>
+      <p class="overall">
+        Across {fmtN(stats.overall.n_total)} appraisals, his offers filled at the recommended figure
+        {' '}<strong>{fmtPct(stats.overall.fill_rate)}</strong> of the time.
+      </p>
+      <table class="record">
+        <thead>
+          <tr><th scope="col">Class</th><th scope="col">Appraisals</th><th scope="col">Fill rate</th></tr>
+        </thead>
+        <tbody>
+          {tolOrder.filter((t) => stats.by_tolerance[t]).map((t) => (
+            <tr>
+              <th scope="row">{t.charAt(0).toUpperCase() + t.slice(1)}</th>
+              <td>{fmtN(stats.by_tolerance[t].n_total)}</td>
+              <td>{fmtPct(stats.by_tolerance[t].fill_rate)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="ui muted">
+        The record above is seeded from a backtest of Geoffery's recommendation rules against the trailing month of wiki data; live consultations refine it as they accumulate. Engine version {stats.engine_version}.
+      </p>
+    </section>
+  )}
 </Base>
 
 <style>
   .muted { color: var(--c-parchment-ink-faint); }
   .panel h2:first-child { margin-top: 0; }
+  .overall { font-family: var(--font-serif); font-size: 1.1rem; }
+  .record {
+    width: 100%;
+    border-collapse: collapse;
+    margin: var(--s-3) 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .record th, .record td {
+    padding: var(--s-2) var(--s-3);
+    text-align: left;
+    border-bottom: 1px solid var(--c-parchment-rule-faint);
+  }
+  .record th[scope="col"] {
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--c-parchment-ink-faint);
+    border-bottom: 1px solid var(--c-parchment-rule);
+  }
+  .record th[scope="row"] {
+    font-weight: 600;
+    color: var(--c-parchment-red);
+  }
+  .record td:last-child { text-align: right; font-weight: 600; }
 </style>

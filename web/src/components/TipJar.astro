@@ -35,6 +35,10 @@ const configured = isProd && linksFilled;
     <button class="close" id="tip-close" aria-label="Close">✕</button>
   </header>
   <p class="ask">{lines.tip_ask_default}</p>
+  {/* D-015b binding disclosure: stated BEFORE the payment step, always. */}
+  <p class="disclosure ui">
+    When supporter accounts arrive, each $1 will buy one month of supporter service and earn a row in the Exchange Ledger. Until then, tips are received as gifts — remembered in the founding household, but not yet credited as wages.
+  </p>
   {configured ? (
     <ul class="options">
       <li><a class="opt" href={gold} target="_blank" rel="noopener">
@@ -89,7 +93,15 @@ const configured = isProd && linksFilled;
   .tip-panel header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--s-3); }
   .tip-panel h2 { margin: 0; font-size: 1.05rem; }
   .close { background: none; border: none; color: var(--c-ink-faint); cursor: pointer; font-size: 1rem; }
-  .ask { color: var(--c-ink-dim); margin: 0 0 var(--s-4); font-size: 0.95rem; }
+  .ask { color: var(--c-ink-dim); margin: 0 0 var(--s-3); font-size: 0.95rem; }
+  .disclosure {
+    color: var(--c-ink-faint);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    margin: 0 0 var(--s-4);
+    padding: var(--s-2) var(--s-3);
+    border-left: 2px solid var(--c-rule);
+  }
   .options { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
   .opt {
     display: grid; grid-template-columns: 36px 1fr; gap: var(--s-3); align-items: center;
