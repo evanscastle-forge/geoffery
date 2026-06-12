@@ -4,6 +4,16 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — frontend + algorithms — SCOPE: LOCAL
+**Summary**: D-013 follow-on — the Bell consultation acknowledges wiki update notices in voice. When the user receives a recommendation for an item that carries one or more `wiki_update_notices` (high-confidence Haiku classifications surfaced via `aggregates.json`), the dialog adds a brick-red italic line beneath the regime descriptor: "There is news, sir. This item is mentioned in {an upcoming Jagex update | a recent Jagex update}; the market is still composing itself." Phrasing parameterized by whether at least one of the linked notices is `kind=upcoming`. **Neutral throughout** per D-013 — no directional language ("will rise"), no advisory ("buy first"). The recommendation engine itself remains firewalled from the update flags (D-012); the dialog merely surfaces the context. Plus six `test_wiki_news.py` unit tests pin the wikitext → sections + summary parser behaviour.
+**Files touched**:
+- `web/src/components/Consultation.astro` — `data-news-ack` paragraph wired to `aggregates[slug].wiki_update_notices`.
+- `pipeline/tests/test_wiki_news.py` — new tests (6).
+**Affected agents**: frontend (initiator), algorithms (boundary re-affirmed).
+**Verification**: `uv run --extra dev pytest` → 50 pass (44 prior + 6).
+
+---
+
 ## 2026-06-11 — data-engineer + algorithms + frontend + design-character — SCOPE: CROSS-MODULE
 **Summary**: D-013 News Context Layer ships. Replaces the RSS keyword matcher with **MediaWiki API polling** + **Claude Haiku** item-affection classifier. New module `wiki_news.py` fetches `Upcoming_updates`, `Updates`, and the current-year wiki page via the OSRS Wiki MediaWiki API; splits each page's wikitext into section-shaped updates; upserts into a new `wiki_updates` table. New module `news_classifier.py` ranks each unclassified update against the closed item vocabulary using Claude Haiku — model selects items verbatim from the catalog only, returns confidence + justification quote per association — and writes to `update_item_associations`. **Graceful stub mode** when `ANTHROPIC_API_KEY` is absent or the SDK isn't installed: the run logs "stub mode" and writes nothing. Display surfaces (frontend): `WikiUpdateNotice.astro` panel on the item page renders neutral disclaimers ("This recent update may affect this item" / "An upcoming update may affect this item") with a provenance link to the wiki article — never directional, never advisory. Geoffery's canonical neutrality line ("I keep accounts, sir. I do not gamble.") sits at the bottom of the notice block. **Firewalled from the recommendation engine** (D-012). Live verified: 31 wiki updates ingested (21 upcoming + 9 recent + 1 from /w/2026). Classifier in stub mode: 31 pending; the moment a Haiku key is set, those classifications populate and the item-page notices light up. The RSS news matcher (`news_matcher.py`) is demoted to legacy fallback but kept wired during the transition.
 **Pitfall logged:** The OSRS Wiki's API endpoint is `https://oldschool.runescape.wiki/api.php` (no `/w/` prefix) — `/w/api.php` 301s to a capitalized `/w/Api.php` that 404s. Found the hard way; URL pinned in the module.

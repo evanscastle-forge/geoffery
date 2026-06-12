@@ -69,6 +69,7 @@ import lines from '../content/geoffery-lines.json';
         <p class="name">Geoffery</p>
         <p class="line" data-recommendation></p>
         <p class="regime" data-regime></p>
+        <p class="news-ack" data-news-ack hidden></p>
         <p class="confidence" data-confidence></p>
       </div>
       <div class="consult-options">
@@ -144,6 +145,13 @@ import lines from '../content/geoffery-lines.json';
     font-size: 0.85rem;
     color: var(--c-parchment-ink-faint);
     margin: var(--s-1) 0 0;
+  }
+  .said .news-ack {
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--c-parchment-red);
+    margin: var(--s-2) 0 0;
+    font-size: 0.95rem;
   }
 
   #consult-item-input {
@@ -392,6 +400,20 @@ import lines from '../content/geoffery-lines.json';
       (dlg.querySelector('[data-recommendation]') as HTMLElement).textContent = recCopy;
       (dlg.querySelector('[data-regime]') as HTMLElement).textContent = regimeCopy;
       (dlg.querySelector('[data-confidence]') as HTMLElement).textContent = confCopy;
+
+      // D-013 × D-011 cross: when an item carries wiki update notices, the
+      // consultation acknowledges them briefly (still neutral, never directional).
+      const ackEl = dlg.querySelector<HTMLElement>('[data-news-ack]')!;
+      const notices = (aggregates[state.item!.slug]?.wiki_update_notices ?? []) as Array<{ kind: 'upcoming' | 'recent' | 'past' }>;
+      if (notices.length > 0) {
+        const upcoming = notices.some((n) => n.kind === 'upcoming');
+        const phrasing = upcoming ? 'an upcoming Jagex update' : 'a recent Jagex update';
+        ackEl.textContent = (lines.consult_news_acknowledged as string).replace('{kind_phrasing}', phrasing);
+        ackEl.hidden = false;
+      } else {
+        ackEl.textContent = '';
+        ackEl.hidden = true;
+      }
 
       const itemLink = dlg.querySelector('[data-item-link]') as HTMLAnchorElement;
       itemLink.href = `/item/${state.item!.slug}#consulted=${encodeURIComponent(rec.bucket)}-${rec.price ?? 0}`;
