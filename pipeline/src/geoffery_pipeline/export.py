@@ -63,6 +63,41 @@ def export_items(conn, out_dir: Path) -> int:
     return len(items)
 
 
+def _build_wiki_update_notices_by_item(conn, min_confidence: float = 0.6) -> dict[int, list[dict]]:
+    """Per-item list of wiki-derived updates flagged for display (D-013).
+
+    Reads `update_item_associations` joined with `wiki_updates`. Only
+    associations with confidence >= `min_confidence` surface (per D-013).
+    The frontend renders these as neutral disclaimer panels on the item
+    page; the consultation acknowledges them in voice.
+    """
+    rows = conn.execute(
+        """
+        SELECT a.item_id, a.confidence, a.justification,
+               u.id AS update_id, u.title, u.summary, u.wiki_url, u.kind, u.published_at
+        FROM update_item_associations a
+        JOIN wiki_updates u ON u.id = a.update_id
+        WHERE a.confidence >= ?
+        ORDER BY u.published_at DESC NULLS LAST, u.discovered_at DESC
+        """,
+        (min_confidence,),
+    ).fetchall()
+    by_item: dict[int, list[dict]] = {}
+    for r in rows:
+        item_id = int(r["item_id"])
+        notice = {
+            "update_id": r["update_id"],
+            "title": r["title"],
+            "summary": r["summary"],
+            "url": r["wiki_url"],
+            "kind": r["kind"],            # 'upcoming' / 'recent' / 'past'
+            "confidence": float(r["confidence"]),
+            "published_at": r["published_at"],
+        }
+        by_item.setdefault(item_id, []).append(notice)
+    return by_item
+
+
 def _build_news_citations_by_item(conn, lookback_days: int = 3) -> dict[int, list[dict]]:
     """Per-item list of recent news articles that named it.
 
@@ -112,6 +147,7 @@ def export_aggregates(conn, out_dir: Path) -> int:
         ).fetchall()
     }
     citations_by_item = _build_news_citations_by_item(conn)
+    notices_by_item = _build_wiki_update_notices_by_item(conn)
     for r in rows:
         latest = latest_rows.get(r["item_id"])
         agg[r["slug"]] = {
@@ -134,6 +170,7 @@ def export_aggregates(conn, out_dir: Path) -> int:
             "low": latest["low"] if latest else None,
             "low_ts": latest["low_ts"] if latest else None,
             "news_citations": citations_by_item.get(r["item_id"], []),
+            "wiki_update_notices": notices_by_item.get(r["item_id"], []),
             "regime": {
                 "power": r["regime_power"],
                 "stability": r["regime_stability"],

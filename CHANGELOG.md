@@ -4,6 +4,25 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — data-engineer + algorithms + frontend + design-character — SCOPE: CROSS-MODULE
+**Summary**: D-013 News Context Layer ships. Replaces the RSS keyword matcher with **MediaWiki API polling** + **Claude Haiku** item-affection classifier. New module `wiki_news.py` fetches `Upcoming_updates`, `Updates`, and the current-year wiki page via the OSRS Wiki MediaWiki API; splits each page's wikitext into section-shaped updates; upserts into a new `wiki_updates` table. New module `news_classifier.py` ranks each unclassified update against the closed item vocabulary using Claude Haiku — model selects items verbatim from the catalog only, returns confidence + justification quote per association — and writes to `update_item_associations`. **Graceful stub mode** when `ANTHROPIC_API_KEY` is absent or the SDK isn't installed: the run logs "stub mode" and writes nothing. Display surfaces (frontend): `WikiUpdateNotice.astro` panel on the item page renders neutral disclaimers ("This recent update may affect this item" / "An upcoming update may affect this item") with a provenance link to the wiki article — never directional, never advisory. Geoffery's canonical neutrality line ("I keep accounts, sir. I do not gamble.") sits at the bottom of the notice block. **Firewalled from the recommendation engine** (D-012). Live verified: 31 wiki updates ingested (21 upcoming + 9 recent + 1 from /w/2026). Classifier in stub mode: 31 pending; the moment a Haiku key is set, those classifications populate and the item-page notices light up. The RSS news matcher (`news_matcher.py`) is demoted to legacy fallback but kept wired during the transition.
+**Pitfall logged:** The OSRS Wiki's API endpoint is `https://oldschool.runescape.wiki/api.php` (no `/w/` prefix) — `/w/api.php` 301s to a capitalized `/w/Api.php` that 404s. Found the hard way; URL pinned in the module.
+**Files touched**:
+- `pipeline/src/geoffery_pipeline/db.py` — `wiki_updates` + `update_item_associations` tables.
+- `pipeline/src/geoffery_pipeline/wiki_news.py` — new module: MediaWiki API client + section parser + upsert.
+- `pipeline/src/geoffery_pipeline/news_classifier.py` — new module: Haiku classifier with closed-vocab prompt + JSON-parsing + graceful stub mode.
+- `pipeline/src/geoffery_pipeline/export.py` — `_build_wiki_update_notices_by_item` adds `wiki_update_notices` per item.
+- `pipeline/pyproject.toml` — `anthropic>=0.40` dependency.
+- `scripts/run.sh` — `wiki-news` and `news-classifier` commands.
+- `web/src/lib/data.ts` — `WikiUpdateNotice` type; `Aggregate.wiki_update_notices`.
+- `web/src/components/WikiUpdateNotice.astro` — new component (neutral phrasing + provenance link).
+- `web/src/pages/item/[slug].astro` — renders notices above the gauge.
+- `web/src/content/geoffery-lines.json` — five new lines: `wiki_notice_upcoming`, `wiki_notice_recent`, `wiki_notice_provenance`, `wiki_no_speculation`, `consult_news_acknowledged`.
+- `.claude/agents/data-engineer.md` — D-013 ownership + RSS matcher demoted to legacy fallback.
+**Affected agents**: data-engineer (initiator), algorithms (boundary check: update flags don't enter recommend.py), frontend (notice component + item-page render), design-character (neutrality copy + the canonical "I keep accounts" line), compliance (CC BY-NC-SA signal-not-republication enforcement), ops (one new scheduled job).
+**Verification**: `./scripts/run.sh local wiki-news` → 31 updates ingested over 3 source pages; `./scripts/run.sh local news-classifier` → stub-mode log entry confirms no key → no classifications written. Build pending (export still running concurrently with the backtest); when key is added the notices light up live.
+**Follow-on (operator action)**: set `ANTHROPIC_API_KEY` in `.env.local` for the next run; the classifier will then process the 31 pending updates.
+
 ## 2026-06-11 — product-lead — SCOPE: LOCAL
 **Summary**: Folded four new product decisions from `local/D-013-…D-017-*.md` into `.claude/DECISIONS.md`, taking the canonical D-013…D-017 slots. Existing build-time decisions (Repo layout, Chrome URLs, Cloudflare D1) renumbered to D-018, D-019, D-020 to make room. D-014 is reserved for the future supporter-billing system that D-015/D-017 reference. New entries:
 - **D-013 News Context Layer (wiki + Haiku).** Replaces the simple RSS keyword matcher (`news_matcher.py`) with daily MediaWiki API polling of `/w/Upcoming_updates`, `/w/Updates`, `/w/2026`. Each new update entry is classified ONCE by Claude Haiku against a closed item vocabulary; associations carry confidence + provenance quote. Display: chart event markers + item-page notices + in-consultation acknowledgments. **Firewalled from the recommendation engine** (D-012 — only-measured-is-prescriptive). CC BY-NC-SA signal-not-republication rule binding.

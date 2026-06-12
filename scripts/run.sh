@@ -178,6 +178,12 @@ case "${CMD}" in
     scorer)
         run_pipeline scorer
         ;;
+    wiki-news)
+        run_pipeline wiki_news
+        ;;
+    news-classifier)
+        run_pipeline news_classifier
+        ;;
     backtest)
         cd "${REPO_ROOT}/pipeline"
         uv run python -m geoffery_pipeline.backtest "$@"

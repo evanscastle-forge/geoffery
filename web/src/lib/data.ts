@@ -21,6 +21,16 @@ export type Band = 'good' | 'average' | 'poor' | 'unsettled';
 
 export type NewsCitation = { title: string; url: string; published_at: number };
 
+export type WikiUpdateNotice = {
+  update_id: string;
+  title: string;
+  summary: string;
+  url: string;
+  kind: 'upcoming' | 'recent' | 'past';
+  confidence: number;
+  published_at: number | null;
+};
+
 export type RegimePower = 'buyer' | 'seller' | 'balanced';
 export type RegimeStability = 'steady' | 'volatile';
 export type LiquidityBand = 'thick' | 'medium' | 'thin';
@@ -60,6 +70,7 @@ export type Aggregate = {
   low: number | null;
   low_ts: number | null;
   news_citations: NewsCitation[];
+  wiki_update_notices: WikiUpdateNotice[];
   regime: Regime;
   recommendations: Recommendations;
   engine_version: number;

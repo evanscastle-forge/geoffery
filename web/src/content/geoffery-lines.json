@@ -67,5 +67,12 @@
   "bell_limit_supporter_hint": "A coin in the jar is the kindest way to summon me a fourth time.",
 
   "record_intro": "Geoffery keeps an honest ledger of his own appraisals. Every recommendation is logged the moment it is given; every figure is scored against what the market subsequently bore. The numbers below are that record.",
-  "consult_close": "Very good, sir."
+  "consult_close": "Very good, sir.",
+
+  "_wiki_news_about": "D-013 news context layer copy. All phrasings are neutral and disclaimed; never directional, never advisory. Provenance link is mandatory.",
+  "wiki_notice_upcoming": "An upcoming update may affect this item.",
+  "wiki_notice_recent": "A recent update may affect this item.",
+  "wiki_notice_provenance": "Source: OSRS Wiki",
+  "wiki_no_speculation": "I keep accounts, sir. I do not gamble.",
+  "consult_news_acknowledged": "There is news, sir. This item is mentioned in {kind_phrasing}; the market is still composing itself."
 }

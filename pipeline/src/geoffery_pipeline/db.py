@@ -138,6 +138,36 @@ CREATE TABLE IF NOT EXISTS news_events (
 );
 CREATE INDEX IF NOT EXISTS news_events_published_at ON news_events(published_at);
 
+-- D-013 News Context Layer: OSRS Wiki update pages cached locally with
+-- Claude Haiku-derived per-item affection associations. **Firewalled from
+-- the recommendation engine** per D-012 — context-only, never enters the
+-- recommend.py inputs. The frontend reads these on item pages and the
+-- Bell consultation acknowledges them in dialogue.
+CREATE TABLE IF NOT EXISTS wiki_updates (
+    id              TEXT PRIMARY KEY,
+    page            TEXT NOT NULL,
+    title           TEXT NOT NULL,
+    summary         TEXT NOT NULL DEFAULT '',
+    quote           TEXT NOT NULL DEFAULT '',
+    kind            TEXT NOT NULL CHECK (kind IN ('upcoming','recent','past')),
+    published_at    INTEGER,
+    discovered_at   INTEGER NOT NULL,
+    wiki_url        TEXT NOT NULL,
+    classified_at   INTEGER,
+    engine_version  INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS wiki_updates_kind ON wiki_updates(kind);
+CREATE INDEX IF NOT EXISTS wiki_updates_published ON wiki_updates(published_at);
+
+CREATE TABLE IF NOT EXISTS update_item_associations (
+    update_id       TEXT NOT NULL REFERENCES wiki_updates(id),
+    item_id         INTEGER NOT NULL REFERENCES items(id),
+    confidence      REAL NOT NULL,
+    justification   TEXT NOT NULL,
+    PRIMARY KEY (update_id, item_id)
+);
+CREATE INDEX IF NOT EXISTS update_item_associations_item ON update_item_associations(item_id);
+
 CREATE TABLE IF NOT EXISTS pipeline_health (
     job_name     TEXT PRIMARY KEY,
     last_ok_at   INTEGER NOT NULL,

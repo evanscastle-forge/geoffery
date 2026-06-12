@@ -5,6 +5,7 @@ import Dialogue from '../../components/Dialogue.astro';
 import Gauge from '../../components/Gauge.astro';
 import Sparkline from '../../components/Sparkline.astro';
 import RecommendationPanel from '../../components/RecommendationPanel.astro';
+import WikiUpdateNotice from '../../components/WikiUpdateNotice.astro';
 import lines from '../../content/geoffery-lines.json';
 import { items, getAggregate, getSparkline } from '../../lib/data';
 import { formatGp, formatVolume, timeAgo } from '../../lib/format';
@@ -38,6 +39,7 @@ const fresh = agg && agg.high_ts ? timeAgo(Math.max(agg.high_ts, agg.low_ts ?? 0
   </h1>
 
   {agg && <RecommendationPanel agg={agg} />}
+  {agg && <WikiUpdateNotice notices={agg.wiki_update_notices ?? []} />}
 
   {agg ? (
     <section class="headline panel">
