@@ -82,5 +82,7 @@ def test_classify_kind_routes_pages_to_buckets():
 
     year = time.strftime("%Y")
     assert _classify_kind(year, "Anything") == "recent"
-    # other page → past
-    assert _classify_kind("Updates", "Anything") in ("recent", "past")
+    # Updates index page → recent (current chronicle of what shipped)
+    assert _classify_kind("Updates", "Anything") == "recent"
+    # Old year page → past
+    assert _classify_kind("2019", "Anything") == "past"

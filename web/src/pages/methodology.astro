@@ -37,33 +37,39 @@ const tolOrder: Array<keyof Stats['by_tolerance']> = ['instant', 'hours', 'patie
     </ul>
   </section>
 
-  {hasRecord && (
-    <section class="panel">
-      <h2>Geoffery's record</h2>
-      <p>{lines.record_intro}</p>
-      <p class="overall">
-        Across {fmtN(stats.overall.n_total)} appraisals, his offers filled at the recommended figure
-        {' '}<strong>{fmtPct(stats.overall.fill_rate)}</strong> of the time.
-      </p>
-      <table class="record">
-        <thead>
-          <tr><th scope="col">Class</th><th scope="col">Appraisals</th><th scope="col">Fill rate</th></tr>
-        </thead>
-        <tbody>
-          {tolOrder.filter((t) => stats.by_tolerance[t]).map((t) => (
-            <tr>
-              <th scope="row">{t.charAt(0).toUpperCase() + t.slice(1)}</th>
-              <td>{fmtN(stats.by_tolerance[t].n_total)}</td>
-              <td>{fmtPct(stats.by_tolerance[t].fill_rate)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+  <section class="panel">
+    <h2>Geoffery's record</h2>
+    <p>{lines.record_intro}</p>
+    {hasRecord ? (
+      <>
+        <p class="overall">
+          Across {fmtN(stats.overall.n_total)} appraisals, his offers filled at the recommended figure
+          {' '}<strong>{fmtPct(stats.overall.fill_rate)}</strong> of the time.
+        </p>
+        <table class="record">
+          <thead>
+            <tr><th scope="col">Class</th><th scope="col">Appraisals</th><th scope="col">Fill rate</th></tr>
+          </thead>
+          <tbody>
+            {tolOrder.filter((t) => stats.by_tolerance[t]).map((t) => (
+              <tr>
+                <th scope="row">{t.charAt(0).toUpperCase() + t.slice(1)}</th>
+                <td>{fmtN(stats.by_tolerance[t].n_total)}</td>
+                <td>{fmtPct(stats.by_tolerance[t].fill_rate)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p class="ui muted">
+          The record above is seeded from a backtest of Geoffery's recommendation rules against the trailing month of wiki data; live consultations refine it as they accumulate. Engine version {stats.engine_version}.
+        </p>
+      </>
+    ) : (
       <p class="ui muted">
-        The record above is seeded from a backtest of Geoffery's recommendation rules against the trailing month of wiki data; live consultations refine it as they accumulate. Engine version {stats.engine_version}.
+        The record is presently being assembled. Geoffery has only just begun keeping the ledger of his own appraisals; honest figures require honest sample, and the first will be posted as soon as it exists.
       </p>
-    </section>
-  )}
+    )}
+  </section>
 </Base>
 
 <style>

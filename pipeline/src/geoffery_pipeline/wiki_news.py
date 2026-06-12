@@ -129,15 +129,22 @@ def _update_id(page: str, heading: str) -> str:
 def _classify_kind(page: str, heading: str) -> str:
     """Coarse kind: 'upcoming' vs 'recent' vs 'past'.
 
-    Page `Upcoming_updates` → upcoming. The year page is recent within the
-    last 90 days, otherwise past. `Updates` is recent unless the heading
-    contains an older year string.
+    Routing rules:
+    * `Upcoming_updates` page → all entries are `upcoming`.
+    * Current-year page (e.g. `2026`) → `recent` (this year's chronicle).
+    * `Updates` index page → `recent` (the wiki keeps this as the master
+      changelog; the further-back portion is structurally past but the
+      page itself surfaces what's-new and so reads as "recent" from a
+      pricing perspective).
+    * Anything else → `past`.
     """
     page_l = page.lower()
     if page_l.startswith("upcoming"):
         return "upcoming"
     cur_year = current_year_page()
     if cur_year in page_l or cur_year in heading:
+        return "recent"
+    if page_l == "updates":
         return "recent"
     return "past"
 

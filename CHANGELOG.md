@@ -4,6 +4,16 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-11 — data-engineer — SCOPE: LOCAL
+**Summary**: D-013 bugfix — the wiki `Updates` index page was misrouting its sections to `kind='past'` because the heading-based routing rule only flagged the current-year page as `recent`. Updated `_classify_kind` to treat the `Updates` index as `recent` (the wiki keeps that page as the master chronological changelog so its entries are pricing-relevant). Existing 9 rows backfilled with an `UPDATE` statement. Test pinned the new behaviour: `Updates` → `recent`, old year page (`2019`) → `past`.
+**Files touched**:
+- `pipeline/src/geoffery_pipeline/wiki_news.py` — `_classify_kind` now treats `Updates` page as recent.
+- `pipeline/tests/test_wiki_news.py` — test expanded with explicit Updates + past-year cases.
+**Affected agents**: data-engineer.
+**Verification**: `uv run --extra dev pytest` → 50 pass (6 wiki_news after expansion). Live DB now has 21 upcoming + 10 recent (was 1 recent + 9 past).
+
+---
+
 ## 2026-06-11 — frontend + algorithms — SCOPE: LOCAL
 **Summary**: D-013 follow-on — the Bell consultation acknowledges wiki update notices in voice. When the user receives a recommendation for an item that carries one or more `wiki_update_notices` (high-confidence Haiku classifications surfaced via `aggregates.json`), the dialog adds a brick-red italic line beneath the regime descriptor: "There is news, sir. This item is mentioned in {an upcoming Jagex update | a recent Jagex update}; the market is still composing itself." Phrasing parameterized by whether at least one of the linked notices is `kind=upcoming`. **Neutral throughout** per D-013 — no directional language ("will rise"), no advisory ("buy first"). The recommendation engine itself remains firewalled from the update flags (D-012); the dialog merely surfaces the context. Plus six `test_wiki_news.py` unit tests pin the wikitext → sections + summary parser behaviour.
 **Files touched**:
