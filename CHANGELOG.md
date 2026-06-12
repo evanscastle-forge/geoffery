@@ -4,6 +4,18 @@ Newest entries at the top. Every change ships with one entry — see `.claude/pr
 
 ---
 
+## 2026-06-12 — algorithms — SCOPE: LOCAL
+**Summary**: Phase 5 ships — Geoffery's record renders on `/methodology` with real numbers. Backtest replayed the recommendation engine across the last 14 days × 24-hour cadence (after the in-memory bisect optimization brought wall-time from ~3 hours to 55 minutes), producing 98,392 synthetic consultations across 36 cohorts. **Overall fill rate: 48.5%.** Per-tolerance: instant 53.2% (n=22,684) · hours 40.6% (n=37,854) · patient 53.6% (n=37,854). Per-cohort headline: thick/steady items fill 92% on instant buys (high-liquidity items reliably trade); thin/volatile items fill 19-32% on instant. Two pipeline bugs fixed along the way: (1) `recompute_calibration` wiped backtest cohorts when no live consultations existed (logic intended to merge live data, but the merge primitive DELETE+INSERT-from-consultations). Introduced `_merge_live_into_calibration` for additive blending and conditional on `consultations` having rows. (2) Backtest's per-cadence SQL pattern (window read + 6 score reads) was O(item × cadence × queries); rewrote with a single per-item bulk read + `bisect` slicing in memory. Net: backtest runs in 55min wall instead of 3+ hours.
+**Files touched**:
+- `pipeline/src/geoffery_pipeline/backtest.py` — in-memory bisect optimization + conditional live merge.
+- `web/src/content/generated/methodology-stats.json` — populated with real backtest figures.
+- `web/dist/...` — rebuilt; `/methodology` now renders the record.
+**Affected agents**: algorithms (initiator).
+**Verification**: `sqlite3 SELECT FROM calibration` shows 36 cohorts populated; `/methodology` HTML carries "Across 98,392 appraisals, his offers filled at the recommended figure 48.5% of the time" + the three-row tolerance table. 50 unit tests still pass.
+**Follow-on**: live consultations from the Bell will additively merge into calibration via `_merge_live_into_calibration` once the Cloudflare Pages Function ships (Phase 3, deferred until traffic justifies the infra).
+
+---
+
 ## 2026-06-11 — data-engineer — SCOPE: LOCAL
 **Summary**: D-013 bugfix — the wiki `Updates` index page was misrouting its sections to `kind='past'` because the heading-based routing rule only flagged the current-year page as `recent`. Updated `_classify_kind` to treat the `Updates` index as `recent` (the wiki keeps that page as the master chronological changelog so its entries are pricing-relevant). Existing 9 rows backfilled with an `UPDATE` statement. Test pinned the new behaviour: `Updates` → `recent`, old year page (`2019`) → `past`.
 **Files touched**:

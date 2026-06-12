@@ -32,6 +32,51 @@ from .regime import classify as classify_regime
 from .regime import liquidity_band as compute_liquidity_band
 from .scorer import WINDOWS, _filled_within_window, recompute_calibration
 
+
+def _merge_live_into_calibration(conn, now: int) -> None:
+    """Add the live consultation outcomes to the calibration snapshot.
+
+    Reads the per-cohort live totals from the join, adds them onto each
+    existing calibration row (or inserts a new one), and recomputes
+    fill_rate. The backtest snapshot remains the base layer.
+    """
+    rows = conn.execute(
+        """
+        SELECT c.confidence_bucket AS cohort_key,
+               COUNT(*) AS live_total,
+               SUM(o.filled) AS live_filled
+        FROM consultations c
+        JOIN consultation_outcomes o ON o.consultation_id = c.id
+        GROUP BY c.confidence_bucket
+        """
+    ).fetchall()
+    with conn:
+        for r in rows:
+            cohort = r["cohort_key"]
+            live_total = int(r["live_total"])
+            live_filled = int(r["live_filled"] or 0)
+            existing = conn.execute(
+                "SELECT n_total, n_filled FROM calibration WHERE cohort_key = ?",
+                (cohort,),
+            ).fetchone()
+            base_total = int(existing["n_total"]) if existing else 0
+            base_filled = int(existing["n_filled"]) if existing else 0
+            new_total = base_total + live_total
+            new_filled = base_filled + live_filled
+            rate = new_filled / new_total if new_total else 0.0
+            conn.execute(
+                """
+                INSERT INTO calibration (cohort_key, n_total, n_filled, fill_rate, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(cohort_key) DO UPDATE SET
+                    n_total = excluded.n_total,
+                    n_filled = excluded.n_filled,
+                    fill_rate = excluded.fill_rate,
+                    updated_at = excluded.updated_at
+                """,
+                (cohort, new_total, new_filled, rate, now),
+            )
+
 LOG = logging.getLogger("geoffery.backtest")
 
 ONE_HOUR = 3600
@@ -94,14 +139,41 @@ def backtest(
 
     cadence_seconds = cadence_hours * ONE_HOUR
 
+    # Optimization: read the FULL backtest window for each item ONCE, then
+    # iterate cadence steps and score windows in memory. The prior version
+    # did 14×8 SQL queries per item and ran for an hour; this version
+    # ships a single per-item read that costs ~the same as a few aggregate
+    # rebuilds and finishes in minutes.
+    full_window_start = horizon_start - 30 * ONE_DAY  # need 30d before earliest cadence
+    full_window_end = horizon_end + 72 * ONE_HOUR     # need 72h after latest cadence
+
     for item_id in items:
-        # Walk timestamps backward from the horizon_end at cadence steps.
+        # One bulk read covering the full span.
+        all_rows = conn.execute(
+            """
+            SELECT ts, avg_high, avg_low, high_vol, low_vol
+            FROM prices_5m
+            WHERE item_id = ? AND ts >= ? AND ts <= ?
+            ORDER BY ts
+            """,
+            (item_id, full_window_start, full_window_end),
+        ).fetchall()
+        if len(all_rows) < 60:
+            continue
+        # Materialize once; later loops just slice in Python.
+        item_rows = [dict(r) for r in all_rows]
+        # Build a parallel timestamp index for fast bisect.
+        ts_index = [r["ts"] for r in item_rows]
+
         ref_ts = horizon_end
-        while ref_ts >= horizon_start + 7 * ONE_DAY:  # need at least 7d of history
-            window_rows = _item_rows_through(
-                conn, item_id, end_ts=ref_ts, since_ts=ref_ts - 30 * ONE_DAY
-            )
-            if len(window_rows) < 60:  # ~5 hours of buckets minimum
+        while ref_ts >= horizon_start + 7 * ONE_DAY:
+            window_lo = ref_ts - 30 * ONE_DAY
+            # binary-search to slice [window_lo, ref_ts]
+            import bisect
+            lo = bisect.bisect_left(ts_index, window_lo)
+            hi = bisect.bisect_right(ts_index, ref_ts)
+            window_rows = item_rows[lo:hi]
+            if len(window_rows) < 60:
                 ref_ts -= cadence_seconds
                 continue
 
@@ -113,19 +185,29 @@ def backtest(
             mids = []
             vol_total = 0
             for r in window_rows:
-                if r["avg_high"] is not None and r["avg_low"] is not None:
-                    mids.append((r["avg_high"] + r["avg_low"]) / 2.0)
-                elif r["avg_high"] is not None:
-                    mids.append(float(r["avg_high"]))
-                elif r["avg_low"] is not None:
-                    mids.append(float(r["avg_low"]))
+                ah, al = r["avg_high"], r["avg_low"]
+                if ah is not None and al is not None:
+                    mids.append((ah + al) / 2.0)
+                elif ah is not None:
+                    mids.append(float(ah))
+                elif al is not None:
+                    mids.append(float(al))
                 vol_total += (r["high_vol"] or 0) + (r["low_vol"] or 0)
 
             liquidity = compute_liquidity_band(int(vol_total / 30.0))
-            insta_buy, insta_sell = _latest_through(conn, item_id, ref_ts)
+            # Latest insta is the last bucket whose ts <= ref_ts (within the slice).
+            latest_row = window_rows[-1] if window_rows else None
+            insta_buy = latest_row["avg_high"] if latest_row else None
+            insta_sell = latest_row["avg_low"] if latest_row else None
             sorted_mids = sorted(mids)
 
             for tolerance in ("instant", "hours", "patient"):
+                start_off, end_off = WINDOWS[tolerance]
+                # Slice prices_5m again for the score window — but in memory.
+                score_lo = bisect.bisect_left(ts_index, ref_ts + start_off)
+                score_hi = bisect.bisect_right(ts_index, ref_ts + end_off)
+                score_rows = item_rows[score_lo:score_hi]
+
                 for side in ("buy", "sell"):
                     r = recommend(
                         side=side,  # type: ignore[arg-type]
@@ -139,12 +221,19 @@ def backtest(
                     if r is None:
                         continue
 
-                    start_off, end_off = WINDOWS[tolerance]
-                    win_start = ref_ts + start_off
-                    win_end = ref_ts + end_off
-                    filled_bool, _ = _filled_within_window(
-                        conn, item_id, side, r.price, win_start, win_end
-                    )
+                    # In-memory fill check
+                    filled_bool = False
+                    rec_price = r.price
+                    if side == "buy":
+                        for sr in score_rows:
+                            if sr["avg_low"] is not None and sr["avg_low"] <= rec_price and (sr["low_vol"] or 0) > 0:
+                                filled_bool = True
+                                break
+                    else:
+                        for sr in score_rows:
+                            if sr["avg_high"] is not None and sr["avg_high"] >= rec_price and (sr["high_vol"] or 0) > 0:
+                                filled_bool = True
+                                break
 
                     total_consultations += 1
                     if filled_bool:
@@ -155,8 +244,9 @@ def backtest(
 
             ref_ts -= cadence_seconds
 
-    # Write directly into calibration as a snapshot. If live consultations
-    # already exist, merge them in via recompute_calibration afterwards.
+    # Write directly into calibration as a snapshot. The frontend doesn't
+    # distinguish backtest cohorts from live ones — they share the table
+    # and the engine_version pinning makes the blend honest.
     with conn:
         conn.execute("DELETE FROM calibration")
         for bucket, n_total in by_bucket_total.items():
@@ -169,8 +259,15 @@ def backtest(
                 (bucket, n_total, n_filled, (n_filled / n_total) if n_total else 0.0, now),
             )
 
-    # Merge in any live consultations that already exist.
-    recompute_calibration(conn, now=now)
+    # If live consultations exist, merge them in additively (per-cohort
+    # n_total += live n_total; fill_rate recomputed). recompute_calibration
+    # treats the consultations table as the only source and wipes the
+    # backtest snapshot — only call it when live data exists.
+    has_live = conn.execute(
+        "SELECT 1 FROM consultations LIMIT 1"
+    ).fetchone() is not None
+    if has_live:
+        _merge_live_into_calibration(conn, now=now)
 
     return {
         "synthetic_consultations": total_consultations,
