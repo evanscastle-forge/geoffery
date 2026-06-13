@@ -3,7 +3,7 @@
 // Wording is action-first: each verdict names the move (buy/hold/sell/wait).
 // Tone rule reversed 2026-06-12 (action-first verdicts).
 
-import type { Aggregate, Band, LatestPrice, Snapshot } from "./types.ts";
+import type { Aggregate, Band, LatestPrice, SentimentSignal, Snapshot } from "./types.ts";
 import { mid } from "./regime.ts";
 import { classify, liquidityBand } from "./regime.ts";
 import { recommendAll, ENGINE_VERSION } from "./offers.ts";
@@ -90,6 +90,9 @@ function emptyRecFields() {
     recHoursSell: null,
     recPatientBuy: null,
     recPatientSell: null,
+    recExtendedBuy: null,
+    recExtendedSell: null,
+    recFairKeys: [] as string[],
     engineVersion: ENGINE_VERSION,
   } as const;
 }
@@ -98,14 +101,14 @@ function emptyRecFields() {
  * Compute the full aggregate for one item.
  * @param rows trailing-30d 5m snapshots for this item, ascending ts.
  * @param latest the current insta-buy/sell, or null.
- * @param hasRecentNews whether a relevant update touched this item within NEWS_LOOKBACK_DAYS.
+ * @param sentiment recent-news sentiment for this item (or null); also the regime tiebreaker.
  * @param now reference timestamp (seconds).
  */
 export function computeAggregate(
   itemId: number,
   rows: Snapshot[],
   latest: LatestPrice | null,
-  hasRecentNews: boolean,
+  sentiment: SentimentSignal | null,
   now: number,
 ): Aggregate {
   const prices: number[] = [];
@@ -126,6 +129,9 @@ export function computeAggregate(
   const current = latest ? mid(latest.high, latest.low) : null;
   const sampleCount = prices.length;
   const flags: string[] = [];
+  // The gauge is "unsettled" only briefly after news (≤ NEWS_LOOKBACK_DAYS); the
+  // offer model uses the full, longer-decaying sentiment window passed in.
+  const hasRecentNews = sentiment !== null && sentiment.ageDays <= NEWS_LOOKBACK_DAYS;
 
   if (sampleCount < MIN_SAMPLES || current === null) {
     if (sampleCount < MIN_SAMPLES) flags.push("thin-history");
@@ -170,14 +176,14 @@ export function computeAggregate(
     verdict = verdictText(resolvedBand, p50 ? ((current - p50) / p50) * 100 : 0);
   }
 
-  // Regime + recommendations. News is passed only as a volatility tiebreaker hint
-  // (spec §6 firewall) — it never reaches recommend().
+  // Regime (gauge/display + the volatility tiebreaker) and the offer model. The
+  // model now reads sentiment directly (the §6 firewall was lifted 2026-06-13);
+  // it is bounded, volatility-scaled, capped, and never the only signal.
   const regime = classify(rows, now, hasRecentNews);
   if (regime?.newsContributed) flags.push("news-volatility");
   const liquidity = liquidityBand(Math.trunc(avgDailyVolume));
-  const recs = regime
-    ? recommendAll(regime, liquidity, latest?.high ?? null, latest?.low ?? null, prices)
-    : {};
+  const recs = recommendAll(latest?.high ?? null, latest?.low ?? null, prices, sentiment);
+  const p = recs.prices;
 
   return {
     itemId,
@@ -196,12 +202,15 @@ export function computeAggregate(
     regimePower: regime?.power ?? null,
     regimeStability: regime?.stability ?? null,
     liquidityBand: regime ? liquidity : null,
-    recInstantBuy: recs.instant_buy ?? null,
-    recInstantSell: recs.instant_sell ?? null,
-    recHoursBuy: recs.hours_buy ?? null,
-    recHoursSell: recs.hours_sell ?? null,
-    recPatientBuy: recs.patient_buy ?? null,
-    recPatientSell: recs.patient_sell ?? null,
+    recInstantBuy: p.instant_buy ?? null,
+    recInstantSell: p.instant_sell ?? null,
+    recHoursBuy: p.hours_buy ?? null,
+    recHoursSell: p.hours_sell ?? null,
+    recPatientBuy: p.patient_buy ?? null,
+    recPatientSell: p.patient_sell ?? null,
+    recExtendedBuy: p.extended_buy ?? null,
+    recExtendedSell: p.extended_sell ?? null,
+    recFairKeys: recs.fair,
     engineVersion: ENGINE_VERSION,
   };
 }

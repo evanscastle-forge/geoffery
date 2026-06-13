@@ -5,6 +5,8 @@ dist/
 .env
 .env.*
 !.env.example
+# Committed deploy-config templates (real env/.env.dev|prod stay ignored above).
+!env/*.example
 site/dist/
 site/.astro/
 site/src/generated/

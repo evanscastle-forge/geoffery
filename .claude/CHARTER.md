@@ -14,10 +14,15 @@ and decision ledger privately (under `local/`, gitignored — not part of this r
 ## Non-negotiable constraints (no agent may trade these away)
 1. **Architecture invariants** (`SYSTEM_ARCHITECTURE.md` §4). Core purity (zero I/O in
    `packages/core`); thin workers; the site reads only build-time local data; `packages/content`
-   is the sole source of Geoffery's words; two-layer storage with the R2 archive as source of truth.
-2. **The §6 firewall.** Game-update flags — especially upcoming ones — never alter a recommended
-   price. News reaches a recommendation only indirectly, via the regime volatility classifier
-   reading actual market data. Canonical line: "I keep accounts. I do not gamble — you have seen my wages."
+   is the sole source of Geoffery's words. **Storage is a 30-day cache** (owner directive
+   2026-06-13): the queryable store and the gzipped archive are hard-pruned to a rolling 30 days;
+   the **OSRS Wiki is the source of truth** (the cache exists for outage continuity + to spare the
+   wiki, not as a permanent record).
+2. **Bounded sentiment in pricing** (replaces the old §6 "firewall", reversed 2026-06-13). News
+   sentiment *may* move a recommended price, but only as a small drift that is volatility-scaled,
+   age-decayed, hard-capped (~5%), and **never the only signal** — it perturbs a volatility-grounded
+   offer, it does not drive it. Geoffery still won't speculate beyond what the figures and a bounded
+   read of the news support: "I keep accounts. I do not gamble — you have seen my wages."
 3. **Monetization conduct is locked** (spec §7). Free = everything about the market, forever;
    nothing currently free ever moves behind a paywall. Paid = everything about *you*. No dark
    patterns, one-click cancel. Ads: AdSense manual units only, Auto Ads off, three slots, category
@@ -52,8 +57,8 @@ Four agents in `.claude/agents/`; subagents live in a folder named after their p
 - **db** (`db/collector-smith`, `db/schema-smith`, `db/infra-smith`, `db/watch-smith`) — the
   data pipeline, storage seam, news worker, export, schedulers, deploys, monitoring, backups,
   RUNBOOK, costs.
-- **core** (`core/engine-smith`, `core/backtest-smith`) — the pure math: gauge, regime, offers,
-  scoring, calibration, ledger tiers, methodology accuracy claims.
+- **core** (`core/engine-smith`, `core/backtest-smith`, `core/timeseries-forecaster`) — the pure
+  math: gauge, regime, the fill-probability offer model + methodology, scoring, calibration, ledger tiers.
 
 Orchestration (formerly `product-lead`) belongs to the main session: it sequences the agents,
 holds the phase gates, resolves escalated deadlocks, owns the phase sequencing, and keeps the

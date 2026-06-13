@@ -40,14 +40,9 @@ for (const file of walk(CORE_DIR)) {
   });
 }
 
-// §6 firewall: the offer engine imports nothing news/wiki-shaped.
-const offers = join(CORE_DIR, "offers.ts");
-for (const m of readFileSync(offers, "utf8").matchAll(/from\s+["']([^"']+)["']/g)) {
-  if (/news|wiki/i.test(m[1])) {
-    console.error(`FIREWALL VIOLATION offers.ts imports "${m[1]}" (spec §6)`);
-    violations++;
-  }
-}
+// (The §6 offer-engine firewall was lifted 2026-06-13: news sentiment now feeds the
+// model as a bounded, volatility-scaled, capped signal. offers.ts still performs no
+// I/O — that purity is covered by the zero-I/O scan above.)
 
 if (violations > 0) {
   console.error(`\ncore purity check FAILED: ${violations} violation(s)`);

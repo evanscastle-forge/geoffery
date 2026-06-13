@@ -10,7 +10,7 @@ import { insertConsultation, itemBySlug, type SqlStore } from "@geoffery/data";
 export interface ConsultRequest {
   slug: string;
   side: "buy" | "sell";
-  tolerance: "instant" | "hours" | "patient";
+  tolerance: "instant" | "hours" | "patient" | "extended";
   recommendedPrice: number;
   regimePower: "buyer" | "seller" | "balanced" | null;
   regimeStability: "steady" | "volatile" | null;
@@ -18,7 +18,7 @@ export interface ConsultRequest {
 }
 
 const VALID_SIDE = new Set(["buy", "sell"]);
-const VALID_TOL = new Set(["instant", "hours", "patient"]);
+const VALID_TOL = new Set(["instant", "hours", "patient", "extended"]);
 
 export function logConsultation(
   store: SqlStore,

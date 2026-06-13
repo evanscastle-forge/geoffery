@@ -1,0 +1,30 @@
+# ops/wrangler/news.toml — poll the wiki + classify via Haiku (cron, spec §2.7/§6).
+# D1 only. Cron every 6h. ANTHROPIC_API_KEY is a *secret*, never a [vars] entry:
+#   ops/run.sh dev  secret ANTHROPIC_API_KEY news
+#   ops/run.sh prod secret ANTHROPIC_API_KEY news
+# Without the key the worker degrades cleanly (updates simply lack annotations).
+name = "geoffery-news"
+main = "../../workers/news/src/worker.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+[env.dev]
+name = "geoffery-news-dev"
+triggers.crons = ["0 */6 * * *"]
+vars = { GEOFFERY_DEPLOYMENT_NAME = "dev", GEOFFERY_USER_AGENT = "Geoffery dev (evanscastle.forge@gmail.com)", GEOFFERY_NEWS_CLASSIFIER_MODEL = "claude-haiku-4-5-20251001" }
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "geoffery-dev"
+database_id = "REPLACE_WITH_DEV_D1_ID"
+
+[env.prod]
+name = "geoffery-news-prod"
+triggers.crons = ["0 */6 * * *"]
+vars = { GEOFFERY_DEPLOYMENT_NAME = "prod", GEOFFERY_USER_AGENT = "Geoffery (evanscastle.forge@gmail.com)", GEOFFERY_NEWS_CLASSIFIER_MODEL = "claude-haiku-4-5-20251001" }
+
+[[env.prod.d1_databases]]
+binding = "DB"
+database_name = "geoffery-prod"
+database_id = "REPLACE_WITH_PROD_D1_ID"

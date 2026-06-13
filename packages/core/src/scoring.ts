@@ -4,14 +4,20 @@
 
 import type { Calibration, Consultation, Outcome, Side, Snapshot, Tolerance } from "./types.ts";
 
-const ONE_MIN = 60;
 const ONE_HOUR = 3600;
+const ONE_DAY = 86400;
 
-/** (startOffsetSeconds, endOffsetSeconds) per tolerance class. */
+/**
+ * (startOffsetSeconds, endOffsetSeconds) per tolerance — the "fill within W" windows
+ * the model targets at 90% (recalibrated 2026-06-13): now 30s, a few hours = 2h,
+ * a day or two = 2 days, a really long time = 1 month. Each runs from order time.
+ * NB on a 30-day price cache the 1-month window is only ever partially evaluable.
+ */
 export const WINDOWS: Record<Tolerance, [number, number]> = {
-  instant: [0, 30 * ONE_MIN],
-  hours: [4 * ONE_HOUR, 8 * ONE_HOUR],
-  patient: [48 * ONE_HOUR, 72 * ONE_HOUR],
+  instant: [0, 30],
+  hours: [0, 2 * ONE_HOUR],
+  patient: [0, 2 * ONE_DAY],
+  extended: [0, 30 * ONE_DAY],
 };
 
 /**

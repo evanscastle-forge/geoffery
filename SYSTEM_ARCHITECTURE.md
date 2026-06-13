@@ -33,14 +33,15 @@ graph TD
     content[[packages/content<br/>Geoffery's words + tokens]] -.sole source of voice.- site
 ```
 
-Prices flow from the OSRS Wiki API through the **collector** into the two-layer store: an
-append-only **R2 archive** (the irreplaceable asset) and a **D1 hot window**. The **aggregator**
-reads the trailing window, runs `packages/core` (pure), and writes per-item **aggregates**. The
-**export** step writes build-time JSON the **static site** reads — the site touches no DB or
-external API at request time. The **Bell** on every page posts a falsifiable prediction to the
-**consult** worker; the **scorer** evaluates closed windows and rebuilds **calibration**, which
-feeds the published fill rates. The **news** worker classifies wiki updates via Haiku — display
-only, firewalled from prices. `packages/content` is the sole source of Geoffery's words.
+Prices flow from the OSRS Wiki API through the **collector** into a **30-day cache**: a gzipped
+archive + the queryable `prices_5m` store, both hard-pruned to a rolling 30 days (the wiki is the
+source of truth). The **aggregator** reads the trailing window, runs `packages/core` (pure), and
+writes per-item **aggregates** (including the fill-probability offers). The **export** step writes
+build-time JSON the **static site** reads — the site touches no DB or external API at request time.
+The **Bell** on every page posts a falsifiable prediction to the **consult** worker; the **scorer**
+evaluates closed windows offline to validate the fill targets. The **news** worker classifies wiki
+updates via Haiku — surfacing both display notices and a **sentiment** the offer model reads (a
+bounded, capped drift). `packages/content` is the sole source of Geoffery's words.
 
 Localhost runtime is Node-portable (workers as Node entries + a Hono consult server; `node:sqlite`
 stands in for D1, local gzipped files for R2, and the local store holds the full migrated history
@@ -57,7 +58,7 @@ a folder named after their parent:
 | webpage visual elements + the Geoffery character: `packages/content` (voice + identity), tokens, assets, the visual eye (OSRS Wiki as explicit aesthetic reference) | `design` | `design/geoffery` (final taste authority, prevails over `design`), `design/compliance` (IP / data-source / ad-category review, read-only, veto) |
 | `site`, Bell UI, consult surface, PWA, ads, URLs/titles/sitemap/structured data, tips/ads/ledger economics | `web-app` | `web-app/page-smith`, `web-app/dialogue-smith`, `web-app/growth-seo`, `web-app/monetization` |
 | `packages/data`, collector, news, export, `ops/`, deploys, monitoring, backups | `db` | `db/collector-smith`, `db/schema-smith`, `db/infra-smith`, `db/watch-smith` |
-| `packages/core`, aggregator, scorer, backtest | `core` | `core/engine-smith`, `core/backtest-smith` |
+| `packages/core`, aggregator, scorer, backtest | `core` | `core/engine-smith`, `core/backtest-smith`, `core/timeseries-forecaster` (the fill-probability offer model + methodology) |
 
 Orchestration (sequencing, gates, deadlocks — formerly `product-lead`) belongs to the main
 session per `.claude/CHARTER.md`.
@@ -186,14 +187,17 @@ Each block: **Owning agent · Purpose · Owned data · Public API/interface · R
 ## 4. System invariants (cross-cutting; re-verified at every gate)
 
 - **Core purity** — `packages/core` performs zero I/O (ESLint + `tools/check-core-purity.mjs`).
-- **The §6 firewall** — update flags never alter a recommended price; `offers.ts` imports nothing
-  news/wiki-shaped (lint + purity scan + a behavioural test that `recommend()` is invariant to the news flag).
+- **Bounded sentiment in pricing** (replaces the §6 firewall, reversed 2026-06-13) — news sentiment
+  feeds the offer model as a small drift that is volatility-scaled, age-decayed, hard-capped (~5%),
+  and never the only signal. `offers.ts` stays pure (no I/O); the model is documented in
+  `docs/RECOMMENDATION-METHODOLOGY.md`.
 - **Action-first verdicts** (tone rule reversed 2026-06-12) — gauge verdicts and band labels name
   the move (buy/hold/sell/wait). "Unsettled" is never suppressed to look confident.
 - **Site reads only local data** — no DB or external API at request time; build-time JSON only.
 - **Content is the sole source of voice** — no string Geoffery speaks lives outside `packages/content`.
-- **Two-layer storage** — raw snapshots are append-only in the R2 archive (backed up, restore-tested);
-  D1 holds a hot window + derived aggregates. The archive is the source of truth.
+- **Storage is a 30-day cache** (owner directive 2026-06-13) — `prices_5m` and the gzipped archive
+  are hard-pruned to a rolling 30 days; the OSRS Wiki is the source of truth (the cache exists for
+  outage continuity + to spare the wiki, not as a permanent record).
 - **Directional rounding** — recommended prices ≤4 sig figs, buys up / sells down; the scorer
   evaluates the rounded price as shown.
 - **Prescriptive only where measured** — Geoffery recommends only classes that are logged, scored,

@@ -23,43 +23,43 @@ function range(lo: number, hi: number): number[] {
 }
 
 test("unsettled when history is thin", () => {
-  const agg = computeAggregate(1, seed([100, 110, 105]), latest(108), false, NOW);
+  const agg = computeAggregate(1, seed([100, 110, 105]), latest(108), null, NOW);
   expect(agg.band).toBe("unsettled");
   expect(agg.flags).toContain("thin-history");
 });
 
 test("good below the IQR", () => {
-  const agg = computeAggregate(2, seed(range(100, 200)), latest(110), false, NOW);
+  const agg = computeAggregate(2, seed(range(100, 200)), latest(110), null, NOW);
   expect(agg.band).toBe("good");
   expect(agg.p25).not.toBeNull();
   expect(agg.currentPrice!).toBeLessThanOrEqual(agg.p25! + 1);
 });
 
 test("poor above the IQR", () => {
-  const agg = computeAggregate(3, seed(range(100, 200)), latest(190), false, NOW);
+  const agg = computeAggregate(3, seed(range(100, 200)), latest(190), null, NOW);
   expect(agg.band).toBe("poor");
 });
 
 test("average within the IQR", () => {
-  const agg = computeAggregate(4, seed(range(100, 200)), latest(150), false, NOW);
+  const agg = computeAggregate(4, seed(range(100, 200)), latest(150), null, NOW);
   expect(agg.band).toBe("average");
 });
 
 test("recent news forces unsettled regardless of band", () => {
-  const agg = computeAggregate(5, seed(range(100, 200)), latest(110), true, NOW);
+  const agg = computeAggregate(5, seed(range(100, 200)), latest(110), { dir: 1, strength: 0.8, ageDays: 1 }, NOW);
   expect(agg.band).toBe("unsettled");
   expect(agg.flags).toContain("recent-news");
 });
 
 // Action-first verdicts — tone rule reversed 2026-06-12.
 test("verdict text names the move", () => {
-  const agg = computeAggregate(6, seed(range(100, 200)), latest(110), false, NOW);
+  const agg = computeAggregate(6, seed(range(100, 200)), latest(110), null, NOW);
   expect(agg.verdictText).toMatch(/30-day median/);
   expect(agg.verdictText.toLowerCase()).toMatch(/\bbuy\b|\bhold\b|\bsell\b/);
 });
 
 test("produces six recommendations for a healthy item", () => {
-  const agg = computeAggregate(7, seed(range(1000, 1300)), latest(1150), false, NOW);
+  const agg = computeAggregate(7, seed(range(1000, 1300)), latest(1150), null, NOW);
   expect(agg.recInstantBuy).not.toBeNull();
   expect(agg.recInstantSell).not.toBeNull();
   expect(agg.recHoursBuy).not.toBeNull();

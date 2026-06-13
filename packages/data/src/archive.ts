@@ -10,6 +10,7 @@ import {
   readFileSync,
   readdirSync,
   renameSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { createGzip, gunzipSync, gzipSync } from "node:zlib";
@@ -91,6 +92,17 @@ export class LocalArchiveStore implements ArchiveStore {
       .filter((f) => f.endsWith(".ndjson.gz"))
       .map((f) => f.replace(/\.ndjson\.gz$/, ""))
       .sort();
+  }
+
+  /** Hard-prune the archive cache: keep only the most recent `keepDays` day files. */
+  pruneDays(keepDays = 30): number {
+    const days = this.listDays(); // ascending
+    const drop = days.slice(0, Math.max(0, days.length - keepDays));
+    for (const day of drop) {
+      const p = this.objectPath(day);
+      if (existsSync(p)) rmSync(p);
+    }
+    return drop.length;
   }
 
   readDay(day: string): Snapshot[] {

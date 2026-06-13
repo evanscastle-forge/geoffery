@@ -41,6 +41,9 @@ interface AggRow {
   rec_hours_sell: number | null;
   rec_patient_buy: number | null;
   rec_patient_sell: number | null;
+  rec_extended_buy: number | null;
+  rec_extended_sell: number | null;
+  rec_fair_keys: string | null;
   engine_version: number;
 }
 
@@ -123,7 +126,10 @@ function main(): void {
         hoursSell: r.rec_hours_sell,
         patientBuy: r.rec_patient_buy,
         patientSell: r.rec_patient_sell,
+        extendedBuy: r.rec_extended_buy,
+        extendedSell: r.rec_extended_sell,
       },
+      recFairKeys: JSON.parse(r.rec_fair_keys ?? "[]") as string[],
       wikiNotices: notices.get(r.item_id) ?? [],
     };
   }

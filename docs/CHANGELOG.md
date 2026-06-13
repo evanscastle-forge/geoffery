@@ -3,6 +3,34 @@
 Newest entry on top. One entry per commit; format in `.claude/prompts.md`. The full per-commit
 history is in `git log`; this file carries the human-readable summaries going forward.
 
+## 2026-06-13 — core (+ db, web-app, design) — SCOPE: CROSS-MODULE
+**Summary**: Recommendation-engine overhaul. Replaced the percentile-of-recent-mids heuristic with a
+deterministic first-passage (barrier) fill-probability model: each wait class targets ≥90% fill
+within its window via δ = Z_FILL·σ̂·√n on robust (scaled-MAD) log-volatility, adds a fourth
+"extended" (~1-month) tolerance, folds in bounded volatility-scaled news sentiment (age-decayed,
+±5% capped, never the sole signal), enforces strong monotonicity, clamps to the empirical 30-day
+range, and short-circuits to "market is a fair offer" within ~1.5%. Storage reframed as a 30-day
+cache (hard prune of `prices_5m` + the archive; the OSRS Wiki is the source of truth). Reverses
+three binding pieces — the §6 news/price firewall, archive-as-source-of-truth, and the 3-tolerance
+model. Cloudflare deploy wiring (`ops/run.sh` target dispatcher, `ops/wrangler/` configs, `env/`
+templates, `worker.ts` entries + `workers/_shared/`) landed alongside.
+**Files touched**: `packages/core/src/{offers,stats,types,gauge,scoring}.ts` (+ tests, − firewall.test.ts);
+`packages/data/src/{schema,db,repo,archive}.ts`; `workers/{aggregator,news,consult}/src/handler.ts`;
+`packages/content/src/lines.ts`; `site/src/{components/Bell.astro,scripts/bell.ts,lib/data.ts,pages/rec/[slug].json.ts}`;
+`ops/scheduler/{export,run-once,prune.node}.ts`; `tools/{backtest/src/index.ts,check-core-purity.mjs}`;
+`eslint.config.js`; `docs/{RECOMMENDATION-METHODOLOGY,README,RUNBOOK}.md`; `.claude/{CHARTER,prompts}.md`
++ `agents/core/timeseries-forecaster.md`; `SYSTEM_ARCHITECTURE.md`. Deploy wiring: `ops/run.sh`,
+`ops/wrangler/`, `env/*.example`, `workers/*/src/worker.ts`, `workers/_shared/`, `package.json`,
+`tsconfig.json`, `.gitignore`, `tools/check-repo-layout.mjs`.
+**SYSTEM_ARCHITECTURE.md sections affected**: §1 (fleet +`core/timeseries-forecaster`), §2.1/§2.2/§2.7, §4 (invariants: 30-day cache + bounded sentiment).
+**Notify** (CROSS-MODULE): design (Bell copy/flow), db (prune cadence + restore drill), core (scoring windows).
+**Verification**: `npm run check` green (58 tests: monotonicity, fill-math, sentiment scaling+ceiling,
+fair-price, empirical clamp, Φ/Φ⁻¹/robust-vol). Pipeline regenerated `engine_version=2` — 4,020 items
+with extended offers, 2,440 fair-flagged, 0 monotonicity violations across 4,020. Prune dropped 777k
+`prices_5m` rows + old archive files. Browser loop (1440×900 + 390×844): four tolerances incl. "A
+really long time"; discounted (extended buy 58,930) and fair ("market is a fair offer … 60,750") both
+render; clean console.
+
 ## 2026-06-13 — main session — SCOPE: LOCAL
 **Summary**: Docs correctness audit. Made the committed repo self-contained — removed dangling
 links to the owner's private (`local/`, gitignored) spec/decision docs by inlining the

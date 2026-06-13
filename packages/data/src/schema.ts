@@ -63,6 +63,9 @@ CREATE TABLE IF NOT EXISTS aggregates (
     rec_hours_sell    INTEGER,
     rec_patient_buy   INTEGER,
     rec_patient_sell  INTEGER,
+    rec_extended_buy  INTEGER,
+    rec_extended_sell INTEGER,
+    rec_fair_keys     TEXT NOT NULL DEFAULT '[]',
     engine_version    INTEGER NOT NULL DEFAULT 0
 );
 
@@ -71,7 +74,7 @@ CREATE TABLE IF NOT EXISTS consultations (
     client_id       TEXT NOT NULL,
     item_id         INTEGER NOT NULL REFERENCES items(id),
     side            TEXT NOT NULL CHECK (side IN ('buy','sell')),
-    tolerance       TEXT NOT NULL CHECK (tolerance IN ('instant','hours','patient')),
+    tolerance       TEXT NOT NULL CHECK (tolerance IN ('instant','hours','patient','extended')),
     recommended_price INTEGER NOT NULL,
     regime_power      TEXT,
     regime_stability  TEXT,
@@ -124,6 +127,7 @@ CREATE TABLE IF NOT EXISTS update_item_associations (
     item_id         INTEGER NOT NULL REFERENCES items(id),
     confidence      REAL NOT NULL,
     justification   TEXT NOT NULL,
+    sentiment       TEXT,  -- 'positive' | 'neutral' | 'negative' (classifier output)
     PRIMARY KEY (update_id, item_id)
 );
 CREATE INDEX IF NOT EXISTS update_item_associations_item ON update_item_associations(item_id);

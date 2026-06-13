@@ -1,0 +1,243 @@
+#!/usr/bin/env bash
+# ops/run.sh — single launcher for Geoffery, dispatched by deployment target.
+#
+# Pattern borrowed from the dexter system's scripts/run.sh: the first positional
+# arg is the *target*, a per-target posture matrix sets the env file + labels, a
+# required-var preflight aborts before doing anything irreversible, and the
+# script never echoes a secret value — only its name.
+#
+#   ops/run.sh localhost [cmd] [args...]   # local Node stack on 127.0.0.1 (debug)
+#   ops/run.sh dev       [cmd] [args...]   # deploy to dev.geoffery.gg (Access-gated)
+#   ops/run.sh prod      [cmd] [args...]   # deploy to geoffery.gg
+#
+# Targets:
+#   localhost  Runs the all-TypeScript stack on this machine (scheduler + consult
+#              worker + Astro dev site). Nothing is deployed. This is the old
+#              localhost-only launcher; every sub-command still dispatches to an
+#              npm script (package.json is the single source of entrypoints).
+#   dev        Deploys the Cloudflare Workers + Pages to the `dev` environment,
+#              served at dev.geoffery.gg. The zone is NOT publicly reachable — a
+#              Cloudflare Access policy whitelists the owner (see
+#              ops/wrangler/ACCESS.md). Use it to smoke a real deploy safely.
+#   prod       Deploys the same artifacts to the `prod` environment at
+#              geoffery.gg. Mechanically identical to `dev` — only the env file
+#              and the wrangler --env label differ ("works in dev ⇒ works in
+#              prod"). The deployment label also drives the site's local/prod
+#              rendering toggle.
+#
+# localhost commands (default: serve):
+#   serve         — full stack: scheduler + consult worker (:8787) + Astro (:4321)
+#   site          — Astro dev site only (HMR), no worker/scheduler
+#   consult       — consult worker only (the Butler's Bell HTTP surface)
+#   collect | aggregate | news | scorer | export   — one-shot pipeline steps
+#   backfill | backtest [args]   — historical loads (pass-through args)
+#   pipeline      — collect → aggregate → news → export, in order
+#   build | preview              — astro build / preview the built dist/
+#   migrate | verify | restore-drill | check | sh
+#
+# dev/prod commands (default: deploy):
+#   deploy        — build the site, then deploy every Worker + the Pages site
+#   deploy-workers — deploy the cron/HTTP Workers only (no site)
+#   deploy-site   — build + deploy the Astro static site to Pages only
+#   tail [worker] — stream live logs (wrangler tail) for one worker (default: consult)
+#   secret <NAME> [worker]  — set a Worker secret via `wrangler secret put`
+#                 (wrangler prompts for the value on its own tty; this script
+#                  NEVER takes a secret as an argument and never prints one)
+#   dry-run       — wrangler deploy --dry-run for every Worker (no upload)
+#
+# This script never echoes secret values to stdout — only their names.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+WRANGLER_DIR="${SCRIPT_DIR}/wrangler"
+cd "${REPO_ROOT}"
+
+# The five deployable Workers, in dependency-friendly order (collector first so
+# fresh data exists before anything reads it). Each has ops/wrangler/<name>.toml.
+WORKERS=(collector aggregator scorer news consult)
+
+usage() { sed -n '2,60p' "$0" >&2; exit "${1:-2}"; }
+
+# ── per-deploy cache-bust token (borrowed from dexter) ──────────────────────
+# Threaded into the site build so each deploy ships fresh asset URLs; Cloudflare
+# and the browser both cache by URL. Git short SHA is the canonical "what code
+# shipped" signal; fall back to a per-launch sentinel if git is unavailable.
+if BUILD_SHA="$(git rev-parse --short HEAD 2>/dev/null)" && [[ -n "${BUILD_SHA}" ]]; then
+    export GEOFFERY_BUILD_VERSION="${BUILD_SHA}"
+else
+    export GEOFFERY_BUILD_VERSION="dev-$(date +%s)"
+fi
+
+# ── arg parse: target first ─────────────────────────────────────────────────
+TARGET="${1:-}"
+case "${TARGET}" in
+    localhost|dev|prod) shift ;;
+    -h|--help|"")       usage 0 ;;
+    *) echo "[run] unknown target: ${TARGET} (expected localhost|dev|prod)" >&2; usage 2 ;;
+esac
+LOG="[run:${TARGET}]"
+
+# ── per-target posture matrix ───────────────────────────────────────────────
+#   ENV_FILE        which env file run.sh sources
+#   DEPLOY_NAME     GEOFFERY_DEPLOYMENT_NAME (drives the site local/prod toggle)
+#   SITE_URL        canonical origin for this target
+#   WR_ENV          wrangler --env label (empty for localhost)
+#   PUBLIC          1 ⇒ this is a real deploy; run the required-var preflight
+case "${TARGET}" in
+    localhost) ENV_FILE=".env";          DEPLOY_NAME="local"; SITE_URL="http://127.0.0.1:4321"; WR_ENV="";     PUBLIC=0 ;;
+    dev)       ENV_FILE="env/.env.dev";  DEPLOY_NAME="dev";   SITE_URL="https://dev.geoffery.gg"; WR_ENV="dev";  PUBLIC=1 ;;
+    prod)      ENV_FILE="env/.env.prod"; DEPLOY_NAME="prod";  SITE_URL="https://geoffery.gg";     WR_ENV="prod"; PUBLIC=1 ;;
+esac
+
+# ── source the env file ─────────────────────────────────────────────────────
+if [[ -f "${ENV_FILE}" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "${ENV_FILE}"
+    set +a
+elif [[ "${PUBLIC}" == "1" ]]; then
+    echo "${LOG} env file ${ENV_FILE} not found." >&2
+    echo "${LOG}   cp env/.env.${TARGET}.example ${ENV_FILE} and fill it in (account id, zone," >&2
+    echo "${LOG}   D1/R2/KV ids). Secrets go via 'ops/run.sh ${TARGET} secret <NAME>', not this file." >&2
+    exit 2
+else
+    echo "${LOG} env file ${ENV_FILE} not found." >&2
+    echo "${LOG}   copy from .env.example and fill it in:  cp .env.example .env" >&2
+    exit 2
+fi
+
+# Pin the deployment label + canonical origin for every child process.
+export GEOFFERY_DEPLOYMENT_NAME="${GEOFFERY_DEPLOYMENT_NAME:-${DEPLOY_NAME}}"
+export GEOFFERY_SITE_URL="${GEOFFERY_SITE_URL:-${SITE_URL}}"
+CONSULT_PORT="${GEOFFERY_CONSULT_PORT:-8787}"
+
+# ── localhost: the existing Node stack ──────────────────────────────────────
+ensure_site_deps() {
+    if [[ ! -d "${REPO_ROOT}/node_modules" ]]; then
+        echo "${LOG} installing workspace deps (one-time)…" >&2
+        npm install --silent
+    fi
+}
+
+run_localhost() {
+    local cmd="${1:-serve}"; shift || true
+    case "${cmd}" in
+        serve)
+            ensure_site_deps
+            echo "${LOG} serving full stack:" >&2
+            echo "${LOG}   consult worker → http://127.0.0.1:${CONSULT_PORT}" >&2
+            echo "${LOG}   site           → ${GEOFFERY_SITE_URL}" >&2
+            exec npm run dev ;;
+        site)
+            ensure_site_deps
+            echo "${LOG} serving site only (astro dev, HMR) → ${GEOFFERY_SITE_URL}" >&2
+            exec npm run dev:site ;;
+        consult)              exec npm run consult ;;
+        collect)              exec npm run collect ;;
+        aggregate|aggregates) exec npm run aggregate ;;
+        news)                 exec npm run news ;;
+        scorer)               exec npm run scorer ;;
+        export)               exec npm run export ;;
+        backfill)             exec npm run backfill -- "$@" ;;
+        backtest)             exec npm run backtest -- "$@" ;;
+        pipeline|cron)        exec npm run pipeline ;;
+        build)                ensure_site_deps; exec npm --workspace site run build ;;
+        preview)              exec npm --workspace site run preview ;;
+        migrate)              exec npm run migrate:legacy ;;
+        verify)               exec npm run migrate:verify ;;
+        restore-drill)        exec npm run restore:drill ;;
+        check)                exec npm run check ;;
+        sh)                   exec "${SHELL:-/bin/sh}" ;;
+        *) echo "${LOG} unknown localhost command: ${cmd}" >&2; usage ;;
+    esac
+}
+
+# ── dev/prod: deploy via wrangler ───────────────────────────────────────────
+# wrangler is read from the local node_modules (devDependency) when present,
+# else npx fetches it. Auth is the operator's responsibility: run `wrangler
+# login` once, or export CLOUDFLARE_API_TOKEN in env/.env.<target> (a scoped
+# token, never pasted into chat).
+WRANGLER=(npx --yes wrangler)
+if [[ -x "${REPO_ROOT}/node_modules/.bin/wrangler" ]]; then
+    WRANGLER=("${REPO_ROOT}/node_modules/.bin/wrangler")
+fi
+
+preflight_deploy() {
+    # Required for any real deploy. Account id + zone identify where; the token
+    # (or an interactive `wrangler login` session) authorizes. We check the
+    # token is PRESENT but never print it.
+    local missing=()
+    [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]] || missing+=("CLOUDFLARE_ACCOUNT_ID")
+    [[ -n "${GEOFFERY_ZONE:-}"          ]] || missing+=("GEOFFERY_ZONE")
+    if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]] && ! "${WRANGLER[@]}" whoami >/dev/null 2>&1; then
+        missing+=("CLOUDFLARE_API_TOKEN (or run 'wrangler login' once)")
+    fi
+    if [[ "${#missing[@]}" -gt 0 ]]; then
+        echo "${LOG} ERROR: required deploy config not set:" >&2
+        for v in "${missing[@]}"; do echo "${LOG}   - ${v}" >&2; done
+        echo "${LOG} populate ${ENV_FILE} (see env/.env.${TARGET}.example) and retry." >&2
+        exit 1
+    fi
+    # Guard against a label/file mismatch — the dexter "works in dev ⇒ works in
+    # prod" fidelity check: the env file must declare the target it claims.
+    if [[ "${GEOFFERY_DEPLOYMENT_NAME}" != "${DEPLOY_NAME}" ]]; then
+        echo "${LOG} ERROR: ${ENV_FILE} sets GEOFFERY_DEPLOYMENT_NAME='${GEOFFERY_DEPLOYMENT_NAME}', expected '${DEPLOY_NAME}'." >&2
+        exit 1
+    fi
+}
+
+deploy_worker() { # <worker>
+    local w="$1"
+    echo "${LOG} ▶ deploy worker: ${w}"
+    "${WRANGLER[@]}" deploy --config "${WRANGLER_DIR}/${w}.toml" --env "${WR_ENV}"
+}
+
+deploy_workers() {
+    for w in "${WORKERS[@]}"; do deploy_worker "${w}"; done
+}
+
+deploy_site() {
+    echo "${LOG} ▶ build site (GEOFFERY_BUILD_VERSION=${GEOFFERY_BUILD_VERSION})"
+    ensure_site_deps
+    npm --workspace site run build
+    echo "${LOG} ▶ deploy Pages site → ${SITE_URL}"
+    "${WRANGLER[@]}" pages deploy "${REPO_ROOT}/site/dist" \
+        --project-name "geoffery-${TARGET}" --branch "${TARGET}"
+}
+
+run_deploy() {
+    local cmd="${1:-deploy}"; shift || true
+    case "${cmd}" in
+        deploy)         preflight_deploy; deploy_workers; deploy_site ;;
+        deploy-workers) preflight_deploy; deploy_workers ;;
+        deploy-site)    preflight_deploy; deploy_site ;;
+        dry-run)
+            preflight_deploy
+            for w in "${WORKERS[@]}"; do
+                echo "${LOG} ▶ dry-run: ${w}"
+                "${WRANGLER[@]}" deploy --dry-run --config "${WRANGLER_DIR}/${w}.toml" --env "${WR_ENV}"
+            done ;;
+        tail)
+            local w="${1:-consult}"
+            exec "${WRANGLER[@]}" tail --config "${WRANGLER_DIR}/${w}.toml" --env "${WR_ENV}" ;;
+        secret)
+            local name="${1:-}" w="${2:-consult}"
+            if [[ -z "${name}" ]]; then
+                echo "${LOG} usage: ops/run.sh ${TARGET} secret <NAME> [worker]" >&2; exit 2
+            fi
+            # wrangler reads the value from its own prompt/stdin; we pass only the
+            # NAME. The secret is never an argument here and never printed.
+            echo "${LOG} setting secret '${name}' on worker '${w}' (wrangler will prompt; value not shown)" >&2
+            exec "${WRANGLER[@]}" secret put "${name}" --config "${WRANGLER_DIR}/${w}.toml" --env "${WR_ENV}" ;;
+        *) echo "${LOG} unknown ${TARGET} command: ${cmd}" >&2; usage ;;
+    esac
+}
+
+# ── dispatch ────────────────────────────────────────────────────────────────
+if [[ "${PUBLIC}" == "0" ]]; then
+    run_localhost "$@"
+else
+    run_deploy "$@"
+fi

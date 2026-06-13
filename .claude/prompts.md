@@ -18,8 +18,8 @@ live in a folder named after their parent:
   sitemap/structured data, tips/ads/ledger economics. **Owns the browser loop.**
 - `db` (+ `db/collector-smith`, `db/schema-smith`, `db/infra-smith`, `db/watch-smith`) —
   packages/data, collector, news, export, storage, ops/, deploys, monitoring, backups, costs.
-- `core` (+ `core/engine-smith`, `core/backtest-smith`) — packages/core, aggregator, scorer,
-  backtest, methodology math.
+- `core` (+ `core/engine-smith`, `core/backtest-smith`, `core/timeseries-forecaster`) —
+  packages/core, aggregator, scorer, backtest, the fill-probability offer model + methodology.
 Orchestration (sequencing, gates, deadlocks — formerly `product-lead`) belongs to the main
 session per `.claude/CHARTER.md`.
 

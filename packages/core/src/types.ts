@@ -1,7 +1,18 @@
 // Shared domain types. Pure data shapes — no behavior, no I/O (spec §2).
 
 export type Side = "buy" | "sell";
-export type Tolerance = "instant" | "hours" | "patient";
+export type Tolerance = "instant" | "hours" | "patient" | "extended";
+
+/**
+ * News-sentiment signal for one item, fed to the offer model (the §6 firewall was
+ * lifted 2026-06-13). `dir` is the direction, `strength` the classifier confidence
+ * (0..1), `ageDays` how long ago the relevant update landed (for decay).
+ */
+export interface SentimentSignal {
+  dir: -1 | 0 | 1;
+  strength: number;
+  ageDays: number;
+}
 export type Band = "good" | "average" | "poor" | "unsettled";
 export type RegimePower = "buyer" | "seller" | "balanced";
 export type RegimeStability = "steady" | "volatile";
@@ -85,6 +96,10 @@ export interface Aggregate {
   recHoursSell: number | null;
   recPatientBuy: number | null;
   recPatientSell: number | null;
+  recExtendedBuy: number | null;
+  recExtendedSell: number | null;
+  /** `${tolerance}_${side}` keys whose offer is within the fair margin of market. */
+  recFairKeys: string[];
   engineVersion: number;
 }
 

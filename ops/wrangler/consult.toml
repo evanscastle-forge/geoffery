@@ -1,0 +1,32 @@
+# ops/wrangler/consult.toml — the Butler's Bell HTTP surface (spec §2.8).
+# No cron: it serves POST /api/consult + GET /api/health. Routed at the zone so
+# the site's same-origin /api/* reaches it. D1 only (writes consultations).
+#
+# The zone is geoffery.gg for both environments; dev is the dev.* subdomain on
+# that same zone. zone_name is the registrable apex (not secret); the route
+# pattern selects the host.
+name = "geoffery-consult"
+main = "../../workers/consult/src/worker.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+[env.dev]
+name = "geoffery-consult-dev"
+vars = { GEOFFERY_DEPLOYMENT_NAME = "dev" }
+routes = [{ pattern = "dev.geoffery.gg/api/*", zone_name = "geoffery.gg" }]
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "geoffery-dev"
+database_id = "REPLACE_WITH_DEV_D1_ID"
+
+[env.prod]
+name = "geoffery-consult-prod"
+vars = { GEOFFERY_DEPLOYMENT_NAME = "prod" }
+routes = [{ pattern = "geoffery.gg/api/*", zone_name = "geoffery.gg" }]
+
+[[env.prod.d1_databases]]
+binding = "DB"
+database_name = "geoffery-prod"
+database_id = "REPLACE_WITH_PROD_D1_ID"

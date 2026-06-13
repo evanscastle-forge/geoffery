@@ -12,12 +12,14 @@ import {
   getLatest,
   heartbeat,
   itemIds,
-  recentNewsItems,
+  recentSentiment,
   writeAggregate,
   type SqliteStore,
 } from "@geoffery/data";
 
-const NEWS_LOOKBACK_DAYS = 3;
+// Sentiment feeds the offer model with a ~2-week decay; the gauge's brief
+// "unsettled after news" window is enforced separately inside computeAggregate.
+const SENTIMENT_LOOKBACK_DAYS = 14;
 const ONE_DAY = 86400;
 
 interface PriceRow {
@@ -32,8 +34,8 @@ interface PriceRow {
 export function runAggregate(store: SqliteStore, now: number = Math.floor(Date.now() / 1000)): number {
   try {
     const cutoff = now - THIRTY_DAYS;
-    const newsSince = now - NEWS_LOOKBACK_DAYS * ONE_DAY;
-    const newsItems = recentNewsItems(store, newsSince);
+    const sentimentSince = now - SENTIMENT_LOOKBACK_DAYS * ONE_DAY;
+    const sentimentMap = recentSentiment(store, sentimentSince, now);
 
     // Preload latest prices (small) so the scan stays single-pass.
     const allIds = itemIds(store);
@@ -48,7 +50,9 @@ export function runAggregate(store: SqliteStore, now: number = Math.floor(Date.n
     let buf: Snapshot[] = [];
     let curItem = -1;
     const flush = (itemId: number, rows: Snapshot[]) => {
-      results.push(computeAggregate(itemId, rows, latestMap.get(itemId) ?? null, newsItems.has(itemId), now));
+      results.push(
+        computeAggregate(itemId, rows, latestMap.get(itemId) ?? null, sentimentMap.get(itemId) ?? null, now),
+      );
       seen.add(itemId);
     };
 

@@ -31,6 +31,9 @@ const ALLOWED = new Set([
   ".claude",
   "config",
   "docs",
+  // per-target deploy config sourced by ops/run.sh (env/.env.dev|prod + .example
+  // templates); real env files are gitignored, so only the templates appear here.
+  "env",
   "ops",
   "packages",
   "site",

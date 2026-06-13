@@ -23,6 +23,7 @@ the `db` agent — see `.claude/CHARTER.md` → "Repo layout".
 | `AD-POLICY.md` | Advertising placement + category-block policy (spec §7); dormant on localhost. |
 | `SALVAGE.md` | Provenance log for every constant/insight carried from the reference repo. |
 | `OSRS-WIKI-STYLE.md` | Measured design reference from the live OSRS Wiki (palette, type, layout). |
+| `RECOMMENDATION-METHODOLOGY.md` | How offers are priced — the fill-probability barrier model, sentiment, and its rationale. |
 
 ## Where new things go
 - **New prose doc** → `docs/`.

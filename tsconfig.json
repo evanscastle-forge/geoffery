@@ -9,5 +9,13 @@
     "tools/*/src/**/*.ts",
     "ops/**/*.ts"
   ],
-  "exclude": ["node_modules", "**/dist", "site"]
+  // worker.ts entries + _shared use @cloudflare/workers-types (deploy-only,
+  // bundled by wrangler) — out of the Node typecheck; main.node.ts stays checked.
+  "exclude": [
+    "node_modules",
+    "**/dist",
+    "site",
+    "workers/*/src/worker.ts",
+    "workers/_shared"
+  ]
 }

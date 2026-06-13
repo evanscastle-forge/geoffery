@@ -52,7 +52,10 @@ export interface AggregateView {
     hoursSell: number | null;
     patientBuy: number | null;
     patientSell: number | null;
+    extendedBuy: number | null;
+    extendedSell: number | null;
   };
+  recFairKeys: string[];
   wikiNotices: WikiNotice[];
 }
 

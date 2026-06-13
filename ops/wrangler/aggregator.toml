@@ -1,0 +1,29 @@
+# ops/wrangler/aggregator.toml — recompute gauge/regime/recs (cron, spec §2.5).
+# Reads the trailing window from D1, runs packages/core (pure), writes aggregates.
+# Cron hourly. (The export→Pages refresh that publishes these to the static site
+# is a separate deploy step — see ops/wrangler/ACCESS.md "Publishing aggregates".)
+name = "geoffery-aggregator"
+main = "../../workers/aggregator/src/worker.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+[env.dev]
+name = "geoffery-aggregator-dev"
+triggers.crons = ["0 * * * *"]
+vars = { GEOFFERY_DEPLOYMENT_NAME = "dev" }
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "geoffery-dev"
+database_id = "REPLACE_WITH_DEV_D1_ID"
+
+[env.prod]
+name = "geoffery-aggregator-prod"
+triggers.crons = ["0 * * * *"]
+vars = { GEOFFERY_DEPLOYMENT_NAME = "prod" }
+
+[[env.prod.d1_databases]]
+binding = "DB"
+database_name = "geoffery-prod"
+database_id = "REPLACE_WITH_PROD_D1_ID"

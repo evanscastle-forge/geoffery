@@ -7,7 +7,7 @@
 import { memberStar } from "./memberStar.ts";
 
 type Side = "buy" | "sell";
-type Tolerance = "instant" | "hours" | "patient";
+type Tolerance = "instant" | "hours" | "patient" | "extended";
 
 interface RecPayload {
   slug: string;
@@ -23,7 +23,10 @@ interface RecPayload {
     hoursSell: number | null;
     patientBuy: number | null;
     patientSell: number | null;
+    extendedBuy: number | null;
+    extendedSell: number | null;
   };
+  recFairKeys: string[];
   hasNews: boolean;
 }
 
@@ -40,6 +43,8 @@ interface Copy {
   tol: Record<Tolerance, { label: string; aside: string }>;
   recBuy: string;
   recSell: string;
+  recFairBuy: string;
+  recFairSell: string;
   newsNote: string;
   noSpeculation: string;
   noLedger: string;
@@ -184,7 +189,7 @@ export function initBell(): void {
   function askTolerance(): void {
     setLine(side === "buy" ? copy.buyWhen : copy.sellWhen);
     clearChoices();
-    (["instant", "hours", "patient"] as Tolerance[]).forEach((t) => {
+    (["instant", "hours", "patient", "extended"] as Tolerance[]).forEach((t) => {
       choice(copy.tol[t].label, copy.tol[t].aside, () => showRecommendation(t));
     });
   }
@@ -203,12 +208,21 @@ export function initBell(): void {
       ctaLink(copy.verifyLink, `/item/${rec!.slug}/`);
       return;
     }
-    const tmpl = side === "buy" ? copy.recBuy : copy.recSell;
+    // When the offer is within the fair margin of market, don't over-manage —
+    // say market is a fair offer (owner directive 2026-06-13).
+    const fair = (rec!.recFairKeys ?? []).includes(`${t}_${side}`);
+    const tmpl = fair
+      ? side === "buy" ? copy.recFairBuy : copy.recFairSell
+      : side === "buy" ? copy.recBuy : copy.recSell;
     let line = tmpl.replace("{item}", rec!.name);
 
-    const regimeKey = `${rec!.regimePower ?? "balanced"}/${rec!.regimeStability ?? "steady"}`;
-    const regimeNote = copy.regimeNotes[regimeKey];
-    if (regimeNote) line += " " + regimeNote;
+    // Regime colour only adds value when there's a real wait to weigh; skip it on
+    // a fair/instant call where the advice is simply "go ahead".
+    if (!fair && t !== "instant") {
+      const regimeKey = `${rec!.regimePower ?? "balanced"}/${rec!.regimeStability ?? "steady"}`;
+      const regimeNote = copy.regimeNotes[regimeKey];
+      if (regimeNote) line += " " + regimeNote;
+    }
     // The price renders in a tabular sans span — pixel digits are ambiguous at
     // this size and the price is the product (geoffery-verdict 2026-06-12, MED-3).
     const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);

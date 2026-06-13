@@ -39,7 +39,12 @@ You MUST select item names verbatim from the supplied list. Do not invent or
 paraphrase item names. If nothing applies, return an empty list.
 
 For each affected item produce: {"item_name": "<exact name>", "confidence": <0..1>,
-"quote": "<single line from the update text justifying the link>"}.
+"quote": "<single line from the update text justifying the link>", "sentiment":
+"<positive|neutral|negative>"}.
+
+"sentiment" is your read of the update's likely PRICE effect on that item: "positive"
+if it likely pushes the price up (new demand, a buff, a new use, a sink), "negative"
+if down (a nerf, more supply, an alternative), "neutral" if unclear or balanced.
 Reply with a JSON array of these objects and nothing else.`;
 
 export interface NewsResult {
@@ -53,7 +58,10 @@ interface Assoc {
   item_name?: string;
   confidence?: number;
   quote?: string;
+  sentiment?: string;
 }
+
+const SENTIMENTS = new Set(["positive", "neutral", "negative"]);
 
 export async function runNews(
   store: SqlStore,
@@ -105,7 +113,8 @@ export async function runNews(
           const id = byNameLc.get(name);
           const conf = Number(a.confidence ?? 0);
           if (id === undefined || !Number.isFinite(conf)) continue;
-          insertAssociation(store, u.id, id, conf, (a.quote ?? "").slice(0, 1000));
+          const sentiment = SENTIMENTS.has(String(a.sentiment)) ? String(a.sentiment) : "neutral";
+          insertAssociation(store, u.id, id, conf, (a.quote ?? "").slice(0, 1000), sentiment);
           if (conf >= MIN_CONFIDENCE) associations++;
         }
         markClassified(store, u.id, CLASSIFIER_VERSION, now);

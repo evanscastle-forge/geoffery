@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 
 const STEPS: [string, string][] = [
   ["collect", "workers/collector/src/main.node.ts"],
+  ["prune", "ops/scheduler/prune.node.ts"], // keep the cache to a rolling 30 days
   ["aggregate", "workers/aggregator/src/main.node.ts"],
   ["news", "workers/news/src/main.node.ts"],
   ["export", "ops/scheduler/export.ts"],

@@ -22,10 +22,14 @@ Open `http://127.0.0.1:4321`. The collector ticks every 5 min; aggregate+export 
 | Job | Command | Cadence | Owner area |
 | --- | --- | --- | --- |
 | collect | `npm run collect` | 5 min | db |
+| prune | (runs in `npm run pipeline`, after collect) | every pipeline pass | db |
 | aggregate | `npm run aggregate` | hourly | core |
 | export | `npm run export` | hourly (after aggregate) | db |
 | scorer | `npm run scorer` | 30 min | core |
 | news | `npm run news` | daily (hourly on update days) | db |
+
+The **prune** step hard-trims `prices_5m` and the gzipped archive to a rolling **30 days** — the
+store is a cache, the OSRS Wiki is the source of truth (2026-06-13). Nothing older is retained.
 
 ## Alerts
 - **Collector death is the page-the-owner alert** (spec §11). `staleJobs(store, maxAge)`
@@ -60,11 +64,51 @@ consult worker ──▶ consultations ──scorer──▶ outcomes ──▶ 
 news worker ──▶ wiki_updates + associations (display-only; firewalled from offers)
 ```
 
-## Production deploy (Cloudflare — not exercised on localhost)
-Out of localhost scope (DECISIONS D-LOCAL-004): Pages (site), Workers (consult/cron),
-D1, R2, KV. The worker handlers are already portable (a `worker.ts` wraps each handler
-with bindings); `ops/wrangler/` holds the configs. Steps: provision R2+D1+KV, push the
-archive to R2, run migrations on D1, deploy Workers + Pages, configure Cron Triggers,
-verify, then DNS cutover.
-```
+## Deploy to Cloudflare — dev + prod (`ops/run.sh`)
+`ops/run.sh` dispatches by target: `localhost` (this machine), `dev`
+(`dev.geoffery.gg`, Cloudflare Access–gated to the owner), `prod` (`geoffery.gg`).
+dev and prod are mechanically identical — only `env/.env.<target>` and the
+wrangler `--env` label differ ("works in dev ⇒ works in prod").
+
+    ops/run.sh dev  deploy          # build site + deploy 5 Workers + Pages
+    ops/run.sh dev  deploy-workers  # cron/HTTP Workers only
+    ops/run.sh dev  deploy-site     # Astro build + wrangler pages deploy
+    ops/run.sh dev  tail [worker]   # live logs
+    ops/run.sh dev  secret NAME [w] # wrangler secret put (value never printed)
+    ops/run.sh prod deploy          # same, against geoffery.gg
+
+First-time provisioning (account/zone, D1/R2 creation, the `.toml` resource ids,
+the Pages projects, and the dev Access policy) is the checklist in
+`ops/wrangler/ACCESS.md`. Configs live in
+`ops/wrangler/{collector,aggregator,scorer,news,consult}.toml` with
+`[env.dev]`/`[env.prod]` sections + cron triggers; binding wrappers are
+`workers/*/src/worker.ts`. Deploy auth is `wrangler login` once, or a scoped
+`CLOUDFLARE_API_TOKEN` in `env/.env.<target>` (never pasted into chat).
+
+### Cloudflare execution (async seam) — REQUIRED before the workers run
+The storage seam (`SqlStore`, `ArchiveStore`) is **synchronous** (node:sqlite +
+local fs); Cloudflare **D1 and R2 are async-only**. The portable handlers and the
+`packages/data` repo helpers call the seam synchronously, so the D1/R2 binding
+adapters in `workers/_shared/cloudflare.ts` cannot satisfy them as-is. Until the
+seam (and the handlers/repo helpers that ride it) is converted to `async`, each
+`worker.ts` fails loudly via `seamNotWired()` rather than run half-wired. This is
+a CONTRACT-level change (SYSTEM_ARCHITECTURE §3.1/§3.2), owned by db/schema-smith.
+The async D1 adapter is already written to the real API so the conversion is
+mechanical: make the seam async, `await` it through the repo helpers + handlers,
+then delete the guards.
+
+### Publishing aggregates
+The static site reads build-time JSON; cron workers write D1/R2 but the site only
+picks it up on the next `deploy-site`. A scheduled Pages rebuild (a deploy hook on
+a cron) is the open item — see `ops/wrangler/ACCESS.md`.
+
+### Schema on D1
+`packages/data/src/schema.ts` exports `SCHEMA` — the same DDL node:sqlite applies.
+For D1 apply it once with `wrangler d1 execute <db> --remote` (from a generated
+`.sql` mirror or `--command`); the schema is byte-trivial to port (spec §2.2).
+
+### Rollback
+- **Localhost:** revert the commit; `npm run backfill` re-derives D1 from the R2 archive.
+- **Cloudflare:** roll Workers/Pages back to the previous version, or redeploy a
+  prior SHA. Launch cutover/rollback is DNS, kept viable 30 days (spec §11 Phase 7).
 

@@ -1,0 +1,27 @@
+# ops/wrangler/scorer.toml — score closed consultations, rebuild calibration
+# (cron, spec §2.6). D1 only. Cron every 30 min.
+name = "geoffery-scorer"
+main = "../../workers/scorer/src/worker.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+[env.dev]
+name = "geoffery-scorer-dev"
+triggers.crons = ["*/30 * * * *"]
+vars = { GEOFFERY_DEPLOYMENT_NAME = "dev" }
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "geoffery-dev"
+database_id = "REPLACE_WITH_DEV_D1_ID"
+
+[env.prod]
+name = "geoffery-scorer-prod"
+triggers.crons = ["*/30 * * * *"]
+vars = { GEOFFERY_DEPLOYMENT_NAME = "prod" }
+
+[[env.prod.d1_databases]]
+binding = "DB"
+database_name = "geoffery-prod"
+database_id = "REPLACE_WITH_PROD_D1_ID"

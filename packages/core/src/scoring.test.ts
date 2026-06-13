@@ -10,7 +10,7 @@ const HOUR = 3600;
 
 test("buy fills when avg_low crosses rec price within window", () => {
   const created = 100_000;
-  const rows = [snap(1, created + 5 * HOUR, { avgHigh: 1050, avgLow: 995, lowVol: 5 })];
+  const rows = [snap(1, created + 1 * HOUR, { avgHigh: 1050, avgLow: 995, lowVol: 5 })];
   const o = scorePrediction(
     { id: "c1", side: "buy", tolerance: "hours", recommendedPrice: 1000, createdAt: created },
     rows,
@@ -18,12 +18,12 @@ test("buy fills when avg_low crosses rec price within window", () => {
   );
   expect(o).not.toBeNull();
   expect(o!.filled).toBe(true);
-  expect(o!.filledAt).toBe(created + 5 * HOUR);
+  expect(o!.filledAt).toBe(created + 1 * HOUR);
 });
 
 test("buy not filled when nothing crosses", () => {
   const created = 200_000;
-  const rows = [snap(2, created + 5 * HOUR, { avgHigh: 1100, avgLow: 1050, lowVol: 5 })];
+  const rows = [snap(2, created + 1 * HOUR, { avgHigh: 1100, avgLow: 1050, lowVol: 5 })];
   const o = scorePrediction(
     { id: "c2", side: "buy", tolerance: "hours", recommendedPrice: 1000, createdAt: created },
     rows,
@@ -34,7 +34,7 @@ test("buy not filled when nothing crosses", () => {
 
 test("sell fills when avg_high crosses rec price", () => {
   const created = 300_000;
-  const rows = [snap(3, created + 5 * HOUR, { avgHigh: 1005, avgLow: 980, highVol: 7 })];
+  const rows = [snap(3, created + 1 * HOUR, { avgHigh: 1005, avgLow: 980, highVol: 7 })];
   const o = scorePrediction(
     { id: "c3", side: "sell", tolerance: "hours", recommendedPrice: 1000, createdAt: created },
     rows,
@@ -45,7 +45,7 @@ test("sell fills when avg_high crosses rec price", () => {
 
 test("zero volume does not count as a fill", () => {
   const created = 400_000;
-  const rows = [snap(4, created + 5 * HOUR, { avgHigh: 1050, avgLow: 995, lowVol: 0 })];
+  const rows = [snap(4, created + 1 * HOUR, { avgHigh: 1050, avgLow: 995, lowVol: 0 })];
   const o = scorePrediction(
     { id: "c4", side: "buy", tolerance: "hours", recommendedPrice: 1000, createdAt: created },
     rows,
@@ -59,7 +59,7 @@ test("window not closed yet → null", () => {
   const o = scorePrediction(
     { id: "c5", side: "buy", tolerance: "patient", recommendedPrice: 1000, createdAt: created },
     [],
-    created + 10 * HOUR, // patient window ends at 72h
+    created + 10 * HOUR, // patient window ends at 48h (2 days)
   );
   expect(o).toBeNull();
 });

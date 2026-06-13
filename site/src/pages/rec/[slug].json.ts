@@ -18,6 +18,7 @@ export const GET: APIRoute = ({ params }) => {
       regimeStability: a.regimeStability,
       liquidityBand: a.liquidityBand,
       rec: a.rec,
+      recFairKeys: a.recFairKeys,
       hasNews: a.wikiNotices.length > 0,
     }),
     { headers: { "content-type": "application/json" } },

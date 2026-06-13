@@ -98,13 +98,16 @@ function main(): void {
       }
       const liquidity = liquidityBand(Math.trunc(volTotal / 30));
       const insta = instaAt(all, T);
-      const recs = recommendAll(regime, liquidity, insta.buy, insta.sell, mids);
+      // Backtest validates the price-only model (no historical sentiment replay).
+      const recs = recommendAll(insta.buy, insta.sell, mids, null);
+      const lastTs = all.length ? all[all.length - 1]!.ts : T;
 
-      for (const tolerance of ["instant", "hours", "patient"] as Tolerance[]) {
+      for (const tolerance of ["instant", "hours", "patient", "extended"] as Tolerance[]) {
         for (const side of ["buy", "sell"] as Side[]) {
-          const price = recs[`${tolerance}_${side}`];
+          const price = recs.prices[`${tolerance}_${side}`];
           if (price == null) continue;
           const [startOff, endOff] = WINDOWS[tolerance];
+          if (T + endOff > lastTs) continue; // window hasn't closed within the cache — don't score
           const windowSnaps = all.filter((s) => s.ts >= T + startOff && s.ts < T + endOff);
           const [filled] = filledWithinWindow(windowSnaps, side, price, T + startOff, T + endOff);
           pairs.push({ confidenceBucket: `${tolerance}/${side}/${liquidity}/${regime.stability}`, filled });

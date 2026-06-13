@@ -189,8 +189,9 @@ export function writeAggregate(store: SqlStore, a: Aggregate): void {
         band, verdict_text, flags_json, volume_24h, volume_baseline,
         regime_power, regime_stability, liquidity_band,
         rec_instant_buy, rec_instant_sell, rec_hours_buy, rec_hours_sell,
-        rec_patient_buy, rec_patient_sell, engine_version)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        rec_patient_buy, rec_patient_sell, rec_extended_buy, rec_extended_sell,
+        rec_fair_keys, engine_version)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(item_id) DO UPDATE SET
        computed_at=excluded.computed_at, sample_count=excluded.sample_count,
        p25=excluded.p25, p50=excluded.p50, p75=excluded.p75,
@@ -202,6 +203,8 @@ export function writeAggregate(store: SqlStore, a: Aggregate): void {
        rec_instant_buy=excluded.rec_instant_buy, rec_instant_sell=excluded.rec_instant_sell,
        rec_hours_buy=excluded.rec_hours_buy, rec_hours_sell=excluded.rec_hours_sell,
        rec_patient_buy=excluded.rec_patient_buy, rec_patient_sell=excluded.rec_patient_sell,
+       rec_extended_buy=excluded.rec_extended_buy, rec_extended_sell=excluded.rec_extended_sell,
+       rec_fair_keys=excluded.rec_fair_keys,
        engine_version=excluded.engine_version`,
     a.itemId,
     a.computedAt,
@@ -225,6 +228,9 @@ export function writeAggregate(store: SqlStore, a: Aggregate): void {
     a.recHoursSell,
     a.recPatientBuy,
     a.recPatientSell,
+    a.recExtendedBuy,
+    a.recExtendedSell,
+    JSON.stringify(a.recFairKeys),
     a.engineVersion,
   );
 }
@@ -390,16 +396,66 @@ export function markClassified(store: SqlStore, id: string, version: number, now
   store.run("UPDATE wiki_updates SET classified_at = ?, engine_version = ? WHERE id = ?", now, version, id);
 }
 
-export function insertAssociation(store: SqlStore, updateId: string, itemId: number, confidence: number, justification: string): void {
+export function insertAssociation(
+  store: SqlStore,
+  updateId: string,
+  itemId: number,
+  confidence: number,
+  justification: string,
+  sentiment: string | null = null,
+): void {
   store.run(
-    `INSERT INTO update_item_associations (update_id, item_id, confidence, justification)
-     VALUES (?,?,?,?)
-     ON CONFLICT(update_id, item_id) DO UPDATE SET confidence=excluded.confidence, justification=excluded.justification`,
+    `INSERT INTO update_item_associations (update_id, item_id, confidence, justification, sentiment)
+     VALUES (?,?,?,?,?)
+     ON CONFLICT(update_id, item_id) DO UPDATE SET
+       confidence=excluded.confidence, justification=excluded.justification, sentiment=excluded.sentiment`,
     updateId,
     itemId,
     confidence,
     justification,
+    sentiment,
   );
+}
+
+/**
+ * Per-item news sentiment for the offer model: the most-recent high-confidence
+ * 'recent' association within `since`, as `{ dir, strength, ageDays }`. dir maps
+ * positive→+1 / negative→−1 / neutral|null→0; strength = classifier confidence.
+ */
+export function recentSentiment(
+  store: SqlStore,
+  since: number,
+  now: number,
+): Map<number, { dir: -1 | 0 | 1; strength: number; ageDays: number }> {
+  const out = new Map<number, { dir: -1 | 0 | 1; strength: number; ageDays: number }>();
+  for (const r of store.all<{ item_id: number; confidence: number; sentiment: string | null; at: number }>(
+    `SELECT a.item_id AS item_id, a.confidence AS confidence, a.sentiment AS sentiment,
+            COALESCE(u.published_at, u.discovered_at) AS at
+     FROM update_item_associations a
+     JOIN wiki_updates u ON u.id = a.update_id
+     WHERE a.confidence >= 0.6 AND u.kind = 'recent'
+       AND COALESCE(u.published_at, u.discovered_at) >= ?
+     ORDER BY COALESCE(u.published_at, u.discovered_at) ASC`,
+    since,
+  )) {
+    // ASC order → the last write per item wins = the most recent update.
+    const dir = r.sentiment === "positive" ? 1 : r.sentiment === "negative" ? -1 : 0;
+    out.set(r.item_id, {
+      dir,
+      strength: Math.max(0, Math.min(1, r.confidence)),
+      ageDays: Math.max(0, (now - r.at) / 86400),
+    });
+  }
+  return out;
+}
+
+/** Hard-prune the price cache: drop prices_5m rows older than `keepDays` days. */
+export function pruneOldData(store: SqlStore, now: number, keepDays = 30): number {
+  const cutoff = now - keepDays * 86400;
+  const before = store.get<{ n: number }>("SELECT COUNT(*) AS n FROM prices_5m");
+  store.run("DELETE FROM prices_5m WHERE ts < ?", cutoff);
+  const after = store.get<{ n: number }>("SELECT COUNT(*) AS n FROM prices_5m");
+  return (before?.n ?? 0) - (after?.n ?? 0);
 }
 
 /** {lowercased name -> item id} closed vocabulary for the classifier. */

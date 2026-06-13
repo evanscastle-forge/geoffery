@@ -9,6 +9,10 @@ export default tseslint.config(
       "site/**",
       "**/*.json",
       ".data/**",
+      // Cloudflare deploy entries: @cloudflare/workers-types ambient env, bundled
+      // by wrangler (deploy-only). Not part of `npm run check`.
+      "workers/*/src/worker.ts",
+      "workers/_shared/**",
     ],
   },
   ...tseslint.configs.recommended,
@@ -40,20 +44,6 @@ export default tseslint.config(
         "error",
         { name: "fetch", message: "core must be pure: no network I/O" },
         { name: "process", message: "core must be pure: no env access" },
-      ],
-    },
-  },
-  // Engine firewall (spec §6): the offer engine never reads news/wiki signals.
-  {
-    files: ["packages/core/src/offers.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            { group: ["*news*", "*wiki*"], message: "firewall: offers must not import news/wiki types" },
-          ],
-        },
       ],
     },
   },

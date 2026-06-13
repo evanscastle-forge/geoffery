@@ -99,16 +99,23 @@ export const BELL = {
   // Time-tolerance prompts differ per side (spec §5).
   buyWhenPrompt: "And when do you need it in hand?",
   sellWhenPrompt: "And how swiftly do you need the gold? Be honest.",
+  // Four fill horizons (each targets a ~90% chance to fill within the window).
   tolerance: {
-    instant: { label: "Right now", aside: "this very minute, then" },
+    instant: { label: "Right now", aside: "within the half-minute" },
     hours: { label: "A few hours", aside: "before the day is out" },
-    patient: { label: "I can wait", aside: "a day or three — how civilised" },
+    patient: { label: "A day or two", aside: "a day or three — how civilised" },
+    extended: { label: "A really long time", aside: "a month, if that's what it takes" },
   },
   // Recommendation templates. {price} is the rounded gp figure; {item} the name.
   recBuy: (item: string, price: string) =>
     `For the ${item}, place a buy offer at ${price} gp.`,
   recSell: (item: string, price: string) =>
     `For the ${item}, place a sell offer at ${price} gp.`,
+  // Fair-price templates — when the market is already a fair offer, don't over-manage.
+  recFairBuy: (item: string, price: string) =>
+    `Market price is a fair offer for the ${item} — buy at ${price} gp and move on.`,
+  recFairSell: (item: string, price: string) =>
+    `Market price is a fair offer for the ${item} — sell at ${price} gp and be done.`,
   // Confidence statement drawn from scored cohorts.
   confidence: (filled: number, total: number, hours: string) =>
     `Offers I have placed so — ${describeRate(filled, total)} — have filled ${hours}. I keep score on myself; somebody has to.`,
