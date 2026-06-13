@@ -1,0 +1,12 @@
+{
+  "name": "Geoffery — OSRS GE prices",
+  "short_name": "Geoffery",
+  "description": "Old School RuneScape Grand Exchange prices, deal ratings, and a ledger-keeper's counsel.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#17120c",
+  "theme_color": "#17120c",
+  "icons": [
+    { "src": "/geoffery.png", "sizes": "497x585", "type": "image/png", "purpose": "any" }
+  ]
+}

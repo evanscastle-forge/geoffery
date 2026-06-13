@@ -1,0 +1,109 @@
+/* Geoffery design tokens (spec §9). Overhauled 2026-06-12 toward the OSRS Wiki's
+   temperature (D-DESIGN-001, measured values in docs/OSRS-WIKI-STYLE.md): a dark-native
+   warm ground carrying parchment panels mixed in the neighbourhood of the wiki's light
+   content surfaces (#e2dbc8 / #d8ccb4 / border #94866d — ours are house-mixed nearby
+   values, never copies). Dialogue surfaces follow the chatbox directive (D-DESIGN-002):
+   similar to the OSRS chatbox — left portrait, similar font and chat colors — house-drawn,
+   never the game's actual fonts or assets. All values are our own mixes.
+
+   Every pre-existing custom property name is preserved. New tokens are additive. */
+
+:root {
+  /* ---- surface (ground is dark, panels are parchment) ---- */
+  --bg: #17120c;             /* deep candle-lit brown, warmer than before */
+  --bg-raised: #221b12;      /* header/footer, raised dark surfaces */
+  --panel: #e7dfca;          /* parchment — sits beside wiki content bg #e2dbc8 */
+  --panel-edge: #97876b;     /* panel frame — beside wiki border #94866d */
+  --ink: #2b2217;            /* writing on parchment (11.76:1 on --panel) */
+  --ink-soft: #5f5340;       /* secondary ink (5.65:1 on --panel, AA) */
+  --paper-text: #ece1c4;     /* text on dark (14.30:1 on --bg) */
+  --paper-text-soft: #b3a584;/* secondary on dark (7.65:1 on --bg, AA) */
+
+  /* new parchment steps (wiki rhythm: main / light / mid / dark) */
+  --panel-mid: #dbcfb6;      /* infobox-like inner surface (≈ wiki #d8ccb4) */
+  --panel-deep: #bda687;     /* table headers, panel title bars (≈ wiki #b8a282) */
+  --panel-stripe: #d5c9aa;   /* alternating table rows (≈ wiki #d1c6a6) */
+  --panel-edge-soft: #cabd9b;/* hairlines inside parchment (≈ wiki h1 rule #cfc08d) */
+
+  /* links on parchment (≈ wiki link #936039, mixed darker for AA) */
+  --link: #7a4a26;           /* 5.58:1 on --panel */
+  --link-visited: #5e3a22;
+
+  /* ---- brass / accent ---- */
+  --brass: #c8a44d;          /* 7.86:1 on --bg — accent on dark only */
+  --brass-deep: #8a6a21;     /* decorative/large-text only on parchment (3.80:1) */
+  --teal: #3f7d80;           /* Geoffery's waistcoat */
+
+  /* ---- gauge verdicts — NON-judgmental palette (owner directive 2026-06-12) ----
+     Temperature-coded, NOT valence-coded: neither buy nor sell reads as "bad".
+     Red retired (it implied selling = loss). BUY = warm amber-gold (opportunity);
+     SELL = calm teal (the house waistcoat hue — also a good move); HOLD = low-chroma
+     neutral grey (steady); WAIT = pure cool grey (no reading). Buy↔sell are 121° apart
+     in hue — two genuinely distinct, legible families. All chip text ≥5.49:1 on its
+     own bg (AA); see docs/OSRS-WIKI-STYLE.md for the measured ratios + rationale. */
+  --good: #82430f;           /* buy text — deep amber (5.49:1 on --good-bg) */
+  --good-bg: #f0d9a0;        /* buy chip — vivid warm gold (hsl 43,73%,78%) */
+  --average: #574d3a;        /* hold text — warm grey (5.78:1 on --average-bg) */
+  --average-bg: #ded7c4;     /* hold chip — low-chroma oat (neutral, sat 28%) */
+  --poor: #1c5659;           /* sell text — deep teal (5.74:1 on --poor-bg) */
+  --poor-bg: #c2dcd5;        /* sell chip — calm pale teal (hsl 164,27%,81%) */
+  --unsettled: #454a52;      /* wait text — cool slate (5.90:1 on --unsettled-bg) */
+  --unsettled-bg: #d2d2d2;   /* wait chip — pure neutral grey (sat 0%) */
+
+  /* Sparkline trend colours — neutralized, NO red (owner directive 2026-06-12).
+     The sparkline's only render ground is the parchment cards/panels, so these are
+     tuned for legibility on --panel (light values would vanish there at ~1.5:1):
+     warm amber rises, cool teal falls, warm grey is flat — same temperature as the
+     verdict gauge, no good/bad valence. On --panel: up 5.73:1, down 6.26:1.
+     (Resolves the geoffery-verdict MED that these tokens were defined but unused —
+     D-DESIGN-004 follow-up, 2026-06-12.) */
+  --trend-up: #82430f;       /* rising price — warm amber, legible on parchment */
+  --trend-down: #1c5659;     /* falling price — cool teal, legible on parchment */
+  --trend-flat: #6b6150;     /* flat — warm neutral, legible on parchment */
+
+  /* ---- chatbox (D-DESIGN-002; house-mixed near the game chatbox's tans/browns) ---- */
+  --chat-surface: #c9b896;       /* tan parchment chat area */
+  --chat-surface-deep: #bca983;  /* input strip / option row separation */
+  --chat-border: #5a4a33;        /* dark brown frame */
+  --chat-border-light: #8a7354;  /* inner bevel highlight (frame is two-tone) */
+  --chat-name: #7a1e12;          /* speaker name, dark red (5.33:1 on surface) */
+  --chat-text: #201a10;          /* spoken line, near-black (8.86:1) */
+  --chat-option: #2e3f9e;        /* selectable option, ledger blue (4.64:1) */
+  --chat-option-hover: #8a2317;  /* option hover/active (4.62:1) */
+
+  /* ---- type ---- */
+  /* wiki pairing: PT Serif headlines over IBM Plex Sans body (both OFL; web-app
+     self-hosts). Chat surfaces use the pixel-charactered --chat-font. */
+  --serif: "PT Serif", "Iowan Old Style", "Palatino Linotype", "Palatino", "Georgia", serif;
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  /* Pixel Operator Bold (CC0) — chat font, chosen by the 2026-06-12 bake-off
+     (D-DESIGN-003). The OSRS chat font is a small BOLD PLAIN bitmap sans (a
+     bitmap of Helvetica/Arial), NOT an arcade/blocky pixel face — so Micro 5,
+     Pixelify, VT323 and the like read "generic video game", never RuneScape.
+     Pixel Operator Bold matches that temperament and, unlike Micro 5, renders
+     crisp + legible (clear digits) at small sizes, so no oversized floor.
+     Native grid is 16px; 18px body / 22px name read crisp and RS-authentic. */
+  --chat-font: "Pixel Operator", "Trebuchet MS", "Verdana", sans-serif;
+  --chat-font-size: 1.125rem;      /* 18px — RS-small, crisp, readable */
+  --chat-name-size: 1.4rem;        /* speaker name, centered (OSRS dialog style) */
+
+  /* ---- spacing scale (unchanged) ---- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  --radius: 4px;             /* wiki panels are squarer than ours were */
+  --radius-lg: 8px;
+  --measure: 64ch;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+
+  /* reserved ad container dimensions (zero-CLS, spec §7) */
+  --ad-h-desktop: 90px;
+  --ad-h-mobile: 100px;
+}

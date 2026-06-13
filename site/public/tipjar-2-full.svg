@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tip jar, full">
+  <!-- House-drawn tip jar, STATE 2 of 4 — FULL, coins stacked to the rim
+       (D-DESIGN-001 temperature; no game assets). -->
+  <title>Tip jar — full</title>
+  <!-- jar body -->
+  <path d="M16 22 C12 30 12 46 18 54 C22 59 42 59 46 54 C52 46 52 30 48 22 Z"
+        fill="#8a6a4a" stroke="#5a4a33" stroke-width="2.5"/>
+  <!-- glaze highlight -->
+  <path d="M19 26 C17 33 17 44 21 51" fill="none" stroke="#bda687" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+  <!-- coins stacked from bottom to rim -->
+  <ellipse cx="26" cy="50" rx="6" ry="3.4" fill="#c8a44d" stroke="#8a6a21" stroke-width="2"/>
+  <ellipse cx="38" cy="51" rx="6" ry="3.4" fill="#d9b75f" stroke="#8a6a21" stroke-width="2"/>
+  <ellipse cx="32" cy="46" rx="6" ry="3.4" fill="#c8a44d" stroke="#8a6a21" stroke-width="2"/>
+  <ellipse cx="24" cy="42" rx="6" ry="3.4" fill="#d9b75f" stroke="#8a6a21" stroke-width="2"/>
+  <ellipse cx="40" cy="42" rx="6" ry="3.4" fill="#c8a44d" stroke="#8a6a21" stroke-width="2"/>
+  <ellipse cx="32" cy="38" rx="6" ry="3.4" fill="#d9b75f" stroke="#8a6a21" stroke-width="2"/>
+  <ellipse cx="26" cy="34" rx="6" ry="3.4" fill="#c8a44d" stroke="#8a6a21" stroke-width="2"/>
+  <ellipse cx="38" cy="34" rx="6" ry="3.4" fill="#d9b75f" stroke="#8a6a21" stroke-width="2"/>
+  <!-- rim -->
+  <rect x="14" y="16" width="36" height="8" rx="3" fill="#6d573d" stroke="#5a4a33" stroke-width="2.5"/>
+  <!-- coins level with the mouth -->
+  <ellipse cx="27" cy="18" rx="5.5" ry="3.2" fill="#c8a44d" stroke="#8a6a21" stroke-width="2"/>
+  <ellipse cx="37" cy="18" rx="5.5" ry="3.2" fill="#d9b75f" stroke="#8a6a21" stroke-width="2"/>
+  <!-- coin gleam -->
+  <ellipse cx="37" cy="17.4" rx="2.6" ry="1.1" fill="#ecd28a"/>
+</svg>

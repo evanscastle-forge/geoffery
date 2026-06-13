@@ -1,0 +1,97 @@
+---
+import "../styles/global.css";
+import { SITE, BELL } from "@geoffery/content";
+import Bell from "../components/Bell.astro";
+import { meta } from "../lib/data";
+
+interface Props {
+  title: string;
+  description?: string;
+  canonicalPath?: string;
+  noindex?: boolean;
+  itemSlug?: string;
+  itemName?: string;
+}
+const { title, description, canonicalPath, noindex, itemSlug, itemName } = Astro.props;
+const site = Astro.site?.toString() || "http://127.0.0.1:4321";
+const canonical = canonicalPath ? new URL(canonicalPath, site).toString() : undefined;
+const m = meta();
+const isLocal = (m.deployment ?? "local") === "local";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    {canonical && <link rel="canonical" href={canonical} />}
+    {(noindex || isLocal) && <meta name="robots" content="noindex" />}
+    <meta name="theme-color" content="#17120c" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preload" href="/fonts/pixel-operator-bold.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/pt-serif-700.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/geoffery.png" type="image/png" />
+    <meta property="og:title" content={title} />
+    {description && <meta property="og:description" content={description} />}
+    <!-- Search Console verification is stubbed on localhost (DECISIONS D-LOCAL-004). -->
+  </head>
+  <body data-item-slug={itemSlug} data-item-name={itemName}>
+    <header class="site-header">
+      <div class="wrap bar">
+        <a class="brand" href="/" aria-label={SITE.name}>
+          <img class="mark" src="/tipjar.svg" alt="" width="34" height="34" />
+          <!-- GE-OFFER-Y wordmark: the OFFER is the point (owner feedback 2026-06-12). -->
+          <span class="wordmark" aria-hidden="true">GE<span class="offer">OFFER</span>Y</span>
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a href="/">Home</a>
+          <a href="/methodology/">Methodology</a>
+          <a href="/ledger/">Patrons</a>
+          <a href="/money/">Tip Geoffery</a>
+          <a href="/contact/">Contact</a>
+        </nav>
+        <div class="header-actions">
+          <!-- The bell lives in the header now (owner feedback 2026-06-12); the
+               panel + behaviour are in <Bell/> at the end of <body>. -->
+          <button id="bell-ring" class="bell-ring" aria-haspopup="dialog" aria-controls="bell-panel" aria-label={BELL.ringAria}>
+            <span class="bell-ico" aria-hidden="true">🔔</span>
+            <span class="bell-ring-label">Ring</span>
+          </button>
+          <a class="login-link" href="/profile/">Log in</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <!-- Mirrors the header nav exactly (owner feedback 2026-06-12). -->
+        <div class="links">
+          <a href="/">Home</a>
+          <a href="/methodology/">Methodology</a>
+          <a href="/ledger/">Patrons</a>
+          <a href="/money/">Tip Geoffery</a>
+          <a href="/contact/">Contact</a>
+        </div>
+        <p class="small">{SITE.footerDisclaimer}</p>
+      </div>
+    </footer>
+
+    <Bell />
+    <script is:inline>
+      // Skip SW under automation (navigator.webdriver): a wedged SW instance hangs
+      // every fetch in the CDP browser loop (observed 2026-06-12). Real users get the PWA.
+      if ("serviceWorker" in navigator && !navigator.webdriver) {
+        addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+      } else if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister()));
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,79 @@
+---
+import Base from "../layouts/Base.astro";
+import Dialogue from "../components/Dialogue.astro";
+import Search from "../components/Search.astro";
+import { GAUGE, HOME, SITE } from "@geoffery/content";
+import { watchScore } from "@geoffery/core";
+import { aggregates, sparklines, items } from "../lib/data";
+import { gp } from "../lib/format";
+import Sparkline from "../components/Sparkline.astro";
+import MemberStar from "../components/MemberStar.astro";
+
+const aggs = aggregates();
+const sparks = sparklines();
+const memberMap = new Map(items().map((i) => [i.slug, i.members]));
+
+// "A few items of note" (owner feedback 2026-06-12): top 8 by weekly watchScore —
+// volatility gated by absolute gp movement (cheap-rune noise guard) + news mentions.
+const featured = Object.values(aggs)
+  .filter((a) => a.currentPrice && sparks[a.slug]?.w1?.length)
+  .map((a) => ({
+    a,
+    score: watchScore(
+      sparks[a.slug]!.w1,
+      a.volume24h,
+      a.flags.includes("recent-news") || a.flags.includes("news-volatility"),
+    ),
+  }))
+  .filter((x) => x.score > 0)
+  .sort((x, y) => y.score - x.score)
+  .slice(0, 8)
+  .map((x) => x.a);
+---
+
+<Base title={`${SITE.name} — OSRS Grand Exchange prices & deal ratings`} description="Current OSRS Grand Exchange prices, deal ratings, and a ledger-keeper's counsel. Geoffery keeps the ledger." canonicalPath="/">
+  <div class="wrap">
+    <section class="hero">
+      <Dialogue>
+        <p>{HOME.intro}</p>
+      </Dialogue>
+      <div class="hero-search">
+        <Search />
+      </div>
+    </section>
+
+    <section class="featured">
+      <h2>{HOME.browseHeading}</h2>
+      <div class="grid-cards">
+        {featured.map((a) => (
+          <a class="card panel" href={`/item/${a.slug}/`}>
+            <div class="card-head">
+              <span class="card-name">{a.name}<MemberStar members={memberMap.get(a.slug) ?? false} /></span>
+              <span class={`tag ${a.band}`}>{GAUGE[a.band].label.toLowerCase()}</span>
+            </div>
+            <span class="card-price price-big">{gp(a.currentPrice)}</span>
+            {sparks[a.slug] && <Sparkline points={sparks[a.slug]!.w1} height={36} label={`${a.name} week`} />}
+          </a>
+        ))}
+      </div>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .hero { margin: var(--s-5) 0 var(--s-7); display: grid; gap: var(--s-5); }
+  /* Full width of the chatbox above it (owner feedback 2026-06-12). */
+  .hero-search { width: 100%; }
+  .featured h2 { margin-bottom: var(--s-4); }
+  .card { display: grid; gap: var(--s-3); color: var(--ink); padding: 0; overflow: hidden; }
+  .card:hover { text-decoration: none; outline: 1px solid var(--brass); }
+  .card-head {
+    display:flex; justify-content: space-between; align-items: center; gap: var(--s-2);
+    background: var(--panel-deep); border-bottom: 1px solid var(--panel-edge);
+    padding: var(--s-2) var(--s-4); margin: 0;
+  }
+  .card > :not(.card-head) { margin: 0 var(--s-4); }
+  .card > :last-child { margin-bottom: var(--s-4); }
+  .card-name { font-family: var(--serif); font-size: 1.05rem; font-weight: 700; }
+  .card-price { font-size: 1.4rem; }
+</style>

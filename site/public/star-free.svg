@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Free-to-play item">
+  <!-- House-style free-to-play star (D-DESIGN-001 temperature; no game assets).
+       SILVER = free. Same faceted five-point star as star-members.svg, in a cool
+       pewter/silver palette with a slate outline so it holds on parchment cards AND
+       a bright core so it holds on the dark page. Sized ~0.9-1em inline. -->
+  <title>Free-to-play item</title>
+  <defs>
+    <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef0f1"/>
+      <stop offset="0.5" stop-color="#c6cace"/>
+      <stop offset="1" stop-color="#aeb3b8"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 1.6 L14.95 8.1 L22 8.9 L16.8 13.7 L18.25 20.7 L12 17.1 L5.75 20.7 L7.2 13.7 L2 8.9 L9.05 8.1 Z"
+        fill="url(#silver)" stroke="#5d636a" stroke-width="1.4" stroke-linejoin="round"/>
+  <!-- inner facet highlight -->
+  <path d="M12 1.6 L14.95 8.1 L12 9.4 Z" fill="#fbfcfd" opacity="0.9"/>
+</svg>

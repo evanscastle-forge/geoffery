@@ -1,8 +1,0 @@
-# Geoffery — ads.txt
-# Per D-016a (Advertising Plan): AdSense, manual placements only, three slots total.
-# This file ships even before AdSense onboarding so the deploy contract is settled
-# from day one.
-#
-# Once AdSense onboards, the canonical line below gets replaced with the
-# operator's real publisher ID, e.g.:
-#   google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0

@@ -1,0 +1,10 @@
+---
+// Members/free indicator (owner feedback 2026-06-12): a gold star for members
+// items, a silver star for free-to-play. House SVGs from the design pass; they
+// carry gradient cores + outlines so they hold on both parchment and dark.
+interface Props { members: boolean; }
+const { members } = Astro.props;
+const src = members ? "/star-members.svg" : "/star-free.svg";
+const label = members ? "Members item" : "Free-to-play item";
+---
+<img class="member-star" src={src} alt={label} width="18" height="18" />

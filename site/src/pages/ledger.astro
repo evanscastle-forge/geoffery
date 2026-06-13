@@ -1,0 +1,57 @@
+---
+import Base from "../layouts/Base.astro";
+import Dialogue from "../components/Dialogue.astro";
+import { PAGES, LEDGER } from "@geoffery/content";
+import { assignTiers, TIERS } from "@geoffery/core";
+
+// Donor wall (spec §8). Names from the content ledger; amounts NEVER shown,
+// within-tier order alphabetical. Ad-free zone.
+type Entry = { name: string; score: number; founding?: boolean; activeSeal?: boolean };
+const names = (LEDGER.names as Entry[]) ?? [];
+const tierMap = assignTiers(names.map((n) => ({ name: n.name, score: n.score })), "fixed");
+const byTier = new Map<string, Entry[]>();
+for (const e of names) {
+  const t = tierMap.get(e.name);
+  if (!t) continue;
+  const list = byTier.get(t) ?? [];
+  list.push(e);
+  byTier.set(t, list);
+}
+for (const list of byTier.values()) list.sort((a, b) => a.name.localeCompare(b.name));
+const ordered = [...TIERS].reverse(); // dragon first
+const tiers = LEDGER.tiers as Record<string, { label: string; remark: string }>;
+const hasNames = names.length > 0;
+---
+
+<Base title="Patrons — Geoffery" description="Geoffery's patrons: supporters by standing, never by sum." canonicalPath="/ledger/">
+  <div class="wrap measure">
+    <h1>{PAGES.ledger.title}</h1>
+    <Dialogue><p>{PAGES.ledger.intro}</p></Dialogue>
+
+    {!hasNames ? (
+      <section class="panel"><p class="muted">{PAGES.ledger.emptyState}</p>
+        <p class="small muted">The tiers, for when the first names arrive: {ordered.map((t) => tiers[t]?.label).join(" · ")}.</p>
+      </section>
+    ) : (
+      ordered.map((t) => byTier.get(t) && (
+        <section class="panel tier">
+          <h2>{tiers[t]?.label}</h2>
+          <p class="small muted">{tiers[t]?.remark}</p>
+          <ul class="names">
+            {byTier.get(t)!.map((e) => (
+              <li>{e.name}{e.activeSeal && <span class="seal" title={String(LEDGER.activeSeal)}>●</span>}{e.founding && <span class="founding" title={String(LEDGER.foundingNote)}>founding</span>}</li>
+            ))}
+          </ul>
+        </section>
+      ))
+    )}
+  </div>
+</Base>
+
+<style>
+  .tier { margin-top: var(--s-4); }
+  .names { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-3); }
+  .names li { background: var(--bg-raised); color: var(--paper-text); padding: 6px 12px; border-radius: 999px; display:inline-flex; gap:6px; align-items:center; }
+  .seal { color: var(--good); }
+  .founding { font-size: 0.7rem; color: var(--brass); text-transform: uppercase; letter-spacing: 0.05em; }
+</style>

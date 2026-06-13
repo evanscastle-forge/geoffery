@@ -1,0 +1,12 @@
+---
+import Base from "../layouts/Base.astro";
+import Dialogue from "../components/Dialogue.astro";
+import Search from "../components/Search.astro";
+import { PAGES } from "@geoffery/content";
+---
+<Base title="Not in the ledger — Geoffery" noindex={true}>
+  <div class="wrap measure">
+    <Dialogue><p>{PAGES.notFound.line}</p></Dialogue>
+    <div style="margin-top: var(--s-5); max-width: 640px;"><Search /></div>
+  </div>
+</Base>

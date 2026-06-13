@@ -1,0 +1,50 @@
+{
+  "name": "geoffery",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "workers/*",
+    "tools/*",
+    "site"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "check:purity": "node tools/check-core-purity.mjs",
+    "check:layout": "node tools/check-repo-layout.mjs",
+    "check": "npm run typecheck && npm run lint && npm run check:purity && npm run check:layout && npm run test",
+    "migrate:legacy": "node --experimental-strip-types tools/migrate-legacy/src/index.ts",
+    "migrate:verify": "node --experimental-strip-types tools/migrate-legacy/src/verify.ts",
+    "restore:drill": "node --experimental-strip-types tools/migrate-legacy/src/restore-drill.ts",
+    "pipeline": "node --experimental-strip-types ops/scheduler/run-once.ts",
+    "collect": "node --experimental-strip-types workers/collector/src/main.node.ts",
+    "aggregate": "node --experimental-strip-types workers/aggregator/src/main.node.ts",
+    "backfill": "node --experimental-strip-types workers/collector/src/backfill.node.ts",
+    "scorer": "node --experimental-strip-types workers/scorer/src/main.node.ts",
+    "news": "node --experimental-strip-types workers/news/src/main.node.ts",
+    "backtest": "node --experimental-strip-types tools/backtest/src/index.ts",
+    "export": "node --experimental-strip-types ops/scheduler/export.ts",
+    "consult": "node --experimental-strip-types workers/consult/src/main.node.ts",
+    "dev:site": "npm --workspace site run dev",
+    "dev": "node --experimental-strip-types ops/dev-up.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^2.1.8",
+    "fast-check": "^3.23.1"
+  },
+  "dependencies": {
+    "hono": "^4.6.14",
+    "@hono/node-server": "^1.13.7",
+    "@anthropic-ai/sdk": "^0.40.0"
+  }
+}

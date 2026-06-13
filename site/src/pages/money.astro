@@ -1,0 +1,64 @@
+---
+import Base from "../layouts/Base.astro";
+import Dialogue from "../components/Dialogue.astro";
+import { PAGES } from "@geoffery/content";
+
+// Tips require an account first (D-MONEY-001, 2026-06-12). Accounts do not exist
+// yet (post-MVP), so every tip click surfaces Geoffery's account-required line;
+// Stripe checkout wiring returns when accounts arrive.
+---
+
+<Base title="How this is paid for — Geoffery" description="Geoffery's wage is one gold a month. Everything about the market is free." canonicalPath="/money/">
+  <div class="wrap measure">
+    <h1>{PAGES.money.title}</h1>
+    <Dialogue><p>{PAGES.money.wage}</p></Dialogue>
+
+    <section class="panel doc">
+      <h2>{PAGES.money.tipsHeading}</h2>
+      <p>{PAGES.money.tipsDisclosure}</p>
+
+      <!-- Ad-free zone: no ad slots on the payment surface (spec §7). Tiers from content. -->
+      <div class="tips">
+        {PAGES.money.tiers.map((tier) => (
+          <div class="tip">
+            <span class="tip-name">{tier.name}</span><span class="tip-amt">{tier.amount}</span>
+            <span class="tip-blurb small">{tier.blurb}</span>
+            <button class="tip-btn" data-tip={tier.id}>Drop it in the jar</button>
+          </div>
+        ))}
+      </div>
+
+      <div id="tip-account-note" class="chatbox tip-note" hidden>
+        <p>{PAGES.money.accountRequired}</p>
+      </div>
+
+      <p class="small muted">No payment is taken without an account. Attribution (whether a tip is account-linked) is recorded from day one; live charging arrives with accounts and Stripe in production.</p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .doc { margin-top: var(--s-5); }
+  .tips { display: flex; gap: var(--s-4); flex-wrap: wrap; margin-top: var(--s-4); justify-content: center; }
+  .tip { display: grid; gap: 6px; padding: var(--s-4); border: 1px solid var(--panel-edge); border-radius: var(--radius); width: min(280px, 100%); text-align: center; }
+  .tip-name { font-family: var(--serif); font-size: 1.1rem; }
+  .tip-amt { font-size: 1.4rem; }
+  .tip-blurb { color: var(--ink-soft); }
+  .tip-btn {
+    display:inline-block; margin-top: 6px; padding: 8px 14px; border-radius: var(--radius);
+    background: var(--brass); color: #1c1709; font-weight: 700; text-align:center;
+    border: none; cursor: pointer; font-size: 1rem; font-family: var(--sans);
+  }
+  .tip-btn:hover { filter: brightness(1.05); }
+  .tip-note { margin-top: var(--s-4); padding: var(--s-4); font-family: var(--chat-font); }
+  .tip-note p { margin: 0; }
+</style>
+
+<script>
+  for (const btn of document.querySelectorAll<HTMLButtonElement>(".tip-btn[data-tip]")) {
+    btn.addEventListener("click", () => {
+      const note = document.getElementById("tip-account-note");
+      if (note) note.hidden = false;
+    });
+  }
+</script>

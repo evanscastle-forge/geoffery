@@ -1,36 +1,29 @@
-# Proposals
+# Proposals — cross-module changes
 
-Drafts for CROSS-MODULE changes — anything that requires coordinated edits by more than one agent, or that touches a shared contract (DB schema, aggregate row shape, item-page URL pattern, design tokens). Borrowed lightly from the dexter-dev protocol; for a one-owner MVP, treat the formality as scaffolding rather than enforced ceremony.
+A CROSS-MODULE change (one that spans modules owned by different agents) is not applied until every
+affected agent ratifies. LOCAL and CONTRACT changes skip this — they go straight to code +
+`docs/CHANGELOG.md` (CONTRACT also edits `SYSTEM_ARCHITECTURE.md` §3 and notifies dependents).
 
 ## When to file
+- A new D1 column other modules read (`prices_5m`, `aggregates`).
+- A change to the generated-JSON export shape, the `ArchiveStore`/`SqlStore` seam, or `/api/consult`.
+- A new dialogue state or a change to the recommendation contract.
+- Any outward-facing asset needing `design/compliance` review before it ships.
 
-- A new column on `prices_5m` or `aggregates`. (data-engineer + algorithms + frontend)
-- A URL pattern change. (frontend + growth-seo)
-- A new Geoffery dialogue state. (design-character + frontend + algorithms)
-- Anything Compliance flags before art/branding is commissioned.
-
-LOCAL changes (single agent, internal detail) skip this and go straight to the relevant code + a one-line `.claude/DECISIONS.md` entry only if the choice is interesting.
-
-## Format
-
+## Format — `.claude/proposals/NNN-slug.md`
 ```
 # NNN — <slug>
-Initiator: <agent>
-Affected agents: <list>
-Reversibility: one-way | reversible
-
-## Motivation
-why this is needed
-
-## Proposed change
-concrete diff or spec
-
-## Per-agent commitments
-- <agent>: what they do
-- <agent>: what they do
-
-## Rollback
-how to undo if it goes sideways
+- **Initiator**: <agent>
+- **Affected agents**: <list>
+- **Reversibility**: one-way door | reversible
+- **Motivation**: why this change, in two sentences.
+- **Proposed change**: the concrete diff to contracts (which §3 seams, which schemas, which copy).
+- **Per-agent commitments**: what each affected agent must do.
+- **Rollback**: how to undo it.
 ```
 
-Once every affected agent has signed off (`## RATIFY — <agent> — <date>` appended to the file), move to `accepted/` and add an entry to `.claude/DECISIONS.md`.
+## Ratification
+Each affected agent appends one response to the file: `## RATIFY — <agent> — <date>`,
+`## AMEND — …`, or `## REJECT — …` (with reasoning). Once every non-initiating affected agent has
+ratified, the initiator applies the diff, runs `npm run check`, adds a `docs/CHANGELOG.md` entry, moves
+the file to `accepted/`, and records any one-way-door decision in `DECISIONS.md`.

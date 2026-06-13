@@ -1,0 +1,85 @@
+import { expect, test } from "vitest";
+import { classify, liquidityBand } from "./regime.ts";
+import type { Snapshot } from "./types.ts";
+
+const FIVE_MIN = 300;
+
+function row(ts: number, m: number, highVol: number, lowVol: number): Snapshot {
+  return { itemId: 1, ts, avgHigh: m + 5, avgLow: m - 5, highVol, lowVol };
+}
+
+function series(
+  startMid: number,
+  endMid: number,
+  { n = 200, highVol = 10, lowVol = 10, now = 2_000_000 } = {},
+): Snapshot[] {
+  const rows: Snapshot[] = [];
+  for (let i = 0; i < n; i++) {
+    const ts = now - (n - 1 - i) * FIVE_MIN;
+    const m = startMid + (endMid - startMid) * (i / Math.max(1, n - 1));
+    rows.push(row(ts, Math.trunc(m), highVol, lowVol));
+  }
+  return rows;
+}
+
+// Deterministic gaussian (Box-Muller) with a seeded LCG, so the volatile test
+// is reproducible without depending on JS Math.random.
+function makeRng(seed: number) {
+  let s = seed >>> 0;
+  return () => {
+    s = (1664525 * s + 1013904223) >>> 0;
+    return s / 0x100000000;
+  };
+}
+function gauss(rng: () => number, mu: number, sigma: number): number {
+  const u1 = Math.max(rng(), 1e-9);
+  const u2 = rng();
+  return mu + sigma * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+test("no rows returns null", () => {
+  expect(classify([], 0)).toBeNull();
+});
+
+test("steady buyer's market on downtrend with low-side volume", () => {
+  const r = classify(series(1000, 940, { n: 300, highVol: 2, lowVol: 20 }), 2_000_000);
+  expect(r).not.toBeNull();
+  expect(r!.power).toBe("buyer");
+  expect(r!.stability).toBe("steady");
+});
+
+test("steady seller's market on uptrend with high-side volume", () => {
+  const r = classify(series(1000, 1080, { n: 300, highVol: 20, lowVol: 2 }), 2_000_000);
+  expect(r!.power).toBe("seller");
+  expect(r!.stability).toBe("steady");
+});
+
+test("balanced when flat and even", () => {
+  const r = classify(series(1000, 1000, { n: 300 }), 2_000_000);
+  expect(r!.power).toBe("balanced");
+});
+
+test("volatile from noisy recent window over steady baseline", () => {
+  const now = 2_000_000;
+  const rng = makeRng(42);
+  const rows: Snapshot[] = [];
+  for (let i = 0; i < 7000; i++) {
+    const ts = now - (10000 - i) * FIVE_MIN;
+    rows.push(row(ts, Math.trunc(1000 + gauss(rng, 0, 1)), 10, 10));
+  }
+  for (let i = 0; i < 900; i++) {
+    const ts = now - (900 - i) * FIVE_MIN;
+    rows.push(row(ts, Math.trunc(1000 + gauss(rng, 0, 50)), 10, 10));
+  }
+  const r = classify(rows, now);
+  expect(r!.stability).toBe("volatile");
+});
+
+test("liquidity band thresholds", () => {
+  expect(liquidityBand(0)).toBe("thin");
+  expect(liquidityBand(999)).toBe("thin");
+  expect(liquidityBand(1_000)).toBe("medium");
+  expect(liquidityBand(99_999)).toBe("medium");
+  expect(liquidityBand(100_000)).toBe("thick");
+  expect(liquidityBand(10_000_000)).toBe("thick");
+});

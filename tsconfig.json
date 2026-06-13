@@ -1,0 +1,13 @@
+{
+  "extends": "./config/tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "workers/*/src/**/*.ts",
+    "tools/*/src/**/*.ts",
+    "ops/**/*.ts"
+  ],
+  "exclude": ["node_modules", "**/dist", "site"]
+}

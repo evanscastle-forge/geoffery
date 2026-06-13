@@ -1,0 +1,30 @@
+---
+import Base from "../layouts/Base.astro";
+import Dialogue from "../components/Dialogue.astro";
+import { PAGES } from "@geoffery/content";
+
+// Deliberately plain (owner feedback 2026-06-12): this page exists to reassure
+// people Geoffery isn't guessing — short, no theatre, no detail dump. The fill
+// record is no longer published here (D-FEEDBACK-002); predictions are still
+// logged and scored internally.
+---
+
+<Base title="How the ledger is kept — Geoffery" description="How Geoffery's verdicts and offer recommendations are arrived at, in plain terms." canonicalPath="/methodology/">
+  <div class="wrap measure">
+    <h1>{PAGES.methodology.title}</h1>
+    <Dialogue><p>{PAGES.methodology.intro}</p></Dialogue>
+
+    <section class="panel doc">
+      <h2>The verdict</h2>
+      <p>Every item's current price is compared against its own recent trading history — where it has actually traded, and how much. The verdict names the move: <strong>buy</strong> when it sits low against that history, <strong>sell</strong> when it sits high, <strong>hold</strong> when it's about where it has been, and <strong>wait</strong> when the figures are too unsettled to rate honestly.</p>
+
+      <h2>The recommendations</h2>
+      <p>When you ring the bell, the recommended price weighs how quickly you want to trade against how the item has actually been filling. Quicker means closer to the going rate; patient means a more favourable figure. Every recommendation is written down and checked against what the market then does — so the arithmetic stays honest, even when nobody is looking.</p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .doc { margin-top: var(--s-5); }
+  .doc h2 { margin-top: var(--s-5); }
+</style>

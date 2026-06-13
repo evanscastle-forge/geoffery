@@ -1,0 +1,141 @@
+---
+// The Butler's Bell (spec §5): a consultation dialogue present on every page.
+// Server-side, we precompute Geoffery's copy (from @geoffery/content, the sole
+// source of his words) into a plain object the client state machine interpolates.
+// The dialogue/ledger/payment surfaces are ad-free zones (spec §7).
+import { BELL, GAUGE } from "@geoffery/content";
+
+const DAILY_LIMIT = 5; // soft meter, 3–5/day (spec §5)
+
+const powerPhrase = { buyer: GAUGE.regime.buyer, seller: GAUGE.regime.seller, balanced: GAUGE.regime.balanced };
+const stab = ["steady", "volatile"] as const;
+
+// Precompute regime-note sentences for every power × stability pair.
+// (The in-dialogue confidence sentence was removed 2026-06-12 — owner feedback;
+// the fill record lives on the methodology page.)
+const regimeNotes: Record<string, string> = {};
+for (const [p, phrase] of Object.entries(powerPhrase)) {
+  for (const s of stab) regimeNotes[`${p}/${s}`] = BELL.regimeNote(phrase, s);
+}
+
+const copy = {
+  ringLabel: BELL.ringLabel,
+  ringAria: BELL.ringAria,
+  ringQuips: BELL.ringQuips,
+  greetItem: BELL.greetItem("{item}"),
+  greetGeneric: BELL.greetGeneric,
+  pickItemPrompt: BELL.pickItemPrompt,
+  buy: BELL.buy,
+  sell: BELL.sell,
+  buyWhen: BELL.buyWhenPrompt,
+  sellWhen: BELL.sellWhenPrompt,
+  tol: BELL.tolerance,
+  recBuy: BELL.recBuy("{item}", "{price}"),
+  recSell: BELL.recSell("{item}", "{price}"),
+  newsNote: BELL.newsNote,
+  noSpeculation: BELL.noSpeculation,
+  noLedger: BELL.noLedger,
+  noFigures: BELL.noFigures,
+  verifyLink: BELL.verifyLink,
+  limitReached: BELL.limitReached(DAILY_LIMIT),
+  limitTipCta: BELL.limitTipCta,
+  regimeNotes,
+  dailyLimit: DAILY_LIMIT,
+};
+---
+
+<!-- The #bell-ring button lives in the header (Base.astro). This component owns the
+     panel, the precomputed copy, and the behaviour (scripts/bell.ts). -->
+<div id="bell-panel" class="bell-panel" role="dialog" aria-modal="false" aria-label="Consult Geoffery" hidden>
+  <div class="bell-inner chatbox">
+    <button id="bell-close" class="bell-close" aria-label="Close">✕</button>
+    <div class="bell-grid">
+      <img class="bell-portrait" src="/geoffery.png" alt="Geoffery" width="497" height="585" />
+      <div class="bell-body">
+        <p id="bell-quip-echo" class="bell-quip-echo" aria-hidden="true"></p>
+        <p id="bell-line" class="bell-line"></p>
+        <div id="bell-choices" class="bell-choices"></div>
+        <div id="bell-search" class="bell-search" hidden>
+          <input id="bell-search-input" type="search" autocomplete="off" placeholder="" aria-label="Search items" />
+          <ul id="bell-search-results" class="bell-results"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="bell-copy" set:html={JSON.stringify(copy)}></script>
+
+<script>
+  import { initBell } from "../scripts/bell.ts";
+  initBell();
+</script>
+
+<!-- is:global because #bell-choices content is built dynamically by bell.ts —
+     Astro-scoped selectors never match elements created at runtime. All selectors
+     are .bell-* prefixed. -->
+<style is:global>
+  /* Compact, prominent control in the header (owner feedback 2026-06-12). The
+     quip surfaces as the button's title tooltip + an echo when the panel opens. */
+  .bell-ring {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: linear-gradient(180deg, var(--brass), #b88f30);
+    color: #1c1709; border: 1px solid var(--chat-border); border-radius: var(--radius);
+    padding: 7px 14px; font-weight: 700; font-family: var(--serif); font-size: 1rem;
+    box-shadow: var(--shadow); cursor: pointer; white-space: nowrap;
+  }
+  .bell-ring:hover { filter: brightness(1.05); }
+  .bell-ico { font-size: 1.25rem; display: inline-block; transform-origin: 50% 0%; }
+  .bell-quip-echo {
+    font-family: var(--chat-font); color: var(--chat-name); font-size: 1rem;
+    line-height: 1.2; margin: 0 0 8px; text-align: center; min-height: 1.2em;
+  }
+  .bell-quip-echo:empty { display: none; }
+
+  /* The fun (design brief feedback2-2026-06-12 §4); all gated by reduced-motion. */
+  @keyframes bell-swing {
+    0% { transform: rotate(0); } 25% { transform: rotate(12deg); }
+    50% { transform: rotate(-9deg); } 75% { transform: rotate(5deg); } 100% { transform: rotate(0); }
+  }
+  @keyframes bell-ring-shake {
+    0% { transform: rotate(0); } 15% { transform: rotate(-14deg); } 35% { transform: rotate(12deg); }
+    55% { transform: rotate(-8deg); } 75% { transform: rotate(5deg); } 100% { transform: rotate(0); }
+  }
+  @keyframes bell-nudge {
+    0% { transform: rotate(0); } 30% { transform: rotate(6deg); }
+    60% { transform: rotate(-4deg); } 80% { transform: rotate(2deg); } 100% { transform: rotate(0); }
+  }
+  .bell-ring:hover .bell-ico, .bell-ring:focus-visible .bell-ico { animation: bell-swing 500ms ease-in-out; }
+  .bell-ico.ringing { animation: bell-ring-shake 450ms ease-out !important; }
+  .bell-ico.nudge { animation: bell-nudge 600ms ease-in-out; }
+  @media (prefers-reduced-motion: reduce) {
+    .bell-ring:hover .bell-ico, .bell-ring:focus-visible .bell-ico,
+    .bell-ico.ringing, .bell-ico.nudge { animation: none !important; }
+  }
+
+  .bell-panel { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,0.45); padding: 12px; }
+  .bell-panel[hidden] { display: none; }
+  @media (min-width: 720px) { .bell-panel { align-items: center; } }
+  .bell-inner { position: relative; width: min(640px, 100%); padding: var(--s-5); }
+  .bell-close { position: absolute; top: 8px; right: 10px; background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--chat-text); }
+  .bell-grid { display: grid; grid-template-columns: 96px 1fr; gap: var(--s-4); align-items: start; }
+  .bell-portrait { width: 96px; height: auto; border: 1px solid var(--chat-border); border-radius: 2px; }
+  /* OSRS dialog convention (D-DESIGN-002): all text centered — line + options. */
+  .bell-line { font-family: var(--chat-font); color: var(--chat-text); font-size: var(--chat-font-size); line-height: 1.4; margin: 4px 0 14px; min-height: 2.6em; text-align: center; }
+  .bell-choices { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .bell-choices button, .bell-cta {
+    background: transparent; color: var(--chat-option); border: none;
+    border-radius: var(--radius); padding: 10px 14px; min-height: 44px; cursor: pointer;
+    font-size: var(--chat-font-size); font-family: var(--chat-font); text-align: center;
+  }
+  .bell-choices button:hover { color: var(--chat-option-hover); background: var(--chat-surface-deep); }
+  .bell-cta { display: inline-block; color: var(--chat-option); text-decoration: underline; }
+  .bell-cta:hover { color: var(--chat-option-hover); }
+  .bell-choices .aside { display:block; font-size: 0.8rem; color: var(--chat-text); opacity: 0.75; font-family: var(--sans); }
+  .bell-line .bell-price { font-family: var(--sans); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .bell-search input { width: 100%; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--chat-border); font-size: 1rem; font-family: var(--sans); background: var(--panel); color: var(--chat-text); }
+  .bell-results { list-style: none; margin: 8px 0 0; padding: 0; max-height: 220px; overflow:auto; }
+  .bell-results li button { display:block; width:100%; text-align:left; background:none; border:none; padding:10px; cursor:pointer; color: var(--chat-option); font-family: var(--chat-font); font-size: var(--chat-font-size); border-radius: var(--radius); }
+  .bell-results li button:hover { background: var(--chat-surface-deep); color: var(--chat-option-hover); }
+  .bell-confidence { font-size: var(--chat-font-size); color: var(--chat-text); opacity: 0.85; margin-top: 8px; font-family: var(--chat-font); }
+</style>

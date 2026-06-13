@@ -1,0 +1,34 @@
+---
+// Geoffery speaking: the chatbox (D-DESIGN-002) — similar to the OSRS chatbox,
+// house-drawn. Left-aligned portrait, tan chat surface in a two-tone brown frame,
+// dark-red speaker name, near-black chat text in the pixel-charactered chat font.
+interface Props { name?: string; }
+const { name = "Geoffery" } = Astro.props;
+---
+<div class="dialogue chatbox">
+  <img class="dialogue-portrait" src="/geoffery.png" alt={name} width="497" height="585" />
+  <div class="dialogue-bubble">
+    <span class="dialogue-name">{name}</span>
+    <div class="dialogue-text"><slot /></div>
+  </div>
+</div>
+
+<style>
+  .dialogue {
+    display: grid; grid-template-columns: 84px 1fr; gap: var(--s-4); align-items: start;
+    padding: var(--s-4);
+  }
+  .dialogue-portrait { width: 84px; height: auto; border: 1px solid var(--chat-border); border-radius: 2px; }
+  .dialogue-bubble { min-width: 0; }
+  /* Name centered over the text column, OSRS dialog style. */
+  .dialogue-name {
+    display: block; text-align: center; font-family: var(--chat-font); font-weight: 400;
+    color: var(--chat-name); margin-bottom: 4px; font-size: var(--chat-name-size);
+  }
+  /* OSRS dialog convention (D-DESIGN-002): all text elements centered. */
+  .dialogue-text { font-family: var(--chat-font); color: var(--chat-text); font-size: var(--chat-font-size); line-height: 1.45; text-align: center; }
+  .dialogue-text :global(p) { margin: 0 0 0.6em; }
+  .dialogue-text :global(p:last-child) { margin-bottom: 0; }
+  .dialogue-text :global(a) { color: var(--chat-option); }
+  .dialogue-text :global(a:hover) { color: var(--chat-option-hover); }
+</style>

@@ -1,0 +1,12 @@
+---
+// Reserved, zero-CLS ad container (spec §7). Three slots, total, ever:
+// item-mid + item-bottom (desktop), one in-content (mobile). DORMANT on localhost
+// — no AdSense script, no Auto Ads, fixed dimensions present whether filled or not.
+// Never rendered in ad-free zones (consultation, ledger, payment).
+interface Props { kind: "item-mid" | "item-bottom" | "mobile"; }
+const { kind } = Astro.props;
+const cls = kind === "mobile" ? "mobile" : "desktop";
+---
+<div class={`ad-slot ${cls}`} data-ad-slot={kind} aria-hidden="true">
+  <span>advertisement</span>
+</div>

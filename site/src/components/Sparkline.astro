@@ -1,0 +1,61 @@
+---
+// A small inline SVG sparkline of mid-price over a window. Pure SVG, no JS.
+// A right-hand percentage scale references every value to the left-most point (= 100%).
+interface Props { points: [number, number][]; width?: number; height?: number; label?: string; }
+const { points, width = 240, height = 48, label } = Astro.props;
+
+const gutter = 34; // right-hand space for the % labels
+const plotW = width - gutter;
+
+let path = "";
+let area = "";
+let yBase = 0;
+let ticks: { y: number; text: string }[] = [];
+if (points.length > 1) {
+  const xs = points.map((p) => p[0]);
+  const ys = points.map((p) => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const spanX = maxX - minX || 1;
+  const spanY = maxY - minY || 1;
+  const pad = 3;
+  const sx = (x: number) => pad + ((x - minX) / spanX) * (plotW - pad * 2);
+  const sy = (y: number) => height - pad - ((y - minY) / spanY) * (height - pad * 2);
+  path = points.map((p, i) => `${i === 0 ? "M" : "L"}${sx(p[0]).toFixed(1)},${sy(p[1]).toFixed(1)}`).join(" ");
+  const last = points[points.length - 1]!;
+  const first = points[0]!;
+  area = `${path} L${sx(last[0]).toFixed(1)},${height - pad} L${sx(first[0]).toFixed(1)},${height - pad} Z`;
+
+  const base = first[1] || 1;
+  const pct = (y: number) => `${Math.round((y / base) * 100)}%`;
+  yBase = sy(first[1]);
+  ticks = [{ y: yBase, text: "100%" }];
+  // Label the extremes when they sit clear of the 100% line and aren't just 100% again.
+  for (const y of [maxY, minY]) {
+    if (Math.abs(sy(y) - yBase) > 10 && pct(y) !== "100%") ticks.push({ y: sy(y), text: pct(y) });
+  }
+}
+// Trend direction (first vs last), not a buy/sell verdict — use the dedicated
+// --trend-* tokens (geoffery-verdict MED, 2026-06-12).
+const rising = points.length > 1 && points[points.length - 1]![1] >= points[0]![1];
+const stroke = rising ? "var(--trend-up)" : "var(--trend-down)";
+---
+
+{points.length > 1 ? (
+  <svg class="spark" viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={label || "price trend"}>
+    <line x1="0" y1={yBase.toFixed(1)} x2={plotW} y2={yBase.toFixed(1)} class="spark-base" />
+    <path d={area} fill={stroke} opacity="0.12" />
+    <path d={path} fill="none" stroke={stroke} stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" />
+    {ticks.map((t) => (
+      <text x={width - 1} y={Math.min(Math.max(t.y + 3, 8), height - 1).toFixed(1)} text-anchor="end" class="spark-pct">{t.text}</text>
+    ))}
+  </svg>
+) : (
+  <span class="small muted">not enough history</span>
+)}
+
+<style>
+  .spark { display: block; width: 100%; height: auto; }
+  .spark-base { stroke: var(--ink-soft); stroke-width: 0.75; stroke-dasharray: 3 3; opacity: 0.5; }
+  .spark-pct { font-size: 9px; font-family: var(--sans); fill: var(--ink-soft); }
+</style>

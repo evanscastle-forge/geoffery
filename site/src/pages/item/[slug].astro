@@ -1,0 +1,108 @@
+---
+import Base from "../../layouts/Base.astro";
+import Gauge from "../../components/Gauge.astro";
+import Sparkline from "../../components/Sparkline.astro";
+import AdSlot from "../../components/AdSlot.astro";
+import WikiNotice from "../../components/WikiNotice.astro";
+import MemberStar from "../../components/MemberStar.astro";
+import { aggregates, sparklines, items } from "../../lib/data";
+import { GAUGE } from "@geoffery/content";
+import { gp, itemTitle, metaDescription } from "../../lib/format";
+
+export function getStaticPaths() {
+  const aggs = aggregates();
+  return Object.values(aggs).map((a) => ({ params: { slug: a.slug }, props: { agg: a } }));
+}
+
+const { agg } = Astro.props;
+const slug = agg.slug;
+const spark = sparklines()[slug];
+
+// AggregateView carries no members flag — join from the search index by slug.
+const memberMap = new Map(items().map((i) => [i.slug, i.members]));
+const isMember = memberMap.get(slug) ?? false;
+
+const regimeLabel =
+  agg.regimePower && agg.regimeStability
+    ? `${GAUGE.regime[agg.regimePower]}, ${GAUGE.regime[agg.regimeStability]}`
+    : null;
+
+const desc = metaDescription(agg.name, agg.verdictText);
+
+// Breadcrumb + FAQ-less structured data for the item.
+const ld = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: agg.name,
+  offers: agg.currentPrice
+    ? { "@type": "Offer", priceCurrency: "GP", price: Math.round(agg.currentPrice), availability: "https://schema.org/InStock" }
+    : undefined,
+};
+---
+
+<Base title={itemTitle(agg.name)} description={desc} canonicalPath={`/item/${slug}/`} itemSlug={slug} itemName={agg.name}>
+  <div class="wrap">
+    <article class="panel item-top">
+      <h1>{agg.name}<MemberStar members={isMember} /></h1>
+
+      <div class="prices">
+        <div class="price">
+          <span class="small muted">Market price</span>
+          <span class="price-big">{gp(agg.currentPrice)}</span>
+        </div>
+        <div class="price">
+          <span class="small muted">Hourly volume</span>
+          <span class="price-big">{gp(agg.volume24h ? Math.round(agg.volume24h / 24) : null)}</span>
+        </div>
+        {regimeLabel && (
+          <div class="price">
+            <span class="small muted">Market</span>
+            <span class="regime">{regimeLabel}</span>
+          </div>
+        )}
+      </div>
+
+      <!-- consultation recommendation lands here, above the gauge -->
+      <div id="consulted-panel" class="consulted" hidden></div>
+
+      <Gauge agg={agg} />
+    </article>
+
+    <AdSlot kind="item-mid" />
+    <AdSlot kind="mobile" />
+
+    {agg.wikiNotices.length > 0 && <WikiNotice notices={agg.wikiNotices} />}
+
+    {spark && (
+      <section class="panel charts">
+        <h2>Recent trend</h2>
+        <div class="spark-grid">
+          <div><span class="small muted">Last 24 hours</span><Sparkline points={spark.d1} label={`${agg.name} 24h`} /></div>
+          <div><span class="small muted">Last week</span><Sparkline points={spark.w1} label={`${agg.name} 1w`} /></div>
+          <div><span class="small muted">Last month</span><Sparkline points={spark.m1} label={`${agg.name} 1m`} /></div>
+        </div>
+      </section>
+    )}
+
+    <AdSlot kind="item-bottom" />
+  </div>
+
+  <script type="application/ld+json" set:html={JSON.stringify(ld)} />
+
+  <script>
+    import { renderConsulted } from "../../scripts/consulted.ts";
+    renderConsulted();
+  </script>
+</Base>
+
+<style>
+  .item-top { margin-top: var(--s-4); }
+  .item-top h1 { margin: 0 0 4px; }
+  .prices { display: flex; flex-wrap: wrap; gap: var(--s-6); margin: var(--s-4) 0; }
+  .price { display: flex; flex-direction: column; }
+  .regime { font-family: var(--serif); font-size: 1.2rem; text-transform: capitalize; }
+  .charts { margin-top: var(--s-4); }
+  .spark-grid { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .consulted { margin: var(--s-4) 0; padding: var(--s-4); border-radius: var(--radius); background: var(--bg-raised); color: var(--paper-text); border: 1px solid var(--brass); }
+  .consulted .rec-line { font-family: var(--serif); font-size: 1.15rem; }
+</style>

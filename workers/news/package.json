@@ -1,0 +1,11 @@
+{
+  "name": "@geoffery/worker-news",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@geoffery/core": "*",
+    "@geoffery/data": "*",
+    "@geoffery/content": "*"
+  }
+}

@@ -1,0 +1,25 @@
+---
+// Neutral, hedged, provenance-linked update notice (spec §6). Never directional,
+// never advisory. Firewalled from prices — display-only context.
+import { NEWS } from "@geoffery/content";
+import type { WikiNotice } from "../lib/data";
+interface Props { notices: WikiNotice[]; }
+const { notices } = Astro.props;
+---
+{notices.length > 0 && (
+  <aside class="wiki-notice" aria-label="Update context">
+    {notices.map((n) => (
+      <div class="wiki-row">
+        <span class="wiki-flag">{n.kind === "upcoming" ? NEWS.upcomingNotice : NEWS.recentNotice}</span>
+        <a href={n.url} rel="nofollow noopener" target="_blank">{n.title}</a>
+        {n.summary && <p class="small muted">{NEWS.provenancePrefix} {n.summary}</p>}
+      </div>
+    ))}
+  </aside>
+)}
+
+<style>
+  .wiki-notice { border: 1px solid rgba(200,164,77,0.3); border-radius: var(--radius); padding: var(--s-3) var(--s-4); margin: var(--s-4) 0; background: rgba(200,164,77,0.05); }
+  .wiki-row + .wiki-row { margin-top: var(--s-3); }
+  .wiki-flag { display:block; font-size: 0.8rem; color: var(--brass); font-weight: 600; }
+</style>

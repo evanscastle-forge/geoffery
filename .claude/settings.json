@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__chrome-devtools__new_page",
+      "mcp__chrome-devtools__list_pages",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__list_console_messages",
+      "mcp__chrome-devtools__list_network_requests",
+      "mcp__chrome-devtools__take_snapshot",
+      "mcp__chrome-devtools__take_screenshot",
+      "mcp__chrome-devtools__evaluate_script",
+      "mcp__chrome-devtools__resize_page",
+      "mcp__chrome-devtools__close_page",
+      "mcp__chrome-devtools__performance_start_trace",
+      "mcp__chrome-devtools__performance_stop_trace",
+      "Bash(npm run *)",
+      "Bash(npm ci)",
+      "Bash(npm install)",
+      "Bash(npx vitest *)",
+      "Bash(git status)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(lsof -nP -iTCP:4321 -sTCP:LISTEN)",
+      "Bash(lsof -nP -iTCP:8787 -sTCP:LISTEN)",
+      "Bash(lsof -ti:4321)",
+      "Bash(lsof -ti:8787)",
+      "Bash(pkill -f astro)",
+      "Bash(pkill -f \"consult/src/main\")",
+      "Bash(pkill -f dev-up)",
+      "Bash(curl *)",
+      "Bash(sqlite3 .data/geoffery.db *)"
+    ]
+  }
+}

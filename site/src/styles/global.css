@@ -1,0 +1,163 @@
+@import "@geoffery/content/tokens.css";
+
+/* Self-hosted OFL fonts (design brief 2026-06-12): the wiki's PT Serif / IBM Plex Sans
+   pairing, plus Pixelify Sans for chat surfaces only (D-DESIGN-002 look-alike). */
+@font-face {
+  font-family: "PT Serif"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("/fonts/pt-serif-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "PT Serif"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/fonts/pt-serif-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 400 600; font-display: swap;
+  src: url("/fonts/ibm-plex-sans-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Pixel Operator"; font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url("/fonts/pixel-operator-bold.woff2") format("woff2");
+}
+
+* { box-sizing: border-box; }
+
+html {
+  color-scheme: dark;
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--paper-text);
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(63, 125, 128, 0.10), transparent 60%),
+    var(--bg);
+  line-height: 1.55;
+  min-height: 100vh;
+}
+
+a { color: var(--brass); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+h1, h2, h3 { font-family: var(--serif); font-weight: 700; line-height: 1.15; }
+h1, h2 {
+  padding-bottom: 0.15em;
+  border-bottom: 1px solid rgba(179, 165, 132, 0.35); /* hairline on dark (--paper-text-soft) */
+}
+.panel h1, .panel h2 { border-bottom-color: var(--panel-edge-soft); }
+h3 { border-bottom: none; }
+
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 var(--s-4); }
+.measure { max-width: var(--measure); }
+
+.site-header {
+  border-bottom: 1px solid rgba(200, 164, 77, 0.18);
+  padding: var(--s-4) 0;
+  position: sticky;
+  top: 0;
+  background: rgba(34, 27, 18, 0.92); /* --bg-raised near-solid */
+  backdrop-filter: blur(8px);
+  z-index: 40;
+}
+.site-header .bar { display: flex; align-items: center; gap: var(--s-4); justify-content: space-between; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: var(--s-3); font-family: var(--serif); font-size: 1.3rem; color: var(--paper-text); }
+.brand .mark { width: 34px; height: 34px; flex: none; }
+.wordmark { font-weight: 700; letter-spacing: 0.06em; }
+.wordmark .offer { color: var(--brass); }
+.nav { display: flex; gap: var(--s-4); font-size: 0.95rem; flex-wrap: wrap; }
+.nav a { color: var(--paper-text-soft); }
+.nav a:hover { color: var(--brass); }
+/* Right-hand cluster: the header bell + the login/profile link. */
+.header-actions { display: flex; align-items: center; gap: var(--s-3); }
+.login-link { color: var(--paper-text-soft); font-size: 0.95rem; white-space: nowrap; }
+.login-link:hover { color: var(--brass); }
+@media (max-width: 480px) {
+  .site-header .bar { gap: var(--s-3); }
+  .brand { font-size: 1.1rem; gap: var(--s-2); }
+  .nav { gap: var(--s-3); font-size: 0.88rem; }
+}
+
+main { padding: var(--s-6) 0 var(--s-8); }
+
+/* Frame-defined parchment panels (wiki infobox pattern), not shadow-defined. */
+.panel {
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: var(--radius-lg);
+  padding: var(--s-5);
+  border: 1px solid var(--panel-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+.panel h1, .panel h2, .panel h3 { color: var(--ink); }
+.panel a { color: var(--link); }
+.panel a:visited { color: var(--link-visited); }
+
+.muted { color: var(--paper-text-soft); }
+.panel .muted { color: var(--ink-soft); }
+.small { font-size: 0.85rem; }
+.mono { font-family: var(--mono); }
+
+/* Verdict chips: tinted parchment + same-hue dark text (wiki yes/no/maybe pattern). */
+.tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600;
+  border: 1px solid var(--panel-edge);
+}
+.tag.good { background: var(--good-bg); color: var(--good); }
+.tag.average { background: var(--average-bg); color: var(--average); }
+.tag.poor { background: var(--poor-bg); color: var(--poor); }
+.tag.unsettled { background: var(--unsettled-bg); color: var(--unsettled); }
+
+/* Members (gold) / free-to-play (silver) star — house SVGs, shared by
+   MemberStar.astro and the script-injected search/bell results (owner feedback
+   2026-06-12). The SVGs carry their own colour; here we only size + align. */
+.member-star { width: 1.05em; height: 1.05em; margin-left: 0.35em; vertical-align: -0.12em; flex: none; }
+
+.grid-cards { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+
+.price-big { font-family: var(--serif); font-size: clamp(1.6rem, 4vw, 2.4rem); }
+
+/* Dense, hairlined data tables (wiki wikitable pattern). */
+.panel table { border-collapse: collapse; width: 100%; }
+.panel th, .panel td { border: 1px solid var(--panel-edge); padding: 4px 8px; text-align: left; }
+.panel th { background: var(--panel-deep); color: var(--ink); }
+.panel tbody tr:nth-child(even) td { background: var(--panel-stripe); }
+
+.site-footer {
+  border-top: 1px solid rgba(200, 164, 77, 0.18);
+  padding: var(--s-6) 0;
+  color: var(--paper-text-soft);
+  font-size: 0.85rem;
+  background: var(--bg-raised);
+}
+.site-footer .wrap { display: grid; gap: var(--s-3); }
+.site-footer .links { display: flex; flex-wrap: wrap; gap: var(--s-4); }
+
+/* reserved, zero-CLS ad containers (spec §7) — present whether filled or not. */
+.ad-slot {
+  display: flex; align-items: center; justify-content: center;
+  border: 1px dashed rgba(200, 164, 77, 0.25);
+  border-radius: var(--radius);
+  color: var(--paper-text-soft);
+  font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase;
+  background: rgba(255,255,255,0.015);
+}
+.ad-slot.desktop { height: var(--ad-h-desktop); }
+.ad-slot.mobile { height: var(--ad-h-mobile); }
+@media (min-width: 720px) { .ad-slot.mobile { display: none; } }
+@media (max-width: 719px) { .ad-slot.desktop { display: none; } }
+
+/* The chatbox frame (D-DESIGN-002) — shared by Dialogue and the Bell. House-drawn:
+   tan surface in a flat two-tone brown frame; square-ish corners. */
+.chatbox {
+  background: var(--chat-surface);
+  border: 2px solid var(--chat-border);
+  box-shadow: inset 0 0 0 1px var(--chat-border-light);
+  border-radius: var(--radius);
+  color: var(--chat-text);
+}
+
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
