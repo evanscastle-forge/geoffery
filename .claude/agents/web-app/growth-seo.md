@@ -29,4 +29,4 @@ pages is the traffic engine; there is no blog, no content treadmill.
 - All redirect domains and the standard "geoffrey" spelling 301 to the canonical host.
 
 ## Style
-- One-way doors get decided deliberately and recorded in `DECISIONS.md`. Measure rankings, don't guess.
+- One-way doors get decided deliberately and recorded in the commit log. Measure rankings, don't guess.

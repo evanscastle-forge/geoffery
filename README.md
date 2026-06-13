@@ -2,13 +2,13 @@
 
 A price oracle and decision assistant for Old School RuneScape's Grand Exchange —
 ~4,600 item pages with a deal gauge, market-regime label, sparklines, and **the Butler's
-Bell**: a dwarf ledger-keeper who turns your intent (buy/sell + time tolerance) into a
+Bell**: an elderly ledger-keeper who turns your intent (buy/sell + time tolerance) into a
 recommended price, logs it as a falsifiable prediction, and is scored against the market.
 
-Built fresh from `BUILD-SPEC.md`. All TypeScript; pure domain core with zero I/O; a
-two-layer store (an append-only R2 archive + a queryable D1 store); a static Astro site.
-Production targets Cloudflare; this build runs entirely on **localhost** (see
-`DECISIONS.md` for the runtime choices).
+Built as an all-TypeScript monorepo: a pure domain core with zero I/O; a two-layer store
+(an append-only R2 archive + a queryable D1 store); a static Astro site. Production targets
+Cloudflare; this build runs entirely on **localhost** (see `SYSTEM_ARCHITECTURE.md` for the
+runtime model and its documented deviations).
 
 ## Run it on localhost
 
@@ -43,12 +43,12 @@ unaffected).
 
 ## Checks
 ```bash
-npm run check         # typecheck + eslint + core-purity + 44 unit/property tests
+npm run check         # typecheck + eslint + core-purity + repo-layout + 52 unit/property tests
 npm run restore:drill # R2 restore drill (sha256 integrity + row reconciliation)
 ```
 
-See `docs/README.md` (full doc index), `DECISIONS.md` (phase gates), `docs/RUNBOOK.md`
-(ops), `docs/SALVAGE.md` (carried constants), `tools/parity-checklist.md` (feature
-parity vs the reference).
+See `docs/README.md` (full doc index), `SYSTEM_ARCHITECTURE.md` (as-built module map +
+routing), `docs/RUNBOOK.md` (ops), `docs/SALVAGE.md` (carried constants), and
+`tools/parity-checklist.md` (feature parity vs the reference).
 
 Not affiliated with or endorsed by Jagex.

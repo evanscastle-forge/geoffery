@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 // Repo-layout gate: the top level stays lean (see .claude/CHARTER.md → "Repo layout").
 // Compares git-visible top-level entries against an allowlist and fails on surprises.
-// Owned by the `db` agent (WHO-FIXES-WHAT.md). `git ls-files -co --exclude-standard`
+// Owned by the `db` agent (see CHARTER 'Repo layout'). `git ls-files -co --exclude-standard`
 // lists tracked + untracked files while honouring .gitignore, so a stray new file is
 // caught but gitignored cruft (node_modules, .data, local, .env, .git) is not.
 import { execSync } from "node:child_process";
 
 // Allowed top-level entries. New prose docs go in docs/, relocatable config in config/.
 const ALLOWED = new Set([
-  // spec & governance docs (read every session)
+  // governance docs (committed, read every session)
   "README.md",
-  "BUILD-SPEC.md",
   "SYSTEM_ARCHITECTURE.md",
+  // the owner's private spec/decision docs are gitignored (kept under local/), but allow-listed
+  // here so they may also sit at root on the owner's machine without tripping this guard.
+  "BUILD-SPEC.md",
   "DECISIONS.md",
   "WHO-FIXES-WHAT.md",
   // build configs tooling resolves from root

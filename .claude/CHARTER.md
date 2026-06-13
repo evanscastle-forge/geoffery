@@ -4,11 +4,12 @@
 ## What we are building
 Geoffery is a price oracle and decision assistant for Old School RuneScape's Grand Exchange — a
 fast, elegant, mobile-first reference site with a "deal gauge" for every tradeable item, fronted
-by Geoffery, an original elderly-dwarf ledger-keeper. Its differentiator is **the Butler's Bell**:
-a consultation that turns a user's intent (buy/sell + time tolerance) into a recommended price,
-logs each recommendation as a falsifiable prediction, and scores it against the market. The
-published fill rate is the trust asset. The full specification is `BUILD-SPEC.md` — it is the
-source of truth. Where this charter and the spec conflict, the spec wins.
+by Geoffery, an original elderly human ledger-keeper with a butler's bearing. Its differentiator
+is **the Butler's Bell**: a consultation that turns a user's intent (buy/sell + time tolerance)
+into a recommended price, logs each recommendation as a falsifiable prediction, and scores it
+against the market. The published fill rate is the trust asset. This charter and
+`SYSTEM_ARCHITECTURE.md` are the binding in-repo references; the owner also keeps a detailed spec
+and decision ledger privately (under `local/`, gitignored — not part of this repo).
 
 ## Non-negotiable constraints (no agent may trade these away)
 1. **Architecture invariants** (`SYSTEM_ARCHITECTURE.md` §4). Core purity (zero I/O in
@@ -27,18 +28,18 @@ source of truth. Where this charter and the spec conflict, the spec wins.
    game-font files, extracted textures). Owner carve-out (D-DESIGN-002, 2026-06-12): the Geoffery
    dialogue box is a **top-level design directive** to be *similar* to the OSRS chatbox — left
    portrait, similar font and colors — executed house-drawn with a freely-licensed look-alike font.
-5. **Action-first verdicts** (reversed 2026-06-12, DECISIONS.md D-TONE-001). Gauge verdicts and
-   band labels name the move — buy / hold / sell / wait. The methodology page stays qualitative
-   (no published formulas, windows, or thresholds); the fill record remains published.
+5. **Action-first verdicts** (reversed 2026-06-12). Gauge verdicts and band labels name the move
+   — buy / hold / sell / wait. The methodology page stays qualitative (no published formulas,
+   windows, or thresholds), and the fill record is kept/scored internally, not published on it.
 
 ## Runtime reality (localhost)
 Production targets Cloudflare; this build runs on localhost via a Node-portable runtime — workers
 as Node entries + a Hono consult server, `node:sqlite` as the D1 stand-in, local gzipped daily
-files as the R2 stand-in. The documented deviations live in `DECISIONS.md` (D-LOCAL-001..005).
-Genuinely-impossible-locally surfaces (live Stripe, AdSense fill, Search Console, DNS cutover) are
-stubbed and documented — never faked.
+files as the R2 stand-in, and the local store holding the full migrated history (vs a rolling hot
+window in prod). Genuinely-impossible-locally surfaces (live Stripe, AdSense fill, Search Console,
+DNS cutover) are stubbed and documented — never faked.
 
-## The fleet (consolidated 2026-06-12 — DECISIONS.md D-FLEET-001)
+## The fleet (consolidated 2026-06-12)
 Four agents in `.claude/agents/`; subagents live in a folder named after their parent.
 - **design** (`design/geoffery`, `design/compliance`) — visual elements of the webpage and the
   Geoffery character: `packages/content` (sole source of voice), tokens, assets, the visual eye.
@@ -55,11 +56,11 @@ Four agents in `.claude/agents/`; subagents live in a folder named after their p
   scoring, calibration, ledger tiers, methodology accuracy claims.
 
 Orchestration (formerly `product-lead`) belongs to the main session: it sequences the agents,
-holds the phase gates, resolves escalated deadlocks, owns `DECISIONS.md` (append; never rewrite
-history) and the phase sequencing in `BUILD-SPEC.md` §11. It pulls `design/compliance` and `db`
-into any phase with an outward-facing asset or a data-source/infra choice, and `design/geoffery`
-into any phase touching artistic direction. Architecture invariants (`SYSTEM_ARCHITECTURE.md` §4)
-are re-verified at every gate. When the spec is ambiguous, consult the reference repo
+holds the phase gates, resolves escalated deadlocks, owns the phase sequencing, and keeps the
+decision log (append; never rewrite history). It pulls `design/compliance` and `db` into any
+phase with an outward-facing asset or a data-source/infra choice, and `design/geoffery` into any
+phase touching artistic direction. Architecture invariants (`SYSTEM_ARCHITECTURE.md` §4) are
+re-verified at every gate. When something is ambiguous, consult the reference repo
 (`~/code/geoffery-dev/geoffery_old`, read-only), then decide and record — never guess silently.
 
 ## How agents work together
@@ -75,8 +76,8 @@ are re-verified at every gate. When the spec is ambiguous, consult the reference
    owner's maintenance budget, not local optimum. A clear gauge the frontend can explain beats a
    brilliant one users can't trust.
 4. **Tie-breakers, in order:** (a) less ongoing maintenance, (b) simpler for the user, (c) easier to reverse, (d) cheaper.
-5. **Escalate only true deadlocks** to the orchestrating session, which decides and records the rationale in `DECISIONS.md`.
-6. **Record every resolved decision** in `DECISIONS.md` so no debate repeats.
+5. **Escalate only true deadlocks** to the orchestrating session, which decides and records the rationale.
+6. **Record every resolved decision** (in the commit message and the owner's decision log) so no debate repeats.
 
 ## Change classification (before you touch anything)
 - **LOCAL** — inside one module → make the change; note it in `docs/CHANGELOG.md`.
@@ -86,12 +87,14 @@ are re-verified at every gate. When the spec is ambiguous, consult the reference
   every affected agent ratifies.
 
 ## Repo layout (binding — `db` owns hygiene)
-The top level stays legible; new files land in their home, not at root. The root holds
-**only**: the spec/governance docs read every session (`README.md`, `BUILD-SPEC.md`,
-`SYSTEM_ARCHITECTURE.md`, `DECISIONS.md`, `WHO-FIXES-WHAT.md`), the build configs tooling
-resolves from root (`package.json`, `package-lock.json`, `tsconfig.json`,
-`vitest.config.ts`, `eslint.config.js`), and the dotfiles discovered only at root
-(`.gitignore`, `.mcp.json`, `.nvmrc`, `.env*`). Everything else has a home:
+The top level stays legible; new files land in their home, not at root. The committed root holds
+**only**: the governance docs read every session (`README.md`, `SYSTEM_ARCHITECTURE.md`), the
+build configs tooling resolves from root (`package.json`, `package-lock.json`, `tsconfig.json`,
+`vitest.config.ts`, `eslint.config.js`), and the dotfiles discovered only at root (`.gitignore`,
+`.mcp.json`, `.nvmrc`, `.env*`). The owner's private spec/decision docs (`BUILD-SPEC.md`,
+`DECISIONS.md`, `WHO-FIXES-WHAT.md`) live under `local/` (gitignored, not in the repo) but are
+allow-listed at root so they may sit there on the owner's machine without tripping the guard.
+Everything else has a home:
 - `docs/` — all other project documentation (`docs/CHANGELOG.md`, `docs/RUNBOOK.md`,
   `docs/AD-POLICY.md`, `docs/SALVAGE.md`, `docs/OSRS-WIKI-STYLE.md`, …). **New prose docs go here.**
 - `config/` — relocatable build config not bound to root discovery (`tsconfig.base.json`, …).
@@ -100,7 +103,7 @@ resolves from root (`package.json`, `package-lock.json`, `tsconfig.json`,
 Adding a top-level entry is a deliberate act: justify it, or file it under `docs/` or
 `config/`. `npm run check` runs `check:layout` (`tools/check-repo-layout.mjs`), an
 allowlist guard that fails on any unexpected root entry; the index is `docs/README.md`.
-`db` owns this (see `WHO-FIXES-WHAT.md`).
+`db` owns this (the symptom→owner routing table is in `SYSTEM_ARCHITECTURE.md`).
 
 ## Compliance veto
 `design/compliance` holds a veto on any violation of constraints 2–4 above (IP, data source, ad

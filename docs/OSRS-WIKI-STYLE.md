@@ -2,7 +2,7 @@
 
 The `design` agent's growing record of what the OSRS Wiki (`https://oldschool.runescape.wiki`)
 actually does, observed from the live site (chrome-devtools MCP / WebFetch). The wiki is the
-explicit aesthetic north star (DECISIONS.md D-DESIGN-001): heavy inspiration from its interface
+explicit aesthetic north star (owner directive, 2026-06-12): heavy inspiration from its interface
 design — palettes, layout rhythm, typography temperature — never the Jagex game art it hosts.
 
 Add an entry whenever you measure something worth keeping. Re-verify dated entries before

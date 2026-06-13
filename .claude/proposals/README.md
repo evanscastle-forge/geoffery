@@ -26,4 +26,4 @@ affected agent ratifies. LOCAL and CONTRACT changes skip this — they go straig
 Each affected agent appends one response to the file: `## RATIFY — <agent> — <date>`,
 `## AMEND — …`, or `## REJECT — …` (with reasoning). Once every non-initiating affected agent has
 ratified, the initiator applies the diff, runs `npm run check`, adds a `docs/CHANGELOG.md` entry, moves
-the file to `accepted/`, and records any one-way-door decision in `DECISIONS.md`.
+the file to `accepted/`, and records any one-way-door decision in the commit message.

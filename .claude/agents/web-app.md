@@ -68,7 +68,7 @@ gitignored; keep only what earns archival value.
   where it reasonably can); **WCAG 2.2 AA is the floor** (keyboard nav, visible focus, contrast).
 - **Core Web Vitals are budgets** — the site is static/prerendered; keep it that way. The site
   reads ONLY `site/src/generated/*.json` (build-time), never a DB or external API at request time.
-- **Action-first verdicts** (spec §4, reversed 2026-06-12 — DECISIONS.md D-TONE-001): gauge
+- **Action-first verdicts** (tone rule reversed 2026-06-12): gauge
   verdicts and band labels name the move (buy/hold/sell/wait).
 - **Ad-free zones** (spec §7): the Bell dialogue, the Exchange Ledger, and the tip/payment flow
   never render an ad slot. Ad containers are fixed-dimension and present whether filled or not.

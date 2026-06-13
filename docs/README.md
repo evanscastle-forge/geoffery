@@ -1,18 +1,19 @@
 # Documentation index
 
 A map of Geoffery's prose docs. The top level stays lean: the **root** holds only the
-spec/governance docs every agent reads, and everything else lives here in `docs/`.
+governance docs every agent reads, and everything else lives here in `docs/`.
 The layout is enforced by `tools/check-repo-layout.mjs` (`npm run check`) and owned by
 the `db` agent — see `.claude/CHARTER.md` → "Repo layout".
 
-## At the repo root (spec & governance — read every session)
+## At the repo root (governance — read every session)
 | Doc | What it is |
 | --- | --- |
 | `../README.md` | Project overview + localhost quick-start. |
-| `../BUILD-SPEC.md` | The source-of-truth specification; binding for architecture and scope. |
-| `../SYSTEM_ARCHITECTURE.md` | As-built module map, public seams (§3), and invariants (§4). |
-| `../DECISIONS.md` | Phase gates + the append-only decision ledger (D-… entries). |
-| `../WHO-FIXES-WHAT.md` | Symptom → accountable owner routing table. |
+| `../SYSTEM_ARCHITECTURE.md` | As-built module map, public seams (§3), invariants (§4), routing (§5). |
+| `../.claude/CHARTER.md` | Binding constraints, the agent fleet, and the coordination protocol. |
+
+> The owner also keeps a detailed product spec and a decision ledger privately under `local/`
+> (gitignored) — those are **not** part of this repo.
 
 ## In `docs/` (project documentation)
 | Doc | What it is |

@@ -1,10 +1,10 @@
 # Geoffery System Architecture
 
-This document is the source of truth for *what* Geoffery is: its modules, their public surfaces,
-the contracts between them, and the system-wide invariants. It documents the **as-built** system
-(verified against the tree), not the spec's aspiration. For *what we're building and why*, see
-`BUILD-SPEC.md`; for *how agents coordinate*, see `.claude/CHARTER.md` and `.claude/prompts.md`;
-for symptom→owner routing, `WHO-FIXES-WHAT.md`.
+This document is the in-repo source of truth for *what* Geoffery is: its modules, their public
+surfaces, the contracts between them, and the system-wide invariants. It documents the **as-built**
+system (verified against the tree). For *how agents coordinate*, see `.claude/CHARTER.md` and
+`.claude/prompts.md`; the symptom→owner routing table is §5 below. (A detailed product spec and a
+decision ledger are maintained privately by the owner under `local/`, gitignored — not in the repo.)
 
 The product is **non-agentic at runtime**: cron jobs, pure functions, and static pages. The only
 production LLM call is the batch news classifier (§2.7); no user-facing path waits on it.
@@ -43,23 +43,24 @@ feeds the published fill rates. The **news** worker classifies wiki updates via 
 only, firewalled from prices. `packages/content` is the sole source of Geoffery's words.
 
 Localhost runtime is Node-portable (workers as Node entries + a Hono consult server; `node:sqlite`
-stands in for D1, local gzipped files for R2). Production targets Cloudflare; the worker handlers
-are written portable and a `worker.ts` wraps each with bindings. See `DECISIONS.md` D-LOCAL-*.
+stands in for D1, local gzipped files for R2, and the local store holds the full migrated history
+rather than a rolling hot window). Production targets Cloudflare; the worker handlers are written
+portable and a `worker.ts` wraps each with bindings.
 
 ### Agent fleet topology
 
-The fleet is **four agents** under `.claude/agents/` (consolidated 2026-06-12, DECISIONS.md
-D-FLEET-001); subagents live in a folder named after their parent:
+The fleet is **four agents** under `.claude/agents/` (consolidated 2026-06-12); subagents live in
+a folder named after their parent:
 
 | Area / module | Owning agent | Subagents (folder) |
 | --- | --- | --- |
-| webpage visual elements + the Geoffery character: `packages/content` (voice + identity), tokens, assets, the visual eye (OSRS Wiki as explicit aesthetic reference — D-DESIGN-001) | `design` | `design/geoffery` (final taste authority, prevails over `design`), `design/compliance` (IP / data-source / ad-category review, read-only, veto) |
+| webpage visual elements + the Geoffery character: `packages/content` (voice + identity), tokens, assets, the visual eye (OSRS Wiki as explicit aesthetic reference) | `design` | `design/geoffery` (final taste authority, prevails over `design`), `design/compliance` (IP / data-source / ad-category review, read-only, veto) |
 | `site`, Bell UI, consult surface, PWA, ads, URLs/titles/sitemap/structured data, tips/ads/ledger economics | `web-app` | `web-app/page-smith`, `web-app/dialogue-smith`, `web-app/growth-seo`, `web-app/monetization` |
 | `packages/data`, collector, news, export, `ops/`, deploys, monitoring, backups | `db` | `db/collector-smith`, `db/schema-smith`, `db/infra-smith`, `db/watch-smith` |
 | `packages/core`, aggregator, scorer, backtest | `core` | `core/engine-smith`, `core/backtest-smith` |
 
-Orchestration (sequencing, gates, deadlocks, `DECISIONS.md` — formerly `product-lead`) belongs to
-the main session per `.claude/CHARTER.md`.
+Orchestration (sequencing, gates, deadlocks — formerly `product-lead`) belongs to the main
+session per `.claude/CHARTER.md`.
 
 **Smiths** handle complex build tasks; accountability stays with the parent agent. Two roles carry
 the **chrome-devtools MCP** browser loop: `web-app` (+ `web-app/page-smith`, `web-app/dialogue-smith`)
@@ -80,7 +81,8 @@ Each block: **Owning agent · Purpose · Owned data · Public API/interface · R
 - **Public API**: `roundForSide`/`roundSig`; `computeAggregate`, `weightedQuantiles`, `band`,
   `verdictText`; `classify`, `liquidityBand`; `recommend`, `recommendAll`, `ENGINE_VERSION`;
   `filledWithinWindow`, `scorePrediction`, `fillRateByCohort`, `WINDOWS`; `tierForFixed`,
-  `assignTiers`; `slugify`, `assignSlugs`; all shared `types`.
+  `assignTiers`; `watchScore` (homepage "items of note" ranking); `slugify`, `assignSlugs`; all
+  shared `types`.
 - **Runtime deps**: none. Importing `node:*`, `fetch`, env, or `@geoffery/data` is a build error
   (ESLint + `tools/check-core-purity.mjs`). `offers.ts` additionally imports nothing news/wiki-shaped.
 
@@ -144,9 +146,9 @@ Each block: **Owning agent · Purpose · Owned data · Public API/interface · R
 
 ### 2.9 site
 - **Owning agent**: `web-app` (`web-app/page-smith`, `web-app/dialogue-smith`); `web-app/growth-seo` (URLs/SEO), `web-app/monetization` (money/ledger/ads), `design` (copy/tokens), `design/compliance` (trade dress + disclaimer).
-- **Purpose**: the static Astro site + PWA — ~4,572 item pages, instant search, the deal gauge, sparklines, the Butler's Bell, methodology/money/ledger/faq, sitemap + structured data.
+- **Purpose**: the static Astro site + PWA — ~4,572 item pages, instant search, the deal gauge, sparklines, the header-mounted Butler's Bell, the static pages (methodology/money/ledger/contact), the stubbed `/profile/`, sitemap + structured data.
 - **Owned data**: none — reads ONLY `site/src/generated/*.json` at build time.
-- **Public API**: routes `/`, `/item/<slug>/`, `/methodology|money|ledger|faq/`, `/items.json`, `/rec/<slug>.json`, `/sitemap.xml`; the `/api/*` proxy to the consult worker in dev.
+- **Public API**: routes `/`, `/item/<slug>/`, `/methodology|money|ledger|contact/`, `/profile/` (noindex stub), `/items.json`, `/rec/<slug>.json`, `/sitemap.xml`; the `/api/*` proxy to the consult worker in dev.
 - **Runtime deps**: `@geoffery/content`, `@geoffery/core` (`assignTiers` etc. at build), the generated JSON.
 
 ### 2.10 tools
@@ -186,8 +188,8 @@ Each block: **Owning agent · Purpose · Owned data · Public API/interface · R
 - **Core purity** — `packages/core` performs zero I/O (ESLint + `tools/check-core-purity.mjs`).
 - **The §6 firewall** — update flags never alter a recommended price; `offers.ts` imports nothing
   news/wiki-shaped (lint + purity scan + a behavioural test that `recommend()` is invariant to the news flag).
-- **Action-first verdicts** (spec §4 tone rule reversed 2026-06-12, DECISIONS.md D-TONE-001) — gauge
-  verdicts and band labels name the move (buy/hold/sell/wait). "Unsettled" is never suppressed to look confident.
+- **Action-first verdicts** (tone rule reversed 2026-06-12) — gauge verdicts and band labels name
+  the move (buy/hold/sell/wait). "Unsettled" is never suppressed to look confident.
 - **Site reads only local data** — no DB or external API at request time; build-time JSON only.
 - **Content is the sole source of voice** — no string Geoffery speaks lives outside `packages/content`.
 - **Two-layer storage** — raw snapshots are append-only in the R2 archive (backed up, restore-tested);
@@ -195,9 +197,28 @@ Each block: **Owning agent · Purpose · Owned data · Public API/interface · R
 - **Directional rounding** — recommended prices ≤4 sig figs, buys up / sells down; the scorer
   evaluates the rounded price as shown.
 - **Prescriptive only where measured** — Geoffery recommends only classes that are logged, scored,
-  and have a published fill rate. (Softened 2026-06-12: gauge verdicts also use action verbs —
-  DECISIONS.md D-TONE-001.)
+  and calibrated. (Gauge verdicts also use action verbs as of 2026-06-12; the methodology page is
+  qualitative and no longer publishes the fill record — it is scored internally.)
 - **IP: rhyme, don't quote** — no Jagex characters, sprites, or actual game fonts/assets;
   `design/compliance` reviews every outward-facing asset and holds a veto; footer disclaimer on
-  every page. Owner carve-out D-DESIGN-002: the Geoffery dialogue box is deliberately *similar* to
-  the OSRS chatbox (left portrait, similar font and colors), executed house-drawn.
+  every page. Owner carve-out: the Geoffery dialogue box is deliberately *similar* to the OSRS
+  chatbox (left portrait, similar font and colors), executed house-drawn with a CC0 look-alike font.
+
+## 5. Symptom → owner routing
+
+From an observable symptom to the accountable owner (the four-agent fleet of §1). The owners are
+areas of the codebase; this is the triage map. `db` owns the repo-layout guard that keeps it honest.
+
+| Symptom | Owner | Code home |
+| --- | --- | --- |
+| Stale prices / missed collector cycles | `db` | `workers/collector`, `packages/data` |
+| Wrong verdicts / bad recommendations | `core` | `packages/core` (gauge/regime/offers/scoring) |
+| Broken or slow pages | `web-app` | `site/` |
+| Off-voice copy | `design` | `packages/content` |
+| Billing / ads wrong | `web-app/monetization` | `site/` tip + ad components |
+| Outages / cost spikes | `db` | `ops/`, schedulers |
+| Search rankings / URLs | `web-app/growth-seo` | `site/` routing, sitemap |
+| Aesthetic judgement / artistic direction | `design/geoffery` | review gate, no single file |
+| "Is this allowed?" (IP / data source / ad category) | `design/compliance` | review gate, no single file |
+| News annotation wrong / missing | `db` + `design/compliance` | `workers/news` |
+| Ambiguous | the orchestrating session | — |

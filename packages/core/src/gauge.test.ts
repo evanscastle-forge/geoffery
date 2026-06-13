@@ -51,7 +51,7 @@ test("recent news forces unsettled regardless of band", () => {
   expect(agg.flags).toContain("recent-news");
 });
 
-// Action-first verdicts — spec §4 tone rule reversed 2026-06-12 (DECISIONS.md D-TONE-001).
+// Action-first verdicts — tone rule reversed 2026-06-12.
 test("verdict text names the move", () => {
   const agg = computeAggregate(6, seed(range(100, 200)), latest(110), false, NOW);
   expect(agg.verdictText).toMatch(/30-day median/);

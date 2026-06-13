@@ -1,7 +1,7 @@
 // The deal gauge + per-item aggregate (spec §4). Ported from `aggregates.py`.
 // Pure: takes 5m snapshots + the latest price + a news flag, returns an Aggregate.
 // Wording is action-first: each verdict names the move (buy/hold/sell/wait).
-// Spec §4 tone rule reversed 2026-06-12 — see DECISIONS.md.
+// Tone rule reversed 2026-06-12 (action-first verdicts).
 
 import type { Aggregate, Band, LatestPrice, Snapshot } from "./types.ts";
 import { mid } from "./regime.ts";

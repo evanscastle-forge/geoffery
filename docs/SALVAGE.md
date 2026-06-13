@@ -7,8 +7,8 @@ came from, why it is trusted. Code is written fresh against the spec; only knowl
 ## Data export (Phase 0)
 - **Source storage format:** SQLite `data/geoffery.db`, table `prices_5m(item_id, ts,
   avg_high, avg_low, high_vol, low_vol)`, ~12.35M rows, 31 UTC days (2026-05-12 .. 2026-06-11).
-  Provenance: `pipeline/src/geoffery_pipeline/db.py`. Trusted: it is the live schema the
-  reference collector wrote to. Read-only export, never modified.
+  Provenance: `pipeline/src/geoffery_pipeline/db.py` (in the reference repo). Trusted: it is the
+  live schema the reference collector wrote to. Read-only export, never modified.
 - **Item dimension:** `items(id, name, slug, examine, members, ge_limit, value, highalch,
   lowalch, icon, updated_at)`. Slugs are immutable URL one-way doors — carried verbatim.
 
@@ -37,4 +37,5 @@ Provenance file = `pipeline/src/geoffery_pipeline/<file>.py` in the reference.
 ## Character / copy (Phase 4)
 - Geoffery's voice and the ~78 dialogue lines + ledger tier copy are carried as *reference
   for tone*; new strings are authored fresh in `packages/content` (sole source of his words).
-  Provenance: `web/src/content/geoffery-lines.json`, `web/src/content/ledger.json`.
+  Provenance: `web/src/content/{geoffery-lines,ledger}.json` (in the reference repo). The
+  current voice has since diverged substantially (gender-neutral, funnier — owner direction).

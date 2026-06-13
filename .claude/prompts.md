@@ -1,16 +1,16 @@
 # Dispatch & working rules
 
 ## What this repo is
-Geoffery — an OSRS Grand Exchange price oracle + the Butler's Bell consultation. Source of truth:
-`BUILD-SPEC.md`. Shared context: `.claude/CHARTER.md`. System map: `SYSTEM_ARCHITECTURE.md`.
-Symptom→owner routing: `WHO-FIXES-WHAT.md`. Phase gates + decisions: `DECISIONS.md`.
+Geoffery — an OSRS Grand Exchange price oracle + the Butler's Bell consultation. Shared context:
+`.claude/CHARTER.md`. System map + symptom→owner routing: `SYSTEM_ARCHITECTURE.md`. (The owner's
+detailed spec and decision ledger are kept privately under `local/`, gitignored — not in the repo.)
 
 ## Agent roster (read the agent file before acting as one)
-Four agents in `.claude/agents/` (consolidated 2026-06-12, DECISIONS.md D-FLEET-001); subagents
+Four agents in `.claude/agents/` (consolidated 2026-06-12); subagents
 live in a folder named after their parent:
 - `design` (+ `design/geoffery`, `design/compliance`) — webpage visual elements + the Geoffery
   character; packages/content (sole source of voice) + the visual eye. The OSRS Wiki is the
-  explicit aesthetic reference (D-DESIGN-001) — design may peruse the live wiki at will.
+  explicit aesthetic reference — design may peruse the live wiki at will.
   `design/geoffery` is the final taste authority (prevails over `design`); `design/compliance`
   is the read-only IP/data-source/ad-category reviewer with a veto.
 - `web-app` (+ `web-app/page-smith`, `web-app/dialogue-smith`, `web-app/growth-seo`,
@@ -20,12 +20,12 @@ live in a folder named after their parent:
   packages/data, collector, news, export, storage, ops/, deploys, monitoring, backups, costs.
 - `core` (+ `core/engine-smith`, `core/backtest-smith`) — packages/core, aggregator, scorer,
   backtest, methodology math.
-Orchestration (sequencing, gates, deadlocks, DECISIONS.md — formerly `product-lead`) belongs to
-the main session per `.claude/CHARTER.md`.
+Orchestration (sequencing, gates, deadlocks — formerly `product-lead`) belongs to the main
+session per `.claude/CHARTER.md`.
 
 ## Routing rules
 1. Read `.claude/CHARTER.md` and the relevant agent file once per session.
-2. Match the request to the owning area in `WHO-FIXES-WHAT.md`; act as (or dispatch to) that agent.
+2. Match the request to the owning area in `SYSTEM_ARCHITECTURE.md`'s routing table; act as (or dispatch to) that agent.
 3. If ambiguous, ask — don't guess across an ownership line.
 4. Pull `design/compliance` and `db` into any phase with an outward-facing asset or a data-source/infra choice.
 

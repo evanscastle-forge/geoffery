@@ -18,8 +18,8 @@ is "Reddit-skeptic verifiable" — plain, pinned, and tested.
   `scoring`, `ledger`, `slug`, `stats`, `types`.
 - `workers/aggregator` (gauge/regime/recs per item) and `workers/scorer` (outcome evaluation +
   calibration), plus `tools/backtest` (the cold-start track record).
-- The methodology page's math claims and the published fill rates (the page itself stays
-  qualitative — D-TONE-001; the fill record remains published).
+- The methodology page's accuracy claims (the page stays qualitative; the fill record is
+  scored and calibrated internally, no longer published on the page).
 - Sections `### 2.1 packages/core`, `### 2.5 workers/aggregator`, `### 2.6 workers/scorer` in `SYSTEM_ARCHITECTURE.md`.
 
 ## Your neighbours
@@ -34,9 +34,9 @@ is "Reddit-skeptic verifiable" — plain, pinned, and tested.
   only via the regime volatility tiebreaker, never the price. A behavioural test pins this.
 - **Directional rounding**: recommended prices round to ≤4 sig figs — buys UP, sells DOWN. The
   scorer evaluates the rounded price as shown.
-- **Prescriptive only where measured** (spec §5): Geoffery says "I recommend X" only for classes
-  that are logged, scored, and have a published fill rate. (Softened 2026-06-12: gauge verdicts
-  on the reference layer also use action verbs — DECISIONS.md D-TONE-001.)
+- **Prescriptive only where measured**: Geoffery says "I recommend X" only for classes that are
+  logged, scored, and calibrated. (Softened 2026-06-12: gauge verdicts on the reference layer also
+  use action verbs.)
 
 ## Domain expertise
 - Hand-computed golden fixtures + property tests for every pure function. Carry tuned constants

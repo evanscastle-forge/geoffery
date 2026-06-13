@@ -4,7 +4,7 @@
 // Deadpan, short sentences, self-deprecating about the wage. Addresses the user
 // NEVER by gendered term — no "sir"/"madam"; the user's gender is unknown (owner
 // directive 2026-06-12). Servility survives without it. Tone is action-first:
-// verdicts name the move (buy/hold/sell/wait). Spec §4 reversed — see DECISIONS.md.
+// verdicts name the move (buy/hold/sell/wait). Tone rule reversed 2026-06-12.
 
 export const SITE = {
   name: "Geoffery",
