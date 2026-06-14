@@ -3,6 +3,21 @@
 Newest entry on top. One entry per commit; format in `.claude/prompts.md`. The full per-commit
 history is in `git log`; this file carries the human-readable summaries going forward.
 
+## 2026-06-14 — design + web-app — SCOPE: LOCAL
+**Summary**: Tip jar now uses 5 owner-provided low-poly renders cropped to a consistent jar-centred
+frame (Gemini watermark + "TIPS" sign removed by the crop); the monthly fundraising percentage drives
+the fill level (`jarLevel` 0–4), with the full jar shown **only at/above the goal**. Header rearranged:
+"Ring the bell" centred + a bit larger, the menu moved to the right, "Tip Geoffery" bolded (gold).
+**Files touched**: `site/public/tipjar-1..5.png` (new, cropped from `local/jar*.png` via Pillow) +
+removed the 4 old `tipjar-*.svg`; `packages/content/src/donations.ts` (`jarLevel` 0–4 + test);
+`site/src/pages/money.astro`; `site/src/layouts/Base.astro` + `site/src/styles/global.css` (header grid);
+`site/src/components/Bell.astro` (larger ring button).
+**SYSTEM_ARCHITECTURE.md sections affected**: none.
+**Notify**: none.
+**Verification**: `npm run check` green (67 tests incl. `jarLevel`). Browser (1440×900 + 390×844): the jar
+renders the cropped art at the current month's fill (empty for June at 0%); a tip click → the full jar;
+no Gemini logo. Header: Ring centred + larger, nav right, "Tip Geoffery" bold; mobile reflows cleanly.
+
 ## 2026-06-14 — web-app + design + core — SCOPE: CROSS-MODULE
 **Summary**: Feedback batch (`local/feedback.txt`). (1) Persistent site search in the header on every
 page (homepage keeps its hero search); (2) the Bell now ends with **Start Over** + **Visit Item Page**

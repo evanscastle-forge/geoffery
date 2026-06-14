@@ -48,19 +48,19 @@ const isLocal = (m.deployment ?? "local") === "local";
             <!-- GE-OFFER-Y wordmark: the OFFER is the point (owner feedback 2026-06-12). -->
             <span class="wordmark" aria-hidden="true">GE<span class="offer">OFFER</span>Y</span>
           </a>
-          <nav class="nav" aria-label="Primary">
-            <a href="/">Home</a>
-            <a href="/money/">Tip Geoffery</a>
-            <a href="/about/">About</a>
-          </nav>
           <div class="header-actions">
-            <!-- The bell lives in the header now (owner feedback 2026-06-12); the
-                 panel + behaviour are in <Bell/> at the end of <body>. -->
+            <!-- The bell sits centre-stage in the header (owner feedback 2026-06-14);
+                 the panel + behaviour are in <Bell/> at the end of <body>. -->
             <button id="bell-ring" class="bell-ring" aria-haspopup="dialog" aria-controls="bell-panel" aria-label={BELL.ringAria}>
               <span class="bell-ico" aria-hidden="true">🔔</span>
-              <span class="bell-ring-label">Ring</span>
+              <span class="bell-ring-label">Ring the bell</span>
             </button>
           </div>
+          <nav class="nav" aria-label="Primary">
+            <a href="/">Home</a>
+            <a class="nav-tip" href="/money/">Tip Geoffery</a>
+            <a href="/about/">About</a>
+          </nav>
         </div>
         <!-- Persistent site search on every page (owner feedback 2026-06-14). The
              homepage keeps its larger hero search instead, so skip it there to avoid

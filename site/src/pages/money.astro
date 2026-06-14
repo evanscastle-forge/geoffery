@@ -9,8 +9,8 @@ import { cleanName } from "@geoffery/core";
 // that month; a tipper gets the month unhindered. Real charging is stubbed — clicking
 // "tip" sets a per-month cookie + an honest note; donor data is curated content.
 const M = PAGES.money;
-const jarSrc = ["/tipjar-0-empty.svg", "/tipjar-1-low.svg", "/tipjar-2-full.svg", "/tipjar-3-overflowing.svg"];
-const jarAlt = ["empty", "filling", "nearly full", "overflowing"];
+const jarSrc = ["/tipjar-1.png", "/tipjar-2.png", "/tipjar-3.png", "/tipjar-4.png", "/tipjar-5.png"];
+const jarAlt = ["nearly empty", "filling", "half full", "nearly full", "full"];
 
 const nowKey = new Date().toISOString().slice(0, 7);
 const current = monthOf(DONATIONS, nowKey) ?? DONATIONS[0];
@@ -34,7 +34,7 @@ const currentDonors = current ? current.donors.map(cleanName) : [];
       <p>{M.tipsDisclosure}</p>
 
       <div class="jar">
-        <img id="tip-jar" src={jarSrc[curLevel]} alt={`The month's tip jar — ${jarAlt[curLevel]}`} width="120" height="140" />
+        <img id="tip-jar" src={jarSrc[curLevel]} alt={`The month's tip jar — ${jarAlt[curLevel]}`} width="300" height="463" />
         <p class="small muted">{M.goalNote}</p>
       </div>
 
@@ -100,7 +100,7 @@ const currentDonors = current ? current.donors.map(cleanName) : [];
       const note = document.getElementById("tip-note");
       if (note) note.hidden = false;
       const jar = document.getElementById("tip-jar");
-      if (jar) jar.src = "/tipjar-3-overflowing.svg";
+      if (jar) jar.src = "/tipjar-5.png";
     });
   }
 </script>
@@ -108,7 +108,7 @@ const currentDonors = current ? current.donors.map(cleanName) : [];
 <style>
   .doc { margin-top: var(--s-5); }
   .jar { display: grid; justify-items: center; gap: 6px; margin: var(--s-5) 0; }
-  .jar img { width: 120px; height: auto; }
+  .jar img { height: 180px; width: auto; }
   .tips { display: flex; gap: var(--s-4); flex-wrap: wrap; margin-top: var(--s-4); justify-content: center; }
   .tip { display: grid; gap: 6px; padding: var(--s-4); border: 1px solid var(--panel-edge); border-radius: var(--radius); width: min(280px, 100%); text-align: center; }
   .tip-name { font-family: var(--serif); font-size: 1.1rem; }

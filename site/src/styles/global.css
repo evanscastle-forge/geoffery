@@ -61,23 +61,26 @@ h3 { border-bottom: none; }
   backdrop-filter: blur(8px);
   z-index: 40;
 }
-.site-header .bar { display: flex; align-items: center; gap: var(--s-4); justify-content: space-between; flex-wrap: wrap; }
-.brand { display: flex; align-items: center; gap: var(--s-3); font-family: var(--serif); font-size: 1.3rem; color: var(--paper-text); }
+/* brand (left) · Ring the bell (centre) · nav (right) — owner feedback 2026-06-14. */
+.site-header .bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--s-4); }
+.brand { display: flex; align-items: center; gap: var(--s-3); font-family: var(--serif); font-size: 1.3rem; color: var(--paper-text); justify-self: start; }
 .brand .mark { width: 34px; height: 34px; flex: none; }
 .wordmark { font-weight: 700; letter-spacing: 0.06em; }
 .wordmark .offer { color: var(--brass); }
-.nav { display: flex; gap: var(--s-4); font-size: 0.95rem; flex-wrap: wrap; }
+.nav { display: flex; gap: var(--s-4); font-size: 0.95rem; flex-wrap: wrap; justify-self: end; }
 .nav a { color: var(--paper-text-soft); }
 .nav a:hover { color: var(--brass); }
-/* Right-hand cluster: the header bell. */
-.header-actions { display: flex; align-items: center; gap: var(--s-3); }
+.nav a.nav-tip { font-weight: 700; color: var(--brass); }
+/* The header bell, centred between brand and nav. */
+.header-actions { display: flex; align-items: center; gap: var(--s-3); justify-self: center; }
 /* Persistent search row under the bar (owner feedback 2026-06-14). */
 .header-search { margin-top: var(--s-3); }
 .header-search .search input { padding: 10px 14px; font-size: 1rem; }
-@media (max-width: 480px) {
-  .site-header .bar { gap: var(--s-3); }
+@media (max-width: 600px) {
+  /* Reflow: brand + Ring on the top row, nav centred on its own row below. */
+  .site-header .bar { grid-template-columns: 1fr auto; gap: var(--s-3); }
+  .nav { grid-column: 1 / -1; justify-self: center; gap: var(--s-3); font-size: 0.88rem; margin-top: var(--s-2); }
   .brand { font-size: 1.1rem; gap: var(--s-2); }
-  .nav { gap: var(--s-3); font-size: 0.88rem; }
 }
 
 main { padding: var(--s-6) 0 var(--s-8); }

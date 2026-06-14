@@ -27,13 +27,16 @@ export const DONATIONS: DonationMonth[] = [
   },
 ];
 
-/** Tip-jar level 0 (empty) → 3 (overflowing) from the raised/goal ratio. */
-export function jarLevel(total: number, goal: number): 0 | 1 | 2 | 3 {
+/**
+ * Tip-jar fill level 0 (least full) → 4 (full) from the raised/goal ratio.
+ * The full jar (4) is used only at or above the monthly goal; the rest spread the
+ * 0–100% range across the other four images (owner directive 2026-06-14).
+ */
+export function jarLevel(total: number, goal: number): 0 | 1 | 2 | 3 | 4 {
   if (goal <= 0 || total <= 0) return 0;
   const r = total / goal;
-  if (r >= 1) return 3;
-  if (r >= 0.5) return 2;
-  return 1;
+  if (r >= 1) return 4;
+  return Math.min(3, Math.floor(r * 4)) as 0 | 1 | 2 | 3;
 }
 
 /** Has this month reached its goal (→ bonus usage for everyone)? */
