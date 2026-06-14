@@ -3,6 +3,17 @@
 Newest entry on top. One entry per commit; format in `.claude/prompts.md`. The full per-commit
 history is in `git log`; this file carries the human-readable summaries going forward.
 
+## 2026-06-13 — web-app — SCOPE: LOCAL
+**Summary**: Homepage "items of note" cards are now a uniform size — the item name is clamped to a
+reserved 2-line block (ellipsis, with the full name on hover via `title`), so every header is the same
+height and the price + weekly sparkline sit in the same place on every card. Fixes long names (e.g.
+"Trailblazer reloaded rejuvenation pool scroll") wrapping to 3–4 lines and shoving the chart out of frame.
+**Files touched**: `site/src/pages/index.astro` (card styles + `title` attr).
+**SYSTEM_ARCHITECTURE.md sections affected**: none.
+**Notify**: none.
+**Verification**: chrome-devtools at 1440×900 / ~1000px / 390×844 — all cards identical height (154px),
+headers uniform (61px), nothing clipped; long names truncate with "…". `npm run check` green.
+
 ## 2026-06-13 — design — SCOPE: LOCAL
 **Summary**: Trend sparklines (item-page Recent-trend graphs + homepage item-of-note cards) now stroke
 **green when the overall trend is up, red when down**, reverting the 2026-06-12 "no red on direction"
