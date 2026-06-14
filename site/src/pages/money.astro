@@ -1,7 +1,8 @@
 ---
 import Base from "../layouts/Base.astro";
 import Dialogue from "../components/Dialogue.astro";
-import { PAGES, DONATIONS, jarLevel, monthOf } from "@geoffery/content";
+import Saying from "../components/Saying.astro";
+import { PAGES, DONATIONS, jarLevel, monthOf, easterEggPatrons } from "@geoffery/content";
 import { cleanName } from "@geoffery/core";
 
 // Tips, rethought (owner directive 2026-06-14): a monthly tip jar + a wall of the
@@ -20,13 +21,16 @@ const pretty = (key: string) =>
   new Date(`${key}-01T00:00:00Z`).toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 
 // Names cleaned at render (profanity filter); embedded so the picker switches client-side.
-const monthsData = DONATIONS.map((m) => ({ key: m.month, label: pretty(m.month), donors: m.donors.map(cleanName) }));
-const currentDonors = current ? current.donors.map(cleanName) : [];
+// A couple of silly procedural "patrons" are blended into each month (easter egg).
+const withEgg = (m: typeof DONATIONS[number]) => [...m.donors, ...easterEggPatrons(m.month)].map(cleanName);
+const monthsData = DONATIONS.map((m) => ({ key: m.month, label: pretty(m.month), donors: withEgg(m) }));
+const currentDonors = current ? withEgg(current) : [];
 ---
 
 <Base title="How this is paid for — Geoffery" description="Geoffery's wage is one gold a month. Tips fill a monthly jar that unlocks bonus consultations for everyone." canonicalPath="/money/">
   <div class="wrap measure">
     <h1>{M.title}</h1>
+    <Saying page="money" />
     <Dialogue><p>{M.wage}</p></Dialogue>
 
     <section class="panel doc">
@@ -34,19 +38,22 @@ const currentDonors = current ? current.donors.map(cleanName) : [];
       <p>{M.tipsDisclosure}</p>
 
       <div class="jar">
-        <img id="tip-jar" src={jarSrc[curLevel]} alt={`The month's tip jar — ${jarAlt[curLevel]}`} width="300" height="463" />
+        <img id="tip-jar" src={jarSrc[curLevel]} alt={`The month's tip jar — ${jarAlt[curLevel]}`} width="600" height="436" />
         <p class="small muted">{M.goalNote}</p>
       </div>
 
-      <!-- Ad-free zone: no ad slots on the payment surface (spec §7). Tiers from content. -->
+      <!-- Ad-free zone: no ad slots on the payment surface (spec §7). A suggested $5
+           or a custom amount (owner directive 2026-06-14). -->
       <div class="tips">
-        {M.tiers.map((tier) => (
-          <div class="tip">
-            <span class="tip-name">{tier.name}</span><span class="tip-amt">{tier.amount}</span>
-            <span class="tip-blurb small">{tier.blurb}</span>
-            <button class="tip-btn" data-tip={tier.id}>Drop it in the jar</button>
+        <button class="tip-btn tip-suggested" type="button">Tip $5</button>
+        <form id="tip-custom" class="tip-custom">
+          <label class="small muted" for="tip-amount">Or name your own</label>
+          <div class="tip-custom-row">
+            <span class="tip-prefix" aria-hidden="true">$</span>
+            <input id="tip-amount" name="amount" type="number" min="1" step="1" inputmode="numeric" placeholder="10" aria-label="Custom tip amount in US dollars" />
+            <button class="tip-btn" type="submit">Drop it in the jar</button>
           </div>
-        ))}
+        </form>
       </div>
 
       <div id="tip-note" class="chatbox tip-note" hidden><p>{M.tippedNote}</p></div>
@@ -88,38 +95,43 @@ const currentDonors = current ? current.donors.map(cleanName) : [];
   }
   select?.addEventListener("change", () => render(select.value));
 
-  // Tip buttons — MVP: no real charge. Set the per-month "tipper" cookie (→ unlimited
-  // consultations this month, read by the Bell) and surface the honest note + a full jar.
-  for (const btn of document.querySelectorAll(".tip-btn[data-tip]")) {
-    btn.addEventListener("click", () => {
-      const end = new Date();
-      end.setUTCMonth(end.getUTCMonth() + 1, 1);
-      end.setUTCHours(0, 0, 0, 0);
-      const maxAge = Math.max(60, Math.floor((end.getTime() - Date.now()) / 1000));
-      document.cookie = `geoffery_tip_${nowKey}=1; path=/; max-age=${maxAge}; samesite=lax`;
-      const note = document.getElementById("tip-note");
-      if (note) note.hidden = false;
-      const jar = document.getElementById("tip-jar");
-      if (jar) jar.src = "/tipjar-5.png";
-    });
+  // Tip — MVP: no real charge. Set the per-month "tipper" cookie (→ unlimited
+  // consultations this month, read by the Bell) and surface the thank-you + a full jar.
+  function tip() {
+    const end = new Date();
+    end.setUTCMonth(end.getUTCMonth() + 1, 1);
+    end.setUTCHours(0, 0, 0, 0);
+    const maxAge = Math.max(60, Math.floor((end.getTime() - Date.now()) / 1000));
+    document.cookie = `geoffery_tip_${nowKey}=1; path=/; max-age=${maxAge}; samesite=lax`;
+    const note = document.getElementById("tip-note");
+    if (note) { note.hidden = false; note.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+    const jar = document.getElementById("tip-jar");
+    if (jar) jar.src = "/tipjar-5.png";
   }
+  document.querySelector(".tip-suggested")?.addEventListener("click", tip);
+  document.getElementById("tip-custom")?.addEventListener("submit", (e) => { e.preventDefault(); tip(); });
 </script>
 
 <style>
   .doc { margin-top: var(--s-5); }
   .jar { display: grid; justify-items: center; gap: 6px; margin: var(--s-5) 0; }
-  .jar img { height: 180px; width: auto; }
-  .tips { display: flex; gap: var(--s-4); flex-wrap: wrap; margin-top: var(--s-4); justify-content: center; }
-  .tip { display: grid; gap: 6px; padding: var(--s-4); border: 1px solid var(--panel-edge); border-radius: var(--radius); width: min(280px, 100%); text-align: center; }
-  .tip-name { font-family: var(--serif); font-size: 1.1rem; }
-  .tip-amt { font-size: 1.4rem; }
-  .tip-blurb { color: var(--ink-soft); }
+  .jar img { width: min(380px, 100%); height: auto; }
+  .tips { display: flex; gap: var(--s-5); flex-wrap: wrap; align-items: flex-end; margin-top: var(--s-5); justify-content: center; }
   .tip-btn {
-    display:inline-block; margin-top: 6px; padding: 8px 14px; border-radius: var(--radius);
+    padding: 10px 18px; border-radius: var(--radius);
     background: var(--brass); color: #1c1709; font-weight: 700; text-align:center;
     border: none; cursor: pointer; font-size: 1rem; font-family: var(--sans);
   }
   .tip-btn:hover { filter: brightness(1.05); }
+  .tip-suggested { font-size: 1.15rem; padding: 12px 26px; }
+  .tip-custom { display: grid; gap: 6px; }
+  .tip-custom-row { display: flex; align-items: center; gap: 6px; }
+  .tip-prefix { font-size: 1.2rem; color: var(--ink-soft); }
+  .tip-custom input {
+    width: 88px; padding: 9px 10px; border-radius: var(--radius);
+    border: 1px solid var(--panel-edge); background: var(--panel); color: var(--ink);
+    font-size: 1rem; font-family: var(--sans);
+  }
   .tip-note { margin-top: var(--s-4); padding: var(--s-4); font-family: var(--chat-font); }
   .tip-note p { margin: 0; }
 

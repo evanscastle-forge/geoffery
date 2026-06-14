@@ -63,7 +63,7 @@ const featured = Object.values(aggs)
   .hero { margin: var(--s-5) 0 var(--s-7); display: grid; gap: var(--s-5); }
   /* The pixel chat font is single-weight, so the "Ring the bell" emphasis reads as
      the dialogue's accent colour, not just font-weight (owner feedback 2026-06-14). */
-  .hero :global(strong) { color: var(--chat-name); font-weight: 700; }
+  .hero :global(strong) { color: var(--chat-name); font-weight: 700; white-space: nowrap; }
   /* Full width of the chatbox above it (owner feedback 2026-06-12). */
   .hero-search { width: 100%; }
   .featured h2 { margin-bottom: var(--s-4); }

@@ -64,7 +64,7 @@ h3 { border-bottom: none; }
 /* brand (left) · Ring the bell (centre) · nav (right) — owner feedback 2026-06-14. */
 .site-header .bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--s-4); }
 .brand { display: flex; align-items: center; gap: var(--s-3); font-family: var(--serif); font-size: 1.3rem; color: var(--paper-text); justify-self: start; }
-.brand .mark { width: 34px; height: 34px; flex: none; }
+.brand .mark { height: 36px; width: auto; flex: none; }
 .wordmark { font-weight: 700; letter-spacing: 0.06em; }
 .wordmark .offer { color: var(--brass); }
 .nav { display: flex; gap: var(--s-4); font-size: 0.95rem; flex-wrap: wrap; justify-self: end; }

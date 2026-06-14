@@ -48,3 +48,30 @@ export function thresholdMet(m: DonationMonth | undefined): boolean {
 export function monthOf(months: DonationMonth[], key: string): DonationMonth | undefined {
   return months.find((m) => m.month === key);
 }
+
+// --- Easter egg: a couple of procedurally-generated, very silly "patrons" per month.
+// Deterministic from the month key so the same month always shows the same names; blended
+// into the real donor list for the sharp-eyed to find (owner directive 2026-06-14).
+const SILLY_FIRST = ["Bald", "Sir", "Lord", "Lil", "Big", "Old", "Lvl3", "Mega", "Tiny", "Grandmaster"];
+const SILLY_PLACE = ["Falador", "Lumbridge", "Varrock", "Draynor", "Gielinor", "Wildy", "Barrows", "Karamja", "Edgeville", "Rimmington"];
+const SILLY_NAME = ["Phil", "Larry", "Dan", "Gary", "Wendy", "Bob", "Betty", "Randy", "Vera", "Greg", "Doris"];
+
+/** 1–2 deterministic silly patron names for a "YYYY-MM" month key. */
+export function easterEggPatrons(monthKey: string): string[] {
+  let s = 2166136261 >>> 0;
+  for (const ch of `patron|${monthKey}`) {
+    s ^= ch.charCodeAt(0);
+    s = Math.imul(s, 16777619) >>> 0;
+  }
+  const rnd = () => ((s = (Math.imul(1664525, s) + 1013904223) >>> 0) / 0x100000000);
+  const pick = <T>(a: T[]): T => a[Math.floor(rnd() * a.length)]!;
+  const count = rnd() < 0.5 ? 1 : 2;
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const pat = Math.floor(rnd() * 3);
+    if (pat === 0) out.push(`${pick(SILLY_FIRST)} ${pick(SILLY_NAME)} of ${pick(SILLY_PLACE)}`);
+    else if (pat === 1) out.push(`${pick(SILLY_PLACE)}${pick(SILLY_NAME)}`);
+    else out.push(`xX_${pick(SILLY_PLACE)}_${pick(SILLY_NAME)}_Xx`);
+  }
+  return out;
+}

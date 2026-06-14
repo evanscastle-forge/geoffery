@@ -1,11 +1,13 @@
 ---
 import Base from "../layouts/Base.astro";
 import Dialogue from "../components/Dialogue.astro";
+import Saying from "../components/Saying.astro";
 import { PAGES } from "@geoffery/content";
 ---
 <Base title="Not in the ledger — Geoffery" noindex={true}>
   <div class="wrap measure">
     <Dialogue><p>{PAGES.notFound.line}</p></Dialogue>
+    <Saying page="notFound" />
     <p class="small muted" style="margin-top: var(--s-4);">Use the search above to name an item plainly, and I shall try again.</p>
   </div>
 </Base>

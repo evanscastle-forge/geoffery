@@ -4,6 +4,25 @@ Newest entry on top. One entry per commit; format in `.claude/prompts.md`. The f
 history is in `git log`; this file carries the human-readable summaries going forward.
 
 ## 2026-06-14 — design + web-app — SCOPE: LOCAL
+**Summary**: Polish batch ahead of the dev deploy. Jar art re-cropped to keep the "TIPS" sign (Gemini
+watermark still removed); the header brand mark is now the full coin jar, background-removed
+(transparent PNG); the tip menu is a **$5 suggested + custom-amount** box, and a tip now **thanks** the
+giver; 1–2 procedural "silly patron" easter-egg names per month blend into the donor wall; each non-home
+page shows a random **witty saying**; "Ring the bell" no longer wraps; the **About page** is rewritten
+plainer/serious (no in-character chatbox) with a **centered** email button; the gauge "current price"
+label no longer clips at the marker extremes; item stats span the full panel width.
+**Files touched**: `site/public/{tipjar-1..5.png (re-crop), brand-jar.png (new)}`;
+`site/src/pages/{money,about,404,index,item/[slug]}.astro`; `site/src/layouts/Base.astro`;
+`site/src/components/{Saying.astro (new),Gauge.astro}`; `site/src/styles/global.css`;
+`packages/content/src/{lines,donations}.ts` (+ `SAYINGS`, `easterEggPatrons` + test).
+**SYSTEM_ARCHITECTURE.md sections affected**: none.
+**Notify**: none.
+**Verification**: `npm run check` green (68 tests incl. `easterEggPatrons`). Browser (1440×900 + 390×844):
+jar shows TIPS, transparent brand jar, $5+custom tip with a thank-you, procedural patrons, per-page
+sayings, one-line "Ring the bell", plainer About + centered button, gauge label clamps at the extremes,
+full-width item stats. Console clean.
+
+## 2026-06-14 — design + web-app — SCOPE: LOCAL
 **Summary**: Tip jar now uses 5 owner-provided low-poly renders cropped to a consistent jar-centred
 frame (Gemini watermark + "TIPS" sign removed by the crop); the monthly fundraising percentage drives
 the fill level (`jarLevel` 0–4), with the full jar shown **only at/above the goal**. Header rearranged:

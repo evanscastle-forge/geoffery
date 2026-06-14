@@ -5,6 +5,7 @@ import Sparkline from "../../components/Sparkline.astro";
 import AdSlot from "../../components/AdSlot.astro";
 import WikiNotice from "../../components/WikiNotice.astro";
 import MemberStar from "../../components/MemberStar.astro";
+import Saying from "../../components/Saying.astro";
 import { aggregates, sparklines, items } from "../../lib/data";
 import { GAUGE } from "@geoffery/content";
 import { volatilityLevel } from "@geoffery/core";
@@ -45,6 +46,7 @@ const ld = {
   <div class="wrap">
     <article class="panel item-top">
       <h1>{agg.name}<MemberStar members={isMember} /></h1>
+      <Saying page="item" tone="dark" />
 
       <div class="prices">
         <div class="price">
@@ -99,7 +101,9 @@ const ld = {
 <style>
   .item-top { margin-top: var(--s-4); }
   .item-top h1 { margin: 0 0 4px; }
-  .prices { display: flex; flex-wrap: wrap; gap: var(--s-6); margin: var(--s-4) 0; }
+  /* Space the three stats across the full panel width (owner feedback 2026-06-14). */
+  .prices { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-5); margin: var(--s-4) 0; }
+  .prices .price { flex: 0 1 auto; }
   .price { display: flex; flex-direction: column; }
   /* Color-graded volatility badge (owner directive 2026-06-13): calm → warm → red. */
   .vol-badge {

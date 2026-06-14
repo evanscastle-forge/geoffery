@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { jarLevel, thresholdMet, type DonationMonth } from "./donations.ts";
+import { jarLevel, thresholdMet, easterEggPatrons, type DonationMonth } from "./donations.ts";
 
 test("jarLevel maps the raised/goal ratio to 5 fill levels", () => {
   expect(jarLevel(0, 50)).toBe(0); // nothing yet
@@ -18,6 +18,17 @@ test("the full jar (4) appears only at or above the goal", () => {
 test("jarLevel guards a missing goal", () => {
   expect(jarLevel(10, 0)).toBe(0);
   expect(jarLevel(-5, 50)).toBe(0);
+});
+
+test("easterEggPatrons is deterministic and yields 1-2 names", () => {
+  const a = easterEggPatrons("2026-06");
+  const b = easterEggPatrons("2026-06");
+  expect(a).toEqual(b); // same month → same names
+  expect(a.length).toBeGreaterThanOrEqual(1);
+  expect(a.length).toBeLessThanOrEqual(2);
+  expect(a.every((n) => n.length > 0)).toBe(true);
+  // different months generally differ
+  expect(easterEggPatrons("2026-05")).not.toEqual(easterEggPatrons("2026-11"));
 });
 
 test("thresholdMet tracks the goal", () => {

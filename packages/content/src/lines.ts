@@ -25,6 +25,35 @@ export const HOME = {
   browseHeading: "A few items of note",
 };
 
+// A small lineup of witty, page-aware asides (owner directive 2026-06-14). One is
+// picked at random per visit on each non-home page; the home page stays static.
+export const SAYINGS: Record<string, string[]> = {
+  about: [
+    "The page where I stop performing and start explaining.",
+    "No theatre here — just the method, and the door.",
+    "You wanted to know how the figures are reckoned. Here it is, plainly.",
+    "Plainer talk than usual. Do not grow accustomed to it.",
+  ],
+  money: [
+    "A jar, some coins, and my undivided gratitude.",
+    "The ink does not buy itself, alas.",
+    "Tips fund the ink; the ink funds the figures.",
+    "Underpaid, yes — but discreet about it.",
+  ],
+  item: [
+    "One item, thirty days of its history, and my opinion.",
+    "I have read this item's figures so you needn't.",
+    "The whole of its recent life, in a few lines.",
+    "Everything I know about this, on a single page.",
+  ],
+  notFound: [
+    "I have looked twice. It is not here.",
+    "Even my ledger keeps a few blank pages.",
+    "Nothing under that heading, I'm afraid.",
+    "A dead end — but a politely-kept one.",
+  ],
+};
+
 export const GAUGE = {
   good: {
     label: "Buy",
@@ -152,11 +181,25 @@ export const PAGES = {
     accuracyIntro:
       "Every recommendation is recorded as a prediction, then checked against what the market actually did. The results are below — the hits and the misses alike.",
   },
-  // The About page folds the old methodology + contact pages together (owner directive 2026-06-13).
+  // The About page speaks directly to the reader — plainer and more serious than the
+  // rest of the house (owner directive 2026-06-14): what it is, how it works, who makes it.
   about: {
-    title: "About",
+    title: "About Geoffery",
     intro:
-      "What I am, how I reckon the figures, and how to reach the household — all on one page. No theatre; just the method and the door.",
+      "Geoffery is a free price guide and trading assistant for the Old School RuneScape Grand Exchange. It reads the live market, rates whether an item is cheap or dear against its own recent history, and — when you ask — suggests a price to buy or sell at.",
+    whatHeading: "What it does",
+    whatBody:
+      "Every tradeable item gets a deal gauge: the current price set against where it has actually traded over the last thirty days. Lower in that range is a better moment to buy; higher, a better moment to sell. Search any item to see its gauge, its recent price history, and a read on how volatile its market is.",
+    bellHeading: "The recommendations",
+    bellBody:
+      "Ring the bell on any item and say how quickly you need to trade. Geoffery weighs that against how the item has actually been filling and suggests a price — closer to the going rate if you're in a hurry, more favourable if you can wait. Every recommendation is written down and scored against what the market then does, so the accuracy is measured, not merely claimed.",
+    whoHeading: "Who makes it",
+    whoBody:
+      "Geoffery is built and run by one person, as a labour of interest. It is not affiliated with, endorsed by, or associated with Jagex. Prices come from community-blessed sources (the OSRS Wiki's real-time price API); the character and the artwork are original.",
+    contactHeading: "Get in touch",
+    contactBody:
+      "Found a bug, have an idea, or just want to say hello? Email is the surest way to reach the person behind Geoffery — replies may be slower than the figures, but they do come.",
+    contactCta: "Email support",
   },
   money: {
     title: "How this is paid for",
@@ -169,24 +212,7 @@ export const PAGES = {
     monthLabel: "Showing",
     noDonors: "No names in the jar yet this month. It would suit you rather well up here.",
     tippedNote:
-      "Your coin is noted — the month is yours, unhindered. (No charge is taken yet; real payments arrive with accounts and Stripe. I would rather say so before you part with the coin than after.)",
-    // Tip tiers (owner directive 2026-06-12: renamed off "Gold/Platinum"). Labels and
-    // blurbs in Geoffery's voice; web-app renders these in place of the old hardcoded
-    // "Gold $1 / Platinum $10". Amounts are USD; "name" is the on-button coin label.
-    tiers: [
-      {
-        id: "coin",
-        name: "1 Gold piece",
-        amount: "$1",
-        blurb: "A single coin — my whole month's wage, in fact. It would buy you a great deal of gratitude.",
-      },
-      {
-        id: "dozen",
-        name: "12 Gold Pieces",
-        amount: "$10",
-        blurb: "A full year of me, paid in advance. I should be obliged, and quietly alarmed.",
-      },
-    ],
+      "You have my sincere thanks. The month is yours now, unhindered — ring as often as you like. (No coin actually changes hands yet; real payments arrive with accounts and Stripe. The gratitude, however, is entirely real.)",
   },
   ledger: {
     title: "Patrons",

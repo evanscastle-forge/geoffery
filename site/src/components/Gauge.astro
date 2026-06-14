@@ -13,6 +13,9 @@ const g = GAUGE[band];
 // Marker position from percentile (0..1). For unsettled / no data, hide marker.
 const pct = agg.percentile;
 const markerPos = pct == null ? null : Math.max(0, Math.min(1, pct)) * 100;
+// Near the ends, the centred "current price" label would clip past the track — anchor
+// it to that edge instead (owner feedback 2026-06-14).
+const labelEdge = markerPos == null ? "" : markerPos < 12 ? "at-start" : markerPos > 88 ? "at-end" : "";
 
 // IQR band as a fraction of the rendered track. We anchor the visual range to
 // [p25*0.97 .. p75*1.03] so the shaded interquartile sits centrally; the marker
@@ -30,7 +33,7 @@ const showBand = band !== "unsettled" && agg.p25 != null && agg.p75 != null;
       <div class="gauge-iqr"></div>
       {markerPos != null && (
         <div class="gauge-marker" style={`left:${markerPos}%`}>
-          <span class="gauge-marker-label">{GAUGE.youAreHere}</span>
+          <span class={`gauge-marker-label ${labelEdge}`}>{GAUGE.youAreHere}</span>
         </div>
       )}
     </div>
@@ -67,5 +70,7 @@ const showBand = band !== "unsettled" && agg.p25 != null && agg.p75 != null;
   }
   .gauge-marker::after { content:""; position:absolute; left:-1px; top: 6px; width:2px; height:22px; background: var(--ink); }
   .gauge-marker-label { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 0.7rem; color: var(--ink); }
+  .gauge-marker-label.at-start { left: 0; transform: none; }
+  .gauge-marker-label.at-end { left: auto; right: 0; transform: none; }
   .gauge-scale { display:flex; justify-content: space-between; gap: var(--s-3); margin-top: var(--s-5); }
 </style>

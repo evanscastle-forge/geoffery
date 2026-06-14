@@ -1,0 +1,27 @@
+---
+// A small witty, page-aware aside (owner directive 2026-06-14). Server-renders a
+// random one (works without JS); a tiny script re-picks per visit for variety.
+// `tone="dark"` for placement on a parchment panel; default light for the dark page.
+import { SAYINGS } from "@geoffery/content";
+interface Props { page: string; tone?: "light" | "dark"; }
+const { page, tone = "light" } = Astro.props;
+const list = SAYINGS[page] ?? [];
+const initial = list.length ? list[Math.floor(Math.random() * list.length)] : "";
+---
+{initial && (
+  <p class:list={["saying", tone === "dark" && "on-parchment"]} data-sayings={JSON.stringify(list)}>{initial}</p>
+)}
+
+<script>
+  for (const el of document.querySelectorAll(".saying[data-sayings]")) {
+    try {
+      const list = JSON.parse(el.getAttribute("data-sayings") || "[]");
+      if (Array.isArray(list) && list.length) el.textContent = list[Math.floor(Math.random() * list.length)];
+    } catch { /* keep the server-rendered one */ }
+  }
+</script>
+
+<style>
+  .saying { color: var(--paper-text-soft); font-style: italic; margin: 2px 0 var(--s-4); font-size: 0.98rem; }
+  .saying.on-parchment { color: var(--ink-soft); }
+</style>

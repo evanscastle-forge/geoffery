@@ -1,36 +1,43 @@
 ---
 import Base from "../layouts/Base.astro";
-import Dialogue from "../components/Dialogue.astro";
+import Saying from "../components/Saying.astro";
 import { PAGES } from "@geoffery/content";
 
-// Merged page (owner directive 2026-06-13): the old /methodology/ + /contact/
-// pages folded into one /about/ — the method (why Geoffery isn't guessing) + the door.
+// The About page speaks directly to the reader (owner directive 2026-06-14):
+// plainer and more serious than the rest of the house — no in-character chatbox.
+const A = PAGES.about;
 const CONTACT_MAILTO = "mailto:evanscastle.forge@gmail.com";
 ---
 
-<Base title="About — Geoffery" description="What Geoffery is, how the figures are reckoned, and how to reach the household." canonicalPath="/about/">
+<Base title="About Geoffery — OSRS Grand Exchange price guide" description="What Geoffery is, how it rates prices and recommends offers, who makes it, and how to get in touch." canonicalPath="/about/">
   <div class="wrap measure">
-    <h1>{PAGES.about.title}</h1>
-    <Dialogue><p>{PAGES.about.intro}</p></Dialogue>
+    <h1>{A.title}</h1>
+    <Saying page="about" />
+    <p class="lede">{A.intro}</p>
 
     <section class="panel doc">
-      <h2>The verdict</h2>
-      <p>Every item's current price is compared against its own recent trading history — where it has actually traded, and how much. The figure on the gauge is simply how far above or below its thirty-day median it sits today: nearer the bottom of where it has lately traded, or nearer the top.</p>
+      <h2>{A.whatHeading}</h2>
+      <p>{A.whatBody}</p>
 
-      <h2>The recommendations</h2>
-      <p>When you ring the bell, the recommended price weighs how quickly you want to trade against how the item has actually been filling. Quicker means closer to the going rate; patient means a more favourable figure. Every recommendation is written down and checked against what the market then does — so the arithmetic stays honest, even when nobody is looking.</p>
+      <h2>{A.bellHeading}</h2>
+      <p>{A.bellBody}</p>
 
-      <h2>Reaching the household</h2>
-      <p>{PAGES.contact.line}</p>
-      <p class="cta-row"><a class="contact-cta" href={CONTACT_MAILTO}>{PAGES.contact.cta}</a></p>
+      <h2>{A.whoHeading}</h2>
+      <p>{A.whoBody}</p>
+
+      <h2>{A.contactHeading}</h2>
+      <p>{A.contactBody}</p>
+      <p class="cta-row"><a class="contact-cta" href={CONTACT_MAILTO}>{A.contactCta}</a></p>
     </section>
   </div>
 </Base>
 
 <style>
+  .lede { color: var(--paper-text); font-size: 1.12rem; line-height: 1.6; margin: var(--s-4) 0 0; }
   .doc { margin-top: var(--s-5); }
   .doc h2 { margin-top: var(--s-5); }
-  .cta-row { margin-top: var(--s-4); }
+  /* Centered email button (owner feedback 2026-06-14). */
+  .cta-row { margin-top: var(--s-5); text-align: center; }
   .contact-cta {
     display: inline-block; padding: 10px 18px; border-radius: var(--radius);
     background: var(--brass); color: #1c1709; font-weight: 700;
