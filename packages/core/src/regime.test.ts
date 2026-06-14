@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { classify, liquidityBand } from "./regime.ts";
+import { classify, liquidityBand, volatilityLevel } from "./regime.ts";
 import type { Snapshot } from "./types.ts";
 
 const FIVE_MIN = 300;
@@ -82,4 +82,15 @@ test("liquidity band thresholds", () => {
   expect(liquidityBand(99_999)).toBe("medium");
   expect(liquidityBand(100_000)).toBe("thick");
   expect(liquidityBand(10_000_000)).toBe("thick");
+});
+
+test("volatilityLevel buckets the relative IQR spread", () => {
+  // spread = (p75 - p25) / p50
+  expect(volatilityLevel(98, 100, 102)).toBe("steady"); // 4%
+  expect(volatilityLevel(94, 100, 104)).toBe("some"); // 10%
+  expect(volatilityLevel(85, 100, 115)).toBe("high"); // 30%
+  expect(volatilityLevel(97, 100, 103)).toBe("some"); // exactly 6% (≥ boundary)
+  expect(volatilityLevel(93, 100, 107)).toBe("high"); // exactly 14% (≥ boundary)
+  expect(volatilityLevel(null, 100, 102)).toBe("steady"); // missing data
+  expect(volatilityLevel(98, 0, 102)).toBe("steady"); // p50 ≤ 0 guard
 });

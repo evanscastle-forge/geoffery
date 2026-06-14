@@ -33,9 +33,12 @@ and decision ledger privately (under `local/`, gitignored — not part of this r
    game-font files, extracted textures). Owner carve-out (D-DESIGN-002, 2026-06-12): the Geoffery
    dialogue box is a **top-level design directive** to be *similar* to the OSRS chatbox — left
    portrait, similar font and colors — executed house-drawn with a freely-licensed look-alike font.
-5. **Action-first verdicts** (reversed 2026-06-12). Gauge verdicts and band labels name the move
-   — buy / hold / sell / wait. The methodology page stays qualitative (no published formulas,
-   windows, or thresholds), and the fill record is kept/scored internally, not published on it.
+5. **Factual verdicts** (re-reversed 2026-06-13, supersedes the 2026-06-12 action-first rule). The
+   gauge states the figure — how far above/below the 30-day median — and the buy/hold/sell/wait
+   badges are retired; a 3-level volatility badge (steady / some volatility / highly volatile)
+   describes the market's character. The **About** page (the former methodology + contact pages,
+   merged) stays qualitative (no published formulas, windows, or thresholds); the fill record is
+   kept/scored internally, not published.
 
 ## Runtime reality (localhost)
 Production targets Cloudflare; this build runs on localhost via a Node-portable runtime — workers

@@ -116,3 +116,24 @@ export function liquidityBand(volumeBaseline: number): LiquidityBand {
   if (volumeBaseline >= 1_000) return "medium";
   return "thin";
 }
+
+export type VolatilityLevel = "steady" | "some" | "high";
+
+// A display read of how much an item wanders over the trailing 30 days, from the
+// relative inter-quartile spread (p75−p25)/p50 — the same band the gauge shades.
+// Thresholds are deliberately simple + tunable (owner directive 2026-06-13).
+export const VOL_SOME_SPREAD = 0.06; // ≥6% IQR spread → some volatility
+export const VOL_HIGH_SPREAD = 0.14; // ≥14% → highly volatile
+
+/** Three-level volatility for the item-page badge. Defaults to "steady" when data is missing. */
+export function volatilityLevel(
+  p25: number | null,
+  p50: number | null,
+  p75: number | null,
+): VolatilityLevel {
+  if (p25 === null || p50 === null || p75 === null || p50 <= 0) return "steady";
+  const spread = (p75 - p25) / p50;
+  if (spread >= VOL_HIGH_SPREAD) return "high";
+  if (spread >= VOL_SOME_SPREAD) return "some";
+  return "steady";
+}

@@ -4,8 +4,9 @@ import Dialogue from "../components/Dialogue.astro";
 import { PAGES, LEDGER } from "@geoffery/content";
 import { assignTiers, TIERS } from "@geoffery/core";
 
-// Donor wall (spec §8). Names from the content ledger; amounts NEVER shown,
-// within-tier order alphabetical. Ad-free zone.
+// Donor wall (spec §8), styled as a scroll (owner directive 2026-06-13). All tier
+// sections are pre-rendered, coloured by metal, and sit empty until names arrive.
+// Amounts NEVER shown; within-tier order alphabetical. Ad-free zone.
 type Entry = { name: string; score: number; founding?: boolean; activeSeal?: boolean };
 const names = (LEDGER.names as Entry[]) ?? [];
 const tierMap = assignTiers(names.map((n) => ({ name: n.name, score: n.score })), "fixed");
@@ -20,38 +21,88 @@ for (const e of names) {
 for (const list of byTier.values()) list.sort((a, b) => a.name.localeCompare(b.name));
 const ordered = [...TIERS].reverse(); // dragon first
 const tiers = LEDGER.tiers as Record<string, { label: string; remark: string }>;
-const hasNames = names.length > 0;
 ---
 
 <Base title="Patrons — Geoffery" description="Geoffery's patrons: supporters by standing, never by sum." canonicalPath="/ledger/">
-  <div class="wrap measure">
-    <h1>{PAGES.ledger.title}</h1>
-    <Dialogue><p>{PAGES.ledger.intro}</p></Dialogue>
+  <div class="wrap">
+    <div class="scroll">
+      <div class="scroll-edge top"></div>
+      <div class="scroll-body">
+        <h1>{PAGES.ledger.title}</h1>
+        <Dialogue><p>{PAGES.ledger.intro}</p></Dialogue>
 
-    {!hasNames ? (
-      <section class="panel"><p class="muted">{PAGES.ledger.emptyState}</p>
-        <p class="small muted">The tiers, for when the first names arrive: {ordered.map((t) => tiers[t]?.label).join(" · ")}.</p>
-      </section>
-    ) : (
-      ordered.map((t) => byTier.get(t) && (
-        <section class="panel tier">
-          <h2>{tiers[t]?.label}</h2>
-          <p class="small muted">{tiers[t]?.remark}</p>
-          <ul class="names">
-            {byTier.get(t)!.map((e) => (
-              <li>{e.name}{e.activeSeal && <span class="seal" title={String(LEDGER.activeSeal)}>●</span>}{e.founding && <span class="founding" title={String(LEDGER.foundingNote)}>founding</span>}</li>
-            ))}
-          </ul>
-        </section>
-      ))
-    )}
+        {ordered.map((t) => {
+          const entries = byTier.get(t) ?? [];
+          return (
+            <section class={`tier tier-${t}`}>
+              <div class="tier-head">
+                <span class="tier-seal" aria-hidden="true"></span>
+                <h2>{tiers[t]?.label}</h2>
+              </div>
+              <p class="tier-remark">{tiers[t]?.remark}</p>
+              {entries.length > 0 ? (
+                <ul class="names">
+                  {entries.map((e) => (
+                    <li>{e.name}{e.activeSeal && <span class="seal" title={String(LEDGER.activeSeal)}>●</span>}{e.founding && <span class="founding" title={String(LEDGER.foundingNote)}>founding</span>}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="tier-empty">— awaiting its first name —</p>
+              )}
+            </section>
+          );
+        })}
+      </div>
+      <div class="scroll-edge bottom"></div>
+    </div>
   </div>
 </Base>
 
 <style>
-  .tier { margin-top: var(--s-4); }
-  .names { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-3); }
+  .scroll { max-width: 58ch; margin: var(--s-5) auto; }
+  /* Aged-parchment scroll with curled top/bottom edges. */
+  .scroll-body {
+    background:
+      radial-gradient(120% 50% at 50% 0%, rgba(120,90,40,0.10), transparent 60%),
+      linear-gradient(180deg, #efe6cf, #e2d6b8);
+    border-left: 1px solid var(--panel-edge);
+    border-right: 1px solid var(--panel-edge);
+    color: var(--ink); padding: var(--s-6);
+    box-shadow: inset 0 0 50px rgba(120,90,40,0.14);
+  }
+  .scroll-edge {
+    height: 20px; background: linear-gradient(180deg, #d3c39b, #b6a378);
+    border: 1px solid var(--panel-edge); box-shadow: var(--shadow); position: relative; z-index: 1;
+  }
+  .scroll-edge.top { border-bottom: none; border-radius: 14px 14px 4px 4px; }
+  .scroll-edge.bottom { border-top: none; border-radius: 4px 4px 14px 14px; }
+  .scroll-body h1 { border-bottom-color: var(--panel-edge-soft); margin-top: 0; }
+
+  .tier {
+    margin-top: var(--s-5); padding-left: var(--s-4);
+    border-left: 4px solid var(--tier-color, var(--panel-edge));
+  }
+  .tier-head { display: flex; align-items: center; gap: var(--s-3); }
+  .tier-head h2 { margin: 0; border-bottom: none; color: var(--tier-color, var(--ink)); }
+  .tier-seal {
+    width: 15px; height: 15px; border-radius: 50%; flex: none;
+    background: var(--tier-color, var(--panel-edge));
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .tier-remark { color: var(--ink-soft); margin: 4px 0 var(--s-3); font-style: italic; }
+  .tier-empty { color: var(--ink-soft); opacity: 0.75; margin: 0; }
+  .names { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-3); margin: 0; }
   .names li { background: var(--bg-raised); color: var(--paper-text); padding: 6px 12px; border-radius: 999px; display:inline-flex; gap:6px; align-items:center; }
   .seal { color: var(--good); }
   .founding { font-size: 0.7rem; color: var(--brass); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* Metal tier colours (house-mixed; legible on the parchment scroll). */
+  .tier-dragon { --tier-color: #9c2b1c; }
+  .tier-rune { --tier-color: #1f7d83; }
+  .tier-adamant { --tier-color: #3f7d3a; }
+  .tier-mithril { --tier-color: #4a6fb0; }
+  .tier-black { --tier-color: #34343a; }
+  .tier-steel { --tier-color: #76808a; }
+  .tier-iron { --tier-color: #6e7176; }
+  .tier-bronze { --tier-color: #9a6a3a; }
 </style>

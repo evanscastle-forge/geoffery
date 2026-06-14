@@ -3,6 +3,25 @@
 Newest entry on top. One entry per commit; format in `.claude/prompts.md`. The full per-commit
 history is in `git log`; this file carries the human-readable summaries going forward.
 
+## 2026-06-13 — web-app + core + design — SCOPE: CROSS-MODULE
+**Summary**: UI batch — (1) taller "items of note" cards with roomier weekly charts; (2) removed the
+buy/hold/sell/wait verdict badges everywhere (homepage + item gauge); (3) the gauge verdict line is now
+just the stat ("X% above/below the 30-day median.", no action word); (4) the item-page "Market" field is
+a new **color-graded volatility badge** (steady / some volatility / highly volatile) from the 30-day IQR
+spread; (5) removed the IQR "wander" note; (6) merged methodology + contact into one `/about/`; (7)
+restyled Patrons as a colored metal-tier **scroll**, pre-populated + empty; (8) dropped the "pot of tea"
+ring quip. Re-reverses the 2026-06-12 action-first verdict rule (CHARTER §5).
+**Files touched**: `packages/core/src/{gauge,regime}.ts` (+ tests — stat-only `verdictText`, new
+`volatilityLevel`); `packages/content/src/lines.ts` (`GAUGE.volatility`, −`iqrNote`, −quip, `PAGES.about`);
+`site/src/pages/{index,item/[slug],about (new),ledger,sitemap.xml}` + **deleted** `{methodology,contact}.astro`;
+`site/src/components/Gauge.astro`; `site/src/layouts/Base.astro` (nav → About); `.claude/CHARTER.md`.
+**SYSTEM_ARCHITECTURE.md sections affected**: none.
+**Notify**: db (`verdict_text` is stored — re-run aggregate+export to repopulate); growth-seo
+(`/methodology/` + `/contact/` → `/about/`).
+**Verification**: `npm run check` green (59 tests incl. `volatilityLevel` + updated verdict test).
+Browser (1440×900 + 390×844): no badges, taller cards, stat-only verdict, color-graded volatility badge,
+no wander note, `/about/` merged with About nav, `/ledger/` scroll. Pipeline re-run to regenerate verdicts.
+
 ## 2026-06-13 — web-app — SCOPE: LOCAL
 **Summary**: Homepage "items of note" cards are now a uniform size — the item name is clamped to a
 reserved 2-line block (ellipsis, with the full name on hover via `title`), so every header is the same

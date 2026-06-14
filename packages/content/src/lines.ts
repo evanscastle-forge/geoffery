@@ -51,7 +51,8 @@ export const GAUGE = {
     volatile: "volatile",
   },
   youAreHere: "the current price",
-  iqrNote: "The shaded band is where this item has spent most of the last thirty days. It does like to wander.",
+  // Three-level market-character badge on the item page (owner directive 2026-06-13).
+  volatility: { steady: "Steady", some: "Some volatility", high: "Highly volatile" },
 };
 
 export const BELL = {
@@ -65,7 +66,6 @@ export const BELL = {
     "No appointment necessary.",
     "The quill is already inked.",
     "He pretends to mind. He does not.",
-    "Eight figures fetched per pot of tea.",
     "It's the only exercise he gets.",
     "He answers faster than the post.",
     "Go on. He has been polishing it.",
@@ -150,6 +150,12 @@ export const PAGES = {
     accuracyHeading: "The fill record",
     accuracyIntro:
       "Every recommendation is recorded as a prediction, then checked against what the market actually did. The results are below — the hits and the misses alike.",
+  },
+  // The About page folds the old methodology + contact pages together (owner directive 2026-06-13).
+  about: {
+    title: "About",
+    intro:
+      "What I am, how I reckon the figures, and how to reach the household — all on one page. No theatre; just the method and the door.",
   },
   money: {
     title: "How this is paid for",

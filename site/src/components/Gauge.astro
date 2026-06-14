@@ -22,7 +22,6 @@ const showBand = band !== "unsettled" && agg.p25 != null && agg.p75 != null;
 
 <div class={`gauge gauge-${band}`}>
   <div class="gauge-head">
-    <span class={`tag ${band}`}>{g.label}</span>
     <span class="gauge-verdict">{agg.verdictText}</span>
   </div>
 
@@ -39,7 +38,7 @@ const showBand = band !== "unsettled" && agg.p25 != null && agg.p75 != null;
 
   {showBand && (
     <div class="gauge-scale small muted">
-      <span>lower</span><span>{GAUGE.iqrNote}</span><span>higher</span>
+      <span>lower</span><span>higher</span>
     </div>
   )}
 </div>
@@ -69,5 +68,4 @@ const showBand = band !== "unsettled" && agg.p25 != null && agg.p75 != null;
   .gauge-marker::after { content:""; position:absolute; left:-1px; top: 6px; width:2px; height:22px; background: var(--ink); }
   .gauge-marker-label { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 0.7rem; color: var(--ink); }
   .gauge-scale { display:flex; justify-content: space-between; gap: var(--s-3); margin-top: var(--s-5); }
-  .gauge-scale span:nth-child(2) { flex: 1; text-align: center; }
 </style>

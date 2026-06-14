@@ -2,7 +2,7 @@
 import Base from "../layouts/Base.astro";
 import Dialogue from "../components/Dialogue.astro";
 import Search from "../components/Search.astro";
-import { GAUGE, HOME, SITE } from "@geoffery/content";
+import { HOME, SITE } from "@geoffery/content";
 import { watchScore } from "@geoffery/core";
 import { aggregates, sparklines, items } from "../lib/data";
 import { gp } from "../lib/format";
@@ -49,10 +49,9 @@ const featured = Object.values(aggs)
           <a class="card panel" href={`/item/${a.slug}/`}>
             <div class="card-head">
               <span class="card-name" title={a.name}>{a.name}<MemberStar members={memberMap.get(a.slug) ?? false} /></span>
-              <span class={`tag ${a.band}`}>{GAUGE[a.band].label.toLowerCase()}</span>
             </div>
             <span class="card-price price-big">{gp(a.currentPrice)}</span>
-            {sparks[a.slug] && <Sparkline points={sparks[a.slug]!.w1} height={36} label={`${a.name} week`} />}
+            {sparks[a.slug] && <Sparkline points={sparks[a.slug]!.w1} height={56} label={`${a.name} week`} />}
           </a>
         ))}
       </div>
@@ -65,14 +64,15 @@ const featured = Object.values(aggs)
   /* Full width of the chatbox above it (owner feedback 2026-06-12). */
   .hero-search { width: 100%; }
   .featured h2 { margin-bottom: var(--s-4); }
-  .card { display: grid; gap: var(--s-3); color: var(--ink); padding: 0; overflow: hidden; align-content: start; }
+  .card { display: grid; gap: var(--s-4); color: var(--ink); padding: 0; overflow: hidden; align-content: start; }
+  /* Give the weekly chart room to breathe (owner feedback 2026-06-13). */
+  .card .spark { margin-top: var(--s-2); margin-bottom: var(--s-2); }
   .card:hover { text-decoration: none; outline: 1px solid var(--brass); }
   .card-head {
     display:flex; justify-content: space-between; align-items: flex-start; gap: var(--s-2);
     background: var(--panel-deep); border-bottom: 1px solid var(--panel-edge);
     padding: var(--s-2) var(--s-4); margin: 0;
   }
-  .card-head .tag { flex: none; }
   .card > :not(.card-head) { margin: 0 var(--s-4); }
   .card > :last-child { margin-bottom: var(--s-4); }
   /* Clamp the name to a reserved 2-line block so every header is the same height,

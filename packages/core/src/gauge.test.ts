@@ -51,11 +51,11 @@ test("recent news forces unsettled regardless of band", () => {
   expect(agg.flags).toContain("recent-news");
 });
 
-// Action-first verdicts — tone rule reversed 2026-06-12.
-test("verdict text names the move", () => {
+// Factual verdict — the stat only, no action word (action verdicts retired 2026-06-13).
+test("verdict text is the median stat, no action word", () => {
   const agg = computeAggregate(6, seed(range(100, 200)), latest(110), null, NOW);
-  expect(agg.verdictText).toMatch(/30-day median/);
-  expect(agg.verdictText.toLowerCase()).toMatch(/\bbuy\b|\bhold\b|\bsell\b/);
+  expect(agg.verdictText).toMatch(/% (above|below) the 30-day median\.$/);
+  expect(agg.verdictText.toLowerCase()).not.toMatch(/\bbuy\b|\bhold\b|\bsell\b|\bwait\b/);
 });
 
 test("produces six recommendations for a healthy item", () => {

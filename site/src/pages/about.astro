@@ -1,0 +1,39 @@
+---
+import Base from "../layouts/Base.astro";
+import Dialogue from "../components/Dialogue.astro";
+import { PAGES } from "@geoffery/content";
+
+// Merged page (owner directive 2026-06-13): the old /methodology/ + /contact/
+// pages folded into one /about/ — the method (why Geoffery isn't guessing) + the door.
+const CONTACT_MAILTO = "mailto:evanscastle.forge@gmail.com";
+---
+
+<Base title="About — Geoffery" description="What Geoffery is, how the figures are reckoned, and how to reach the household." canonicalPath="/about/">
+  <div class="wrap measure">
+    <h1>{PAGES.about.title}</h1>
+    <Dialogue><p>{PAGES.about.intro}</p></Dialogue>
+
+    <section class="panel doc">
+      <h2>The verdict</h2>
+      <p>Every item's current price is compared against its own recent trading history — where it has actually traded, and how much. The figure on the gauge is simply how far above or below its thirty-day median it sits today: nearer the bottom of where it has lately traded, or nearer the top.</p>
+
+      <h2>The recommendations</h2>
+      <p>When you ring the bell, the recommended price weighs how quickly you want to trade against how the item has actually been filling. Quicker means closer to the going rate; patient means a more favourable figure. Every recommendation is written down and checked against what the market then does — so the arithmetic stays honest, even when nobody is looking.</p>
+
+      <h2>Reaching the household</h2>
+      <p>{PAGES.contact.line}</p>
+      <p class="cta-row"><a class="contact-cta" href={CONTACT_MAILTO}>{PAGES.contact.cta}</a></p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .doc { margin-top: var(--s-5); }
+  .doc h2 { margin-top: var(--s-5); }
+  .cta-row { margin-top: var(--s-4); }
+  .contact-cta {
+    display: inline-block; padding: 10px 18px; border-radius: var(--radius);
+    background: var(--brass); color: #1c1709; font-weight: 700;
+  }
+  .contact-cta:hover { text-decoration: none; filter: brightness(1.05); }
+</style>

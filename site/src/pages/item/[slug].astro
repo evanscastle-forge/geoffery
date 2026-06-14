@@ -7,6 +7,7 @@ import WikiNotice from "../../components/WikiNotice.astro";
 import MemberStar from "../../components/MemberStar.astro";
 import { aggregates, sparklines, items } from "../../lib/data";
 import { GAUGE } from "@geoffery/content";
+import { volatilityLevel } from "@geoffery/core";
 import { gp, itemTitle, metaDescription } from "../../lib/format";
 
 export function getStaticPaths() {
@@ -22,10 +23,10 @@ const spark = sparklines()[slug];
 const memberMap = new Map(items().map((i) => [i.slug, i.members]));
 const isMember = memberMap.get(slug) ?? false;
 
-const regimeLabel =
-  agg.regimePower && agg.regimeStability
-    ? `${GAUGE.regime[agg.regimePower]}, ${GAUGE.regime[agg.regimeStability]}`
-    : null;
+// Market character: a 3-level volatility badge from the 30-day IQR spread
+// (owner directive 2026-06-13, replaces the old buyer/seller/steady regime text).
+const vol = volatilityLevel(agg.p25, agg.p50, agg.p75);
+const volLabel = GAUGE.volatility[vol];
 
 const desc = metaDescription(agg.name, agg.verdictText);
 
@@ -54,10 +55,10 @@ const ld = {
           <span class="small muted">Hourly volume</span>
           <span class="price-big">{gp(agg.volume24h ? Math.round(agg.volume24h / 24) : null)}</span>
         </div>
-        {regimeLabel && (
+        {agg.p50 != null && (
           <div class="price">
             <span class="small muted">Market</span>
-            <span class="regime">{regimeLabel}</span>
+            <span class={`vol-badge vol-${vol}`}>{volLabel}</span>
           </div>
         )}
       </div>
@@ -100,7 +101,15 @@ const ld = {
   .item-top h1 { margin: 0 0 4px; }
   .prices { display: flex; flex-wrap: wrap; gap: var(--s-6); margin: var(--s-4) 0; }
   .price { display: flex; flex-direction: column; }
-  .regime { font-family: var(--serif); font-size: 1.2rem; text-transform: capitalize; }
+  /* Color-graded volatility badge (owner directive 2026-06-13): calm → warm → red. */
+  .vol-badge {
+    align-self: flex-start; margin-top: 4px;
+    display: inline-block; padding: 3px 12px; border-radius: 999px;
+    font-family: var(--sans); font-size: 0.95rem; font-weight: 600; border: 1px solid;
+  }
+  .vol-steady { background: #d4e6c8; color: #2e6b2a; border-color: #a9cf98; }
+  .vol-some { background: #f0e0b0; color: #855410; border-color: #d9c184; }
+  .vol-high { background: #f1cdc7; color: #a3271b; border-color: #dca79f; }
   .charts { margin-top: var(--s-4); }
   .spark-grid { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
   .consulted { margin: var(--s-4) 0; padding: var(--s-4); border-radius: var(--radius); background: var(--bg-raised); color: var(--paper-text); border: 1px solid var(--brass); }

@@ -1,7 +1,7 @@
 // The deal gauge + per-item aggregate (spec §4). Ported from `aggregates.py`.
 // Pure: takes 5m snapshots + the latest price + a news flag, returns an Aggregate.
-// Wording is action-first: each verdict names the move (buy/hold/sell/wait).
-// Tone rule reversed 2026-06-12 (action-first verdicts).
+// Verdict wording is factual — the price vs the 30-day median, no action word
+// (action badges/verbs retired 2026-06-13; supersedes the 2026-06-12 action-first rule).
 
 import type { Aggregate, Band, LatestPrice, SentimentSignal, Snapshot } from "./types.ts";
 import { mid } from "./regime.ts";
@@ -15,7 +15,7 @@ export const VOLUME_SPIKE_MULTIPLE = 3.0;
 export const NEWS_LOOKBACK_DAYS = 3;
 
 const UNSETTLED_VERDICT =
-  "The figures are unsettled — wait. I would not stake my wages on them today.";
+  "The figures are unsettled today; I would not stake my wages on them.";
 
 /** Volume-weighted quantiles via cumulative weights (no scipy). */
 export function weightedQuantiles(
@@ -71,12 +71,10 @@ export function band(current: number, p25: number, p75: number): Band {
   return "poor";
 }
 
-export function verdictText(b: Band, percentVsP50: number): string {
+export function verdictText(percentVsP50: number): string {
   const sign = percentVsP50 >= 0 ? "above" : "below";
   const pct = Math.abs(Math.round(percentVsP50));
-  if (b === "good") return `${pct}% ${sign} the 30-day median — buy.`;
-  if (b === "average") return `${pct}% ${sign} the 30-day median — hold.`;
-  return `${pct}% ${sign} the 30-day median — sell.`;
+  return `${pct}% ${sign} the 30-day median.`;
 }
 
 function emptyRecFields() {
@@ -173,7 +171,7 @@ export function computeAggregate(
     verdict = UNSETTLED_VERDICT;
   } else {
     resolvedBand = band(current, p25, p75);
-    verdict = verdictText(resolvedBand, p50 ? ((current - p50) / p50) * 100 : 0);
+    verdict = verdictText(p50 ? ((current - p50) / p50) * 100 : 0);
   }
 
   // Regime (gauge/display + the volatility tiebreaker) and the offer model. The
