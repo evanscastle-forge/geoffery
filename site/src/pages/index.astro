@@ -35,7 +35,7 @@ const featured = Object.values(aggs)
   <div class="wrap">
     <section class="hero">
       <Dialogue>
-        <p>{HOME.intro}</p>
+        <p set:html={HOME.intro.replace("Ring the bell", "<strong>Ring the bell</strong>")} />
       </Dialogue>
       <div class="hero-search">
         <Search />
@@ -61,12 +61,17 @@ const featured = Object.values(aggs)
 
 <style>
   .hero { margin: var(--s-5) 0 var(--s-7); display: grid; gap: var(--s-5); }
+  /* The pixel chat font is single-weight, so the "Ring the bell" emphasis reads as
+     the dialogue's accent colour, not just font-weight (owner feedback 2026-06-14). */
+  .hero :global(strong) { color: var(--chat-name); font-weight: 700; }
   /* Full width of the chatbox above it (owner feedback 2026-06-12). */
   .hero-search { width: 100%; }
   .featured h2 { margin-bottom: var(--s-4); }
   .card { display: grid; gap: var(--s-4); color: var(--ink); padding: 0; overflow: hidden; align-content: start; }
-  /* Give the weekly chart room to breathe (owner feedback 2026-06-13). */
-  .card .spark { margin-top: var(--s-2); margin-bottom: var(--s-2); }
+  /* Give the weekly chart room to breathe + clear the card's clipped bottom edge
+     (owner feedback 2026-06-13 / 2026-06-14). */
+  .card .spark { margin-top: var(--s-2); margin-bottom: var(--s-4); }
+  .card { padding-bottom: var(--s-1); }
   .card:hover { text-decoration: none; outline: 1px solid var(--brass); }
   .card-head {
     display:flex; justify-content: space-between; align-items: flex-start; gap: var(--s-2);

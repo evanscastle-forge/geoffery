@@ -49,11 +49,15 @@ interface Copy {
   noSpeculation: string;
   noLedger: string;
   noFigures: string;
-  verifyLink: string;
+  startOver: string;
+  visitItem: string;
   limitReached: string;
   limitTipCta: string;
   regimeNotes: Record<string, string>;
   dailyLimit: number;
+  // True when this month's tip goal is met → everyone gets bonus consultations
+  // (owner directive 2026-06-14). Computed at build time from the donations ledger.
+  bonusActive: boolean;
 }
 
 const CONSULT_URL = "/api/consult";
@@ -77,6 +81,20 @@ function meterInc(): void {
   } catch {
     /* meter is best-effort */
   }
+}
+
+// Tips (owner directive 2026-06-14): a tipper this calendar month gets unlimited use;
+// when the house goal is met, everyone gets a bonus. Tipper status is a cookie set on
+// the Tip page; the bonus flag rides in the copy payload from the donations ledger.
+function tipMonthKey(): string {
+  return new Date().toISOString().slice(0, 7); // YYYY-MM
+}
+function isTipperThisMonth(): boolean {
+  return document.cookie.split("; ").includes(`geoffery_tip_${tipMonthKey()}=1`);
+}
+function effectiveLimit(copy: Copy): number {
+  if (isTipperThisMonth()) return Infinity;
+  return copy.bonusActive ? copy.dailyLimit * 2 : copy.dailyLimit;
 }
 
 function gp(n: number): string {
@@ -136,7 +154,7 @@ export function initBell(): void {
 
   function open(): void {
     panel!.hidden = false;
-    if (meterCount() >= copy.dailyLimit) {
+    if (meterCount() >= effectiveLimit(copy)) {
       clearChoices();
       // The limit is a door to the tip jar, not a wall (owner feedback 2026-06-12).
       setLine(copy.limitReached + " " + copy.limitTipCta);
@@ -205,7 +223,7 @@ export function initBell(): void {
     clearChoices();
     if (price == null) {
       setLine(copy.noFigures);
-      ctaLink(copy.verifyLink, `/item/${rec!.slug}/`);
+      ctaLink(copy.visitItem, `/item/${rec!.slug}/`);
       return;
     }
     // When the offer is within the fair margin of market, don't over-manage —
@@ -240,8 +258,10 @@ export function initBell(): void {
 
     meterInc();
     logConsultation(t, price);
-    // Every consultation ends on the item page, recommendation above the figures.
-    ctaLink(copy.verifyLink, `/item/${rec!.slug}/#consulted=${t}-${side}-${price}`);
+    // Two ways onward (owner feedback 2026-06-14): start the consultation over from
+    // the prompt, or jump to the item page with the recommendation pinned above the figures.
+    choice(copy.startOver, null, () => open());
+    ctaLink(copy.visitItem, `/item/${rec!.slug}/#consulted=${t}-${side}-${price}`);
   }
 
   function logConsultation(t: Tolerance, price: number): void {

@@ -69,10 +69,11 @@ h3 { border-bottom: none; }
 .nav { display: flex; gap: var(--s-4); font-size: 0.95rem; flex-wrap: wrap; }
 .nav a { color: var(--paper-text-soft); }
 .nav a:hover { color: var(--brass); }
-/* Right-hand cluster: the header bell + the login/profile link. */
+/* Right-hand cluster: the header bell. */
 .header-actions { display: flex; align-items: center; gap: var(--s-3); }
-.login-link { color: var(--paper-text-soft); font-size: 0.95rem; white-space: nowrap; }
-.login-link:hover { color: var(--brass); }
+/* Persistent search row under the bar (owner feedback 2026-06-14). */
+.header-search { margin-top: var(--s-3); }
+.header-search .search input { padding: 10px 14px; font-size: 1rem; }
 @media (max-width: 480px) {
   .site-header .bar { gap: var(--s-3); }
   .brand { font-size: 1.1rem; gap: var(--s-2); }

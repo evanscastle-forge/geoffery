@@ -4,7 +4,7 @@
 interface Props { points: [number, number][]; width?: number; height?: number; label?: string; }
 const { points, width = 240, height = 48, label } = Astro.props;
 
-const gutter = 34; // right-hand space for the % labels
+const gutter = 42; // right-hand space for the % labels (owner feedback 2026-06-14: more room)
 const plotW = width - gutter;
 
 let path = "";
@@ -18,7 +18,7 @@ if (points.length > 1) {
   const minY = Math.min(...ys), maxY = Math.max(...ys);
   const spanX = maxX - minX || 1;
   const spanY = maxY - minY || 1;
-  const pad = 3;
+  const pad = 6; // inset the plotted line from the left/right edges (owner feedback 2026-06-14)
   const sx = (x: number) => pad + ((x - minX) / spanX) * (plotW - pad * 2);
   const sy = (y: number) => height - pad - ((y - minY) / spanY) * (height - pad * 2);
   path = points.map((p, i) => `${i === 0 ? "M" : "L"}${sx(p[0]).toFixed(1)},${sy(p[1]).toFixed(1)}`).join(" ");
@@ -47,7 +47,7 @@ const stroke = rising ? "var(--trend-up)" : "var(--trend-down)";
     <path d={area} fill={stroke} opacity="0.12" />
     <path d={path} fill="none" stroke={stroke} stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" />
     {ticks.map((t) => (
-      <text x={width - 1} y={Math.min(Math.max(t.y + 3, 8), height - 1).toFixed(1)} text-anchor="end" class="spark-pct">{t.text}</text>
+      <text x={plotW + 4} y={Math.min(Math.max(t.y + 3, 8), height - 1).toFixed(1)} text-anchor="start" class="spark-pct">{t.text}</text>
     ))}
   </svg>
 ) : (

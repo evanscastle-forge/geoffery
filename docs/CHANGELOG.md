@@ -3,6 +3,27 @@
 Newest entry on top. One entry per commit; format in `.claude/prompts.md`. The full per-commit
 history is in `git log`; this file carries the human-readable summaries going forward.
 
+## 2026-06-14 — web-app + design + core — SCOPE: CROSS-MODULE
+**Summary**: Feedback batch (`local/feedback.txt`). (1) Persistent site search in the header on every
+page (homepage keeps its hero search); (2) the Bell now ends with **Start Over** + **Visit Item Page**
+instead of one verify link; (3) nav reordered to Home · Tip Geoffery · About; (4) **tips rethought** —
+removed the Patrons page + Log in/profile; the Tip Geoffery page is now a monthly tip jar + a wall of the
+month's patrons with a month picker (no rankings), reaching the goal grants every visitor bonus
+consultations and a tipper unlimited use that month (cookie-driven; donor data is curated content; basic
+profanity filter on names); (5) "Ring the bell" bolded on home; (6) larger card bottom margin so charts
+aren't clipped; (7) sparkline plot inset so the % annotations have room. Revises the 2026-06-12
+account-gated tip model (CHARTER §3).
+**Files touched**: `site/src/layouts/Base.astro`; `site/src/components/{Search,Sparkline,Bell}.astro`;
+`site/src/pages/{index,money,404,sitemap.xml}` + **deleted** `{ledger,profile}.astro`; `site/src/scripts/bell.ts`;
+`packages/content/src/{lines,donations (new),index}.ts`; `packages/core/src/{profanity (new + test),index}.ts`;
+`.claude/CHARTER.md`.
+**SYSTEM_ARCHITECTURE.md sections affected**: none.
+**Notify**: web-app/monetization (tip model), growth-seo (`/ledger/` + `/profile/` removed).
+**Verification**: `npm run check` green (63 tests incl. new `cleanName`). Browser (1440×900 + 390×844):
+header search on every non-home page; Bell shows Start Over + Visit Item Page; nav Home · Tip Geoffery ·
+About; bold "Ring the bell"; card charts un-clipped + roomy annotations; Tip jar fills from the curated
+total, the month picker switches the donor list, a tip sets the cookie. `/ledger/` + `/profile/` 404.
+
 ## 2026-06-13 — web-app + core + design — SCOPE: CROSS-MODULE
 **Summary**: UI batch — (1) taller "items of note" cards with roomier weekly charts; (2) removed the
 buy/hold/sell/wait verdict badges everywhere (homepage + item gauge); (3) the gauge verdict line is now

@@ -9,3 +9,4 @@ export * from "./gauge.ts";
 export * from "./scoring.ts";
 export * from "./ledger.ts";
 export * from "./watch.ts";
+export * from "./profanity.ts";

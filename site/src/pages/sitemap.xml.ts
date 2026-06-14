@@ -7,7 +7,7 @@ export const GET: APIRoute = ({ site }) => {
   const base = (site?.toString() || "http://127.0.0.1:4321/").replace(/\/$/, "");
   const m = meta();
   const iso = (ts: number) => new Date((ts || m.exportedAt) * 1000).toISOString();
-  const statics = ["/", "/about/", "/money/", "/ledger/"];
+  const statics = ["/", "/about/", "/money/"];
   const urls: string[] = [];
   for (const p of statics) urls.push(`<url><loc>${base}${p}</loc></url>`);
   for (const a of Object.values(aggregates())) {

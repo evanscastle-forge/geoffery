@@ -1,25 +1,46 @@
 ---
 import Base from "../layouts/Base.astro";
 import Dialogue from "../components/Dialogue.astro";
-import { PAGES } from "@geoffery/content";
+import { PAGES, DONATIONS, jarLevel, monthOf } from "@geoffery/content";
+import { cleanName } from "@geoffery/core";
 
-// Tips require an account first (D-MONEY-001, 2026-06-12). Accounts do not exist
-// yet (post-MVP), so every tip click surfaces Geoffery's account-required line;
-// Stripe checkout wiring returns when accounts arrive.
+// Tips, rethought (owner directive 2026-06-14): a monthly tip jar + a wall of the
+// month's patrons (no rankings). Reach the goal and everyone gets bonus consultations
+// that month; a tipper gets the month unhindered. Real charging is stubbed — clicking
+// "tip" sets a per-month cookie + an honest note; donor data is curated content.
+const M = PAGES.money;
+const jarSrc = ["/tipjar-0-empty.svg", "/tipjar-1-low.svg", "/tipjar-2-full.svg", "/tipjar-3-overflowing.svg"];
+const jarAlt = ["empty", "filling", "nearly full", "overflowing"];
+
+const nowKey = new Date().toISOString().slice(0, 7);
+const current = monthOf(DONATIONS, nowKey) ?? DONATIONS[0];
+const curLevel = current ? jarLevel(current.total, current.goal) : 0;
+
+const pretty = (key: string) =>
+  new Date(`${key}-01T00:00:00Z`).toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+
+// Names cleaned at render (profanity filter); embedded so the picker switches client-side.
+const monthsData = DONATIONS.map((m) => ({ key: m.month, label: pretty(m.month), donors: m.donors.map(cleanName) }));
+const currentDonors = current ? current.donors.map(cleanName) : [];
 ---
 
-<Base title="How this is paid for — Geoffery" description="Geoffery's wage is one gold a month. Everything about the market is free." canonicalPath="/money/">
+<Base title="How this is paid for — Geoffery" description="Geoffery's wage is one gold a month. Tips fill a monthly jar that unlocks bonus consultations for everyone." canonicalPath="/money/">
   <div class="wrap measure">
-    <h1>{PAGES.money.title}</h1>
-    <Dialogue><p>{PAGES.money.wage}</p></Dialogue>
+    <h1>{M.title}</h1>
+    <Dialogue><p>{M.wage}</p></Dialogue>
 
     <section class="panel doc">
-      <h2>{PAGES.money.tipsHeading}</h2>
-      <p>{PAGES.money.tipsDisclosure}</p>
+      <h2>{M.tipsHeading}</h2>
+      <p>{M.tipsDisclosure}</p>
+
+      <div class="jar">
+        <img id="tip-jar" src={jarSrc[curLevel]} alt={`The month's tip jar — ${jarAlt[curLevel]}`} width="120" height="140" />
+        <p class="small muted">{M.goalNote}</p>
+      </div>
 
       <!-- Ad-free zone: no ad slots on the payment surface (spec §7). Tiers from content. -->
       <div class="tips">
-        {PAGES.money.tiers.map((tier) => (
+        {M.tiers.map((tier) => (
           <div class="tip">
             <span class="tip-name">{tier.name}</span><span class="tip-amt">{tier.amount}</span>
             <span class="tip-blurb small">{tier.blurb}</span>
@@ -28,17 +49,66 @@ import { PAGES } from "@geoffery/content";
         ))}
       </div>
 
-      <div id="tip-account-note" class="chatbox tip-note" hidden>
-        <p>{PAGES.money.accountRequired}</p>
-      </div>
+      <div id="tip-note" class="chatbox tip-note" hidden><p>{M.tippedNote}</p></div>
+    </section>
 
-      <p class="small muted">No payment is taken without an account. Attribution (whether a tip is account-linked) is recorded from day one; live charging arrives with accounts and Stripe in production.</p>
+    <section class="panel donors">
+      <div class="donors-head">
+        <h2>{M.donorsHeading}</h2>
+        <label class="month-pick">
+          <span class="small muted">{M.monthLabel}</span>
+          <select id="month-select">
+            {monthsData.map((m) => <option value={m.key} selected={m.key === (current?.month ?? "")}>{m.label}</option>)}
+          </select>
+        </label>
+      </div>
+      <ul id="donor-list" class="names">
+        {currentDonors.map((n) => <li>{n}</li>)}
+      </ul>
+      <p id="no-donors" class="muted" hidden={currentDonors.length > 0}>{M.noDonors}</p>
     </section>
   </div>
 </Base>
 
+<script define:vars={{ monthsData, nowKey }}>
+  // Month picker — switch the rendered donor list (all months embedded above).
+  const select = document.getElementById("month-select");
+  const list = document.getElementById("donor-list");
+  const empty = document.getElementById("no-donors");
+  function render(key) {
+    const m = monthsData.find((x) => x.key === key);
+    const donors = m ? m.donors : [];
+    list.innerHTML = "";
+    for (const n of donors) {
+      const li = document.createElement("li");
+      li.textContent = n;
+      list.appendChild(li);
+    }
+    empty.hidden = donors.length > 0;
+  }
+  select?.addEventListener("change", () => render(select.value));
+
+  // Tip buttons — MVP: no real charge. Set the per-month "tipper" cookie (→ unlimited
+  // consultations this month, read by the Bell) and surface the honest note + a full jar.
+  for (const btn of document.querySelectorAll(".tip-btn[data-tip]")) {
+    btn.addEventListener("click", () => {
+      const end = new Date();
+      end.setUTCMonth(end.getUTCMonth() + 1, 1);
+      end.setUTCHours(0, 0, 0, 0);
+      const maxAge = Math.max(60, Math.floor((end.getTime() - Date.now()) / 1000));
+      document.cookie = `geoffery_tip_${nowKey}=1; path=/; max-age=${maxAge}; samesite=lax`;
+      const note = document.getElementById("tip-note");
+      if (note) note.hidden = false;
+      const jar = document.getElementById("tip-jar");
+      if (jar) jar.src = "/tipjar-3-overflowing.svg";
+    });
+  }
+</script>
+
 <style>
   .doc { margin-top: var(--s-5); }
+  .jar { display: grid; justify-items: center; gap: 6px; margin: var(--s-5) 0; }
+  .jar img { width: 120px; height: auto; }
   .tips { display: flex; gap: var(--s-4); flex-wrap: wrap; margin-top: var(--s-4); justify-content: center; }
   .tip { display: grid; gap: 6px; padding: var(--s-4); border: 1px solid var(--panel-edge); border-radius: var(--radius); width: min(280px, 100%); text-align: center; }
   .tip-name { font-family: var(--serif); font-size: 1.1rem; }
@@ -52,13 +122,15 @@ import { PAGES } from "@geoffery/content";
   .tip-btn:hover { filter: brightness(1.05); }
   .tip-note { margin-top: var(--s-4); padding: var(--s-4); font-family: var(--chat-font); }
   .tip-note p { margin: 0; }
-</style>
 
-<script>
-  for (const btn of document.querySelectorAll<HTMLButtonElement>(".tip-btn[data-tip]")) {
-    btn.addEventListener("click", () => {
-      const note = document.getElementById("tip-account-note");
-      if (note) note.hidden = false;
-    });
+  .donors { margin-top: var(--s-5); }
+  .donors-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; }
+  .donors-head h2 { margin: 0; border-bottom: none; }
+  .month-pick { display: inline-flex; align-items: center; gap: 8px; }
+  .month-pick select {
+    padding: 6px 10px; border-radius: var(--radius); border: 1px solid var(--panel-edge);
+    background: var(--panel); color: var(--ink); font-family: var(--sans); font-size: 0.95rem;
   }
-</script>
+  .names { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-3); margin: var(--s-4) 0 0; }
+  .names li { background: var(--bg-raised); color: var(--paper-text); padding: 6px 12px; border-radius: 999px; }
+</style>

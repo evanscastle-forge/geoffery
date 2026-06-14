@@ -25,8 +25,12 @@ and decision ledger privately (under `local/`, gitignored — not part of this r
    read of the news support: "I keep accounts. I do not gamble — you have seen my wages."
 3. **Monetization conduct is locked** (spec §7). Free = everything about the market, forever;
    nothing currently free ever moves behind a paywall. Paid = everything about *you*. No dark
-   patterns, one-click cancel. Ads: AdSense manual units only, Auto Ads off, three slots, category
-   blocks (gold sellers/RWT, gambling, get-rich-quick) non-negotiable.
+   patterns, one-click cancel. **Tips** (revised 2026-06-14): a monthly tip jar + a wall of the
+   month's patrons (no rankings, no amounts shown); reaching the month's goal grants *every* visitor
+   bonus consultations for the rest of the month, and a tipper gets the month unhindered — generous,
+   never a paywall on market data. At MVP, payments stay stubbed, donor/total data is owner-curated
+   content, and the per-user "tipped / bonus" state is a cookie. Ads: AdSense manual units only, Auto
+   Ads off, three slots, category blocks (gold sellers/RWT, gambling, get-rich-quick) non-negotiable.
 4. **Jagex compatibility / IP.** Data only from community-blessed sources (OSRS Wiki API +
    MediaWiki); never scrape Jagex properties; wiki content is a signal, never republished.
    "Rhyme, don't quote" — original character, original art, no actual Jagex assets (sprites,

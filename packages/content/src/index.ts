@@ -1,5 +1,6 @@
 // @geoffery/content — Geoffery's words + visual identity tokens (spec §9).
 export * from "./lines.ts";
+export * from "./donations.ts";
 export { LEDGER } from "./ledger.ts";
 export type { LedgerName } from "./ledger.ts";
 

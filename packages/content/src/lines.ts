@@ -131,10 +131,11 @@ export const BELL = {
   limitReached: (n: number) =>
     `You have rung ${numberWord(n)} today. The bell is fine; I am winded. Do return on the morrow.`,
   limitTipCta:
-    "Unless, of course, you cared to keep me at the desk — the tip jar is just here, and on my wages a single coin goes remarkably far.",
+    "Unless you cared to keep me at the desk — a coin in the jar buys you the rest of the month unhindered, and nudges the whole house toward its monthly mark.",
   // Canonical refusal to speculate (spec §6) — lightened, meaning intact.
   noSpeculation: "I keep accounts. I do not gamble — you have seen my wages.",
-  verifyLink: "The figures, should you wish to check my sums. Someone ought to.",
+  startOver: "Start Over",
+  visitItem: "Visit Item Page",
   // Fallbacks the Bell may need mid-flow (gender-neutral; were hardcoded in the script).
   noLedger: "My ledger has nothing on that item yet.",
   noFigures: "I have not the figures to advise that honestly.",
@@ -160,9 +161,15 @@ export const PAGES = {
   money: {
     title: "How this is paid for",
     wage: "My wage is one gold a month — a single coin. Everything about the market is free, and nothing now free will move behind a paywall.",
-    tipsHeading: "If you should care to tip",
+    tipsHeading: "The tip jar",
     tipsDisclosure:
-      "At present, a tip buys my gratitude and a place amongst my esteemed patrons — nothing else. No features, no priority, no secret menu. When accounts arrive, a tip will purchase a month of supporter's service; today it does not, and I would rather say so before you part with the coin than after.",
+      "Tips go into a single jar each month — no rankings, no standings, only a wall of the month's patrons. Fill the jar to its monthly mark and the whole house benefits: every visitor gets extra consultations for the rest of the month. Drop a coin in yourself and that month is yours, unhindered — ring as often as you please.",
+    goalNote: "The jar empties on the first of each month, and we begin again.",
+    donorsHeading: "Patrons of the month",
+    monthLabel: "Showing",
+    noDonors: "No names in the jar yet this month. It would suit you rather well up here.",
+    tippedNote:
+      "Your coin is noted — the month is yours, unhindered. (No charge is taken yet; real payments arrive with accounts and Stripe. I would rather say so before you part with the coin than after.)",
     // Tip tiers (owner directive 2026-06-12: renamed off "Gold/Platinum"). Labels and
     // blurbs in Geoffery's voice; web-app renders these in place of the old hardcoded
     // "Gold $1 / Platinum $10". Amounts are USD; "name" is the on-button coin label.
@@ -180,9 +187,6 @@ export const PAGES = {
         blurb: "A full year of me, paid in advance. I should be obliged, and quietly alarmed.",
       },
     ],
-    // Tips require an account (owner decision D-MONEY-001, 2026-06-12).
-    accountRequired:
-      "Before a coin enters the jar, the household must know whose coin it is. Make yourself an account first, if you please — it is quick, and I ask no awkward questions.",
   },
   ledger: {
     title: "Patrons",

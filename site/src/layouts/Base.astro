@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import { SITE, BELL } from "@geoffery/content";
 import Bell from "../components/Bell.astro";
+import Search from "../components/Search.astro";
 import { meta } from "../lib/data";
 
 interface Props {
@@ -40,27 +41,31 @@ const isLocal = (m.deployment ?? "local") === "local";
   </head>
   <body data-item-slug={itemSlug} data-item-name={itemName}>
     <header class="site-header">
-      <div class="wrap bar">
-        <a class="brand" href="/" aria-label={SITE.name}>
-          <img class="mark" src="/tipjar.svg" alt="" width="34" height="34" />
-          <!-- GE-OFFER-Y wordmark: the OFFER is the point (owner feedback 2026-06-12). -->
-          <span class="wordmark" aria-hidden="true">GE<span class="offer">OFFER</span>Y</span>
-        </a>
-        <nav class="nav" aria-label="Primary">
-          <a href="/">Home</a>
-          <a href="/about/">About</a>
-          <a href="/ledger/">Patrons</a>
-          <a href="/money/">Tip Geoffery</a>
-        </nav>
-        <div class="header-actions">
-          <!-- The bell lives in the header now (owner feedback 2026-06-12); the
-               panel + behaviour are in <Bell/> at the end of <body>. -->
-          <button id="bell-ring" class="bell-ring" aria-haspopup="dialog" aria-controls="bell-panel" aria-label={BELL.ringAria}>
-            <span class="bell-ico" aria-hidden="true">🔔</span>
-            <span class="bell-ring-label">Ring</span>
-          </button>
-          <a class="login-link" href="/profile/">Log in</a>
+      <div class="wrap header-inner">
+        <div class="bar">
+          <a class="brand" href="/" aria-label={SITE.name}>
+            <img class="mark" src="/tipjar.svg" alt="" width="34" height="34" />
+            <!-- GE-OFFER-Y wordmark: the OFFER is the point (owner feedback 2026-06-12). -->
+            <span class="wordmark" aria-hidden="true">GE<span class="offer">OFFER</span>Y</span>
+          </a>
+          <nav class="nav" aria-label="Primary">
+            <a href="/">Home</a>
+            <a href="/money/">Tip Geoffery</a>
+            <a href="/about/">About</a>
+          </nav>
+          <div class="header-actions">
+            <!-- The bell lives in the header now (owner feedback 2026-06-12); the
+                 panel + behaviour are in <Bell/> at the end of <body>. -->
+            <button id="bell-ring" class="bell-ring" aria-haspopup="dialog" aria-controls="bell-panel" aria-label={BELL.ringAria}>
+              <span class="bell-ico" aria-hidden="true">🔔</span>
+              <span class="bell-ring-label">Ring</span>
+            </button>
+          </div>
         </div>
+        <!-- Persistent site search on every page (owner feedback 2026-06-14). The
+             homepage keeps its larger hero search instead, so skip it there to avoid
+             a duplicate #site-search on one page. -->
+        {canonicalPath !== "/" && <div class="header-search"><Search /></div>}
       </div>
     </header>
 
@@ -73,9 +78,8 @@ const isLocal = (m.deployment ?? "local") === "local";
         <!-- Mirrors the header nav exactly (owner feedback 2026-06-12). -->
         <div class="links">
           <a href="/">Home</a>
-          <a href="/about/">About</a>
-          <a href="/ledger/">Patrons</a>
           <a href="/money/">Tip Geoffery</a>
+          <a href="/about/">About</a>
         </div>
         <p class="small">{SITE.footerDisclaimer}</p>
       </div>
