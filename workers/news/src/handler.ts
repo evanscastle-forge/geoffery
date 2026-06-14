@@ -72,25 +72,24 @@ export async function runNews(
   now: number = Math.floor(Date.now() / 1000),
 ): Promise<NewsResult> {
   try {
-    // 1) Poll + diff.
+    // 1) Poll + diff. (Idempotent upserts — awaited individually since D1 cannot
+    // read/iterate inside a batch and the per-poll volume is small.)
     const updates = await fetchWikiUpdates(userAgent, now);
-    store.transaction(() => {
-      for (const u of updates) upsertWikiUpdate(store, u);
-    });
+    for (const u of updates) await upsertWikiUpdate(store, u);
 
     // 2) Classify — graceful degradation when no key.
     if (!apiKey) {
-      heartbeat(store, "news", true);
+      await heartbeat(store, "news", true);
       return { polled: updates.length, classified: 0, associations: 0, stub: true };
     }
 
     const client = new Anthropic({ apiKey });
-    const catalog = itemNameCatalog(store);
+    const catalog = await itemNameCatalog(store);
     const byNameLc = new Map(catalog.map((c) => [c.name.toLowerCase(), c.id]));
     const windows: { id: number; name: string }[][] = [];
     for (let i = 0; i < catalog.length; i += CATALOG_WINDOW) windows.push(catalog.slice(i, i + CATALOG_WINDOW));
 
-    const pending = unclassifiedUpdates(store, maxUpdates);
+    const pending = await unclassifiedUpdates(store, maxUpdates);
     let classified = 0;
     let associations = 0;
     let requests = 0;
@@ -107,26 +106,27 @@ export async function runNews(
         all.push(...assoc);
         if (all.length >= MAX_ITEMS_PER_UPDATE) break;
       }
-      store.transaction(() => {
-        for (const a of all.slice(0, MAX_ITEMS_PER_UPDATE)) {
-          const name = (a.item_name ?? "").trim().toLowerCase();
-          const id = byNameLc.get(name);
-          const conf = Number(a.confidence ?? 0);
-          if (id === undefined || !Number.isFinite(conf)) continue;
-          const sentiment = SENTIMENTS.has(String(a.sentiment)) ? String(a.sentiment) : "neutral";
-          insertAssociation(store, u.id, id, conf, (a.quote ?? "").slice(0, 1000), sentiment);
-          if (conf >= MIN_CONFIDENCE) associations++;
-        }
-        markClassified(store, u.id, CLASSIFIER_VERSION, now);
-      });
+      // Idempotent upserts (ON CONFLICT), so a crash mid-update reclassifies
+      // cleanly on the next run; markClassified last so an interrupted classify
+      // is retried rather than silently skipped.
+      for (const a of all.slice(0, MAX_ITEMS_PER_UPDATE)) {
+        const name = (a.item_name ?? "").trim().toLowerCase();
+        const id = byNameLc.get(name);
+        const conf = Number(a.confidence ?? 0);
+        if (id === undefined || !Number.isFinite(conf)) continue;
+        const sentiment = SENTIMENTS.has(String(a.sentiment)) ? String(a.sentiment) : "neutral";
+        await insertAssociation(store, u.id, id, conf, (a.quote ?? "").slice(0, 1000), sentiment);
+        if (conf >= MIN_CONFIDENCE) associations++;
+      }
+      await markClassified(store, u.id, CLASSIFIER_VERSION, now);
       classified++;
     }
 
-    if (requests > 0) recordLlmUsage(store, "news", model, requests, inTok, outTok, now);
-    heartbeat(store, "news", true);
+    if (requests > 0) await recordLlmUsage(store, "news", model, requests, inTok, outTok, now);
+    await heartbeat(store, "news", true);
     return { polled: updates.length, classified, associations, stub: false };
   } catch (e) {
-    heartbeat(store, "news", false, String(e));
+    await heartbeat(store, "news", false, String(e));
     throw e;
   }
 }

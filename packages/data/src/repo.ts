@@ -1,5 +1,8 @@
 // Repository helpers: typed reads/writes over SqlStore, mapping DB rows to/from
-// @geoffery/core domain types. Pure adapters — no business math.
+// @geoffery/core domain types. Pure adapters — no business math. The seam is async
+// (D1/R2 are Promise-only); every helper awaits the store, except insertSnapshots,
+// which keeps a synchronous bulk path on the concrete local SqliteStore (used only
+// by the millions-of-rows backfill/restore tools that never run on Cloudflare).
 
 import type {
   Aggregate,
@@ -40,8 +43,8 @@ export function itemFromRow(r: ItemRow): Item {
   };
 }
 
-export function upsertItem(store: SqlStore, item: Item, now: number): void {
-  store.run(
+export async function upsertItem(store: SqlStore, item: Item, now: number): Promise<void> {
+  await store.run(
     `INSERT INTO items (id, name, slug, examine, members, ge_limit, value, highalch, lowalch, icon, updated_at)
      VALUES (?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(id) DO UPDATE SET
@@ -62,22 +65,43 @@ export function upsertItem(store: SqlStore, item: Item, now: number): void {
   );
 }
 
-export function allItems(store: SqlStore): Item[] {
-  return store.all<ItemRow>("SELECT * FROM items ORDER BY id").map(itemFromRow);
+/** Build the upsert statement for one item (for batching mapping refreshes). */
+export function upsertItemStatement(item: Item, now: number): { sql: string; params: unknown[] } {
+  return {
+    sql: `INSERT INTO items (id, name, slug, examine, members, ge_limit, value, highalch, lowalch, icon, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?)
+     ON CONFLICT(id) DO UPDATE SET
+       name=excluded.name, examine=excluded.examine, members=excluded.members,
+       ge_limit=excluded.ge_limit, value=excluded.value, highalch=excluded.highalch,
+       lowalch=excluded.lowalch, icon=excluded.icon, updated_at=excluded.updated_at`,
+    params: [
+      item.id, item.name, item.slug, item.examine, item.members ? 1 : 0,
+      item.geLimit, item.value, item.highalch, item.lowalch, item.icon, now,
+    ],
+  };
 }
 
-export function itemIds(store: SqlStore): number[] {
-  return store.all<{ id: number }>("SELECT id FROM items ORDER BY id").map((r) => r.id);
+export async function allItems(store: SqlStore): Promise<Item[]> {
+  return (await store.all<ItemRow>("SELECT * FROM items ORDER BY id")).map(itemFromRow);
 }
 
-export function itemBySlug(store: SqlStore, slug: string): Item | null {
-  const r = store.get<ItemRow>("SELECT * FROM items WHERE slug = ?", slug);
+export async function itemIds(store: SqlStore): Promise<number[]> {
+  return (await store.all<{ id: number }>("SELECT id FROM items ORDER BY id")).map((r) => r.id);
+}
+
+/** Set of known item ids — used as a FK guard before bulk upserts. */
+export async function itemIdSet(store: SqlStore): Promise<Set<number>> {
+  return new Set((await store.all<{ id: number }>("SELECT id FROM items")).map((r) => r.id));
+}
+
+export async function itemBySlug(store: SqlStore, slug: string): Promise<Item | null> {
+  const r = await store.get<ItemRow>("SELECT * FROM items WHERE slug = ?", slug);
   return r ? itemFromRow(r) : null;
 }
 
-export function existingSlugs(store: SqlStore): Map<number, string> {
+export async function existingSlugs(store: SqlStore): Promise<Map<number, string>> {
   const out = new Map<number, string>();
-  for (const r of store.all<{ id: number; slug: string }>("SELECT id, slug FROM items")) {
+  for (const r of await store.all<{ id: number; slug: string }>("SELECT id, slug FROM items")) {
     out.set(r.id, r.slug);
   }
   return out;
@@ -85,8 +109,8 @@ export function existingSlugs(store: SqlStore): Map<number, string> {
 
 // ---- prices_latest ----
 
-export function upsertLatest(store: SqlStore, p: LatestPrice): void {
-  store.run(
+export async function upsertLatest(store: SqlStore, p: LatestPrice): Promise<void> {
+  await store.run(
     `INSERT INTO prices_latest (item_id, high, high_ts, low, low_ts, fetched_at)
      VALUES (?,?,?,?,?,?)
      ON CONFLICT(item_id) DO UPDATE SET
@@ -101,8 +125,20 @@ export function upsertLatest(store: SqlStore, p: LatestPrice): void {
   );
 }
 
-export function getLatest(store: SqlStore, itemId: number): LatestPrice | null {
-  const r = store.get<{
+/** Build the upsert statement for one latest price (for batching). */
+export function upsertLatestStatement(p: LatestPrice): { sql: string; params: unknown[] } {
+  return {
+    sql: `INSERT INTO prices_latest (item_id, high, high_ts, low, low_ts, fetched_at)
+     VALUES (?,?,?,?,?,?)
+     ON CONFLICT(item_id) DO UPDATE SET
+       high=excluded.high, high_ts=excluded.high_ts, low=excluded.low,
+       low_ts=excluded.low_ts, fetched_at=excluded.fetched_at`,
+    params: [p.itemId, p.high, p.highTs, p.low, p.lowTs, p.fetchedAt],
+  };
+}
+
+export async function getLatest(store: SqlStore, itemId: number): Promise<LatestPrice | null> {
+  const r = await store.get<{
     item_id: number;
     high: number | null;
     high_ts: number | null;
@@ -129,40 +165,41 @@ function snapFromRow(r: PriceRow): Snapshot {
   return { itemId: r.item_id, ts: r.ts, avgHigh: r.avg_high, avgLow: r.avg_low, highVol: r.high_vol, lowVol: r.low_vol };
 }
 
+const INSERT_SNAPSHOT_SQL = `INSERT INTO prices_5m (item_id, ts, avg_high, avg_low, high_vol, low_vol)
+     VALUES (?,?,?,?,?,?)
+     ON CONFLICT(item_id, ts) DO UPDATE SET
+       avg_high=excluded.avg_high, avg_low=excluded.avg_low,
+       high_vol=excluded.high_vol, low_vol=excluded.low_vol`;
+
 /** Trailing-window 5m snapshots for one item, ascending by ts. */
-export function snapshotsForItem(store: SqlStore, itemId: number, sinceTs: number): Snapshot[] {
-  return store
-    .all<PriceRow>(
+export async function snapshotsForItem(store: SqlStore, itemId: number, sinceTs: number): Promise<Snapshot[]> {
+  return (
+    await store.all<PriceRow>(
       "SELECT item_id, ts, avg_high, avg_low, high_vol, low_vol FROM prices_5m WHERE item_id = ? AND ts >= ? ORDER BY ts",
       itemId,
       sinceTs,
     )
-    .map(snapFromRow);
+  ).map(snapFromRow);
 }
 
 /** Snapshots for one item in [fromTs, toTs), used by the scorer's window scan. */
-export function snapshotsInWindow(store: SqlStore, itemId: number, fromTs: number, toTs: number): Snapshot[] {
-  return store
-    .all<PriceRow>(
+export async function snapshotsInWindow(store: SqlStore, itemId: number, fromTs: number, toTs: number): Promise<Snapshot[]> {
+  return (
+    await store.all<PriceRow>(
       "SELECT item_id, ts, avg_high, avg_low, high_vol, low_vol FROM prices_5m WHERE item_id = ? AND ts >= ? AND ts < ? ORDER BY ts",
       itemId,
       fromTs,
       toTs,
     )
-    .map(snapFromRow);
+  ).map(snapFromRow);
 }
 
-/** Bulk insert (used by backfill + collector). Uses one prepared statement + a txn. */
+/** Bulk insert — SYNC fast path (one prepared statement + a txn) for the local-only
+ *  backfill/restore tools (millions of rows). Portable handlers use insertSnapshotsAsync. */
 export function insertSnapshots(store: SqliteStore, snaps: Iterable<Snapshot>): number {
-  const stmt = store.prepare(
-    `INSERT INTO prices_5m (item_id, ts, avg_high, avg_low, high_vol, low_vol)
-     VALUES (?,?,?,?,?,?)
-     ON CONFLICT(item_id, ts) DO UPDATE SET
-       avg_high=excluded.avg_high, avg_low=excluded.avg_low,
-       high_vol=excluded.high_vol, low_vol=excluded.low_vol`,
-  );
+  const stmt = store.prepare(INSERT_SNAPSHOT_SQL);
   let n = 0;
-  store.transaction(() => {
+  store.transactionSync(() => {
     for (const s of snaps) {
       stmt.run(s.itemId, s.ts, s.avgHigh, s.avgLow, s.highVol, s.lowVol);
       n++;
@@ -171,20 +208,31 @@ export function insertSnapshots(store: SqliteStore, snaps: Iterable<Snapshot>): 
   return n;
 }
 
-export function maxSnapshotTs(store: SqlStore): number | null {
-  const r = store.get<{ m: number | null }>("SELECT MAX(ts) AS m FROM prices_5m");
+/** Async bulk insert for the portable collector handler (batched over the seam). */
+export async function insertSnapshotsAsync(store: SqlStore, snaps: Snapshot[]): Promise<number> {
+  const statements = snaps.map((s) => ({
+    sql: INSERT_SNAPSHOT_SQL,
+    params: [s.itemId, s.ts, s.avgHigh, s.avgLow, s.highVol, s.lowVol],
+  }));
+  // Chunk so a single batch stays well within D1's statement limits.
+  for (let i = 0; i < statements.length; i += 100) {
+    await store.batch(statements.slice(i, i + 100));
+  }
+  return snaps.length;
+}
+
+export async function maxSnapshotTs(store: SqlStore): Promise<number | null> {
+  const r = await store.get<{ m: number | null }>("SELECT MAX(ts) AS m FROM prices_5m");
   return r?.m ?? null;
 }
 
-export function snapshotCount(store: SqlStore): number {
-  return store.get<{ n: number }>("SELECT COUNT(*) AS n FROM prices_5m")?.n ?? 0;
+export async function snapshotCount(store: SqlStore): Promise<number> {
+  return (await store.get<{ n: number }>("SELECT COUNT(*) AS n FROM prices_5m"))?.n ?? 0;
 }
 
 // ---- aggregates ----
 
-export function writeAggregate(store: SqlStore, a: Aggregate): void {
-  store.run(
-    `INSERT INTO aggregates
+const WRITE_AGGREGATE_SQL = `INSERT INTO aggregates
        (item_id, computed_at, sample_count, p25, p50, p75, current_price, current_percentile,
         band, verdict_text, flags_json, volume_24h, volume_baseline,
         regime_power, regime_stability, liquidity_band,
@@ -205,42 +253,34 @@ export function writeAggregate(store: SqlStore, a: Aggregate): void {
        rec_patient_buy=excluded.rec_patient_buy, rec_patient_sell=excluded.rec_patient_sell,
        rec_extended_buy=excluded.rec_extended_buy, rec_extended_sell=excluded.rec_extended_sell,
        rec_fair_keys=excluded.rec_fair_keys,
-       engine_version=excluded.engine_version`,
-    a.itemId,
-    a.computedAt,
-    a.sampleCount,
-    a.p25,
-    a.p50,
-    a.p75,
-    a.currentPrice,
-    a.currentPercentile,
-    a.band,
-    a.verdictText,
-    JSON.stringify(a.flags),
-    a.volume24h,
-    a.volumeBaseline,
-    a.regimePower,
-    a.regimeStability,
-    a.liquidityBand,
-    a.recInstantBuy,
-    a.recInstantSell,
-    a.recHoursBuy,
-    a.recHoursSell,
-    a.recPatientBuy,
-    a.recPatientSell,
-    a.recExtendedBuy,
-    a.recExtendedSell,
-    JSON.stringify(a.recFairKeys),
-    a.engineVersion,
-  );
+       engine_version=excluded.engine_version`;
+
+function aggregateParams(a: Aggregate): unknown[] {
+  return [
+    a.itemId, a.computedAt, a.sampleCount, a.p25, a.p50, a.p75, a.currentPrice, a.currentPercentile,
+    a.band, a.verdictText, JSON.stringify(a.flags), a.volume24h, a.volumeBaseline,
+    a.regimePower, a.regimeStability, a.liquidityBand,
+    a.recInstantBuy, a.recInstantSell, a.recHoursBuy, a.recHoursSell,
+    a.recPatientBuy, a.recPatientSell, a.recExtendedBuy, a.recExtendedSell,
+    JSON.stringify(a.recFairKeys), a.engineVersion,
+  ];
+}
+
+/** Build the upsert statement for one aggregate (for batched writes). */
+export function writeAggregateStatement(a: Aggregate): { sql: string; params: unknown[] } {
+  return { sql: WRITE_AGGREGATE_SQL, params: aggregateParams(a) };
+}
+
+export async function writeAggregate(store: SqlStore, a: Aggregate): Promise<void> {
+  await store.run(WRITE_AGGREGATE_SQL, ...aggregateParams(a));
 }
 
 // ---- consultations + outcomes (prediction log + scoring) ----
 
 import type { Consultation, Outcome, Calibration } from "@geoffery/core";
 
-export function insertConsultation(store: SqlStore, c: Consultation): void {
-  store.run(
+export async function insertConsultation(store: SqlStore, c: Consultation): Promise<void> {
+  await store.run(
     `INSERT INTO consultations
        (id, client_id, item_id, side, tolerance, recommended_price,
         regime_power, regime_stability, liquidity_band, confidence_bucket,
@@ -273,9 +313,9 @@ export interface PendingConsultation {
 }
 
 /** Consultations lacking an outcome row (the scorer's work queue). */
-export function pendingConsultations(store: SqlStore): PendingConsultation[] {
-  return store
-    .all<{
+export async function pendingConsultations(store: SqlStore): Promise<PendingConsultation[]> {
+  return (
+    await store.all<{
       id: string;
       item_id: number;
       side: "buy" | "sell";
@@ -288,60 +328,57 @@ export function pendingConsultations(store: SqlStore): PendingConsultation[] {
        FROM consultations c LEFT JOIN consultation_outcomes o ON o.consultation_id = c.id
        WHERE o.consultation_id IS NULL ORDER BY c.created_at`,
     )
-    .map((r) => ({
-      id: r.id,
-      itemId: r.item_id,
-      side: r.side,
-      tolerance: r.tolerance,
-      recommendedPrice: r.recommended_price,
-      confidenceBucket: r.confidence_bucket,
-      createdAt: r.created_at,
-    }));
+  ).map((r) => ({
+    id: r.id,
+    itemId: r.item_id,
+    side: r.side,
+    tolerance: r.tolerance,
+    recommendedPrice: r.recommended_price,
+    confidenceBucket: r.confidence_bucket,
+    createdAt: r.created_at,
+  }));
 }
 
-export function insertOutcome(store: SqlStore, o: Outcome): void {
-  store.run(
-    `INSERT INTO consultation_outcomes
+const INSERT_OUTCOME_SQL = `INSERT INTO consultation_outcomes
        (consultation_id, filled, filled_at, eval_window_start, eval_window_end, evaluated_at)
      VALUES (?,?,?,?,?,?)
      ON CONFLICT(consultation_id) DO UPDATE SET
        filled=excluded.filled, filled_at=excluded.filled_at,
        eval_window_start=excluded.eval_window_start, eval_window_end=excluded.eval_window_end,
-       evaluated_at=excluded.evaluated_at`,
-    o.consultationId,
-    o.filled ? 1 : 0,
-    o.filledAt,
-    o.evalWindowStart,
-    o.evalWindowEnd,
-    o.evaluatedAt,
-  );
+       evaluated_at=excluded.evaluated_at`;
+
+function outcomeParams(o: Outcome): unknown[] {
+  return [o.consultationId, o.filled ? 1 : 0, o.filledAt, o.evalWindowStart, o.evalWindowEnd, o.evaluatedAt];
+}
+
+/** Build the upsert statement for one outcome (for the scorer's batched writes). */
+export function insertOutcomeStatement(o: Outcome): { sql: string; params: unknown[] } {
+  return { sql: INSERT_OUTCOME_SQL, params: outcomeParams(o) };
+}
+
+export async function insertOutcome(store: SqlStore, o: Outcome): Promise<void> {
+  await store.run(INSERT_OUTCOME_SQL, ...outcomeParams(o));
 }
 
 /** Replace the calibration table with freshly tabulated per-cohort fill rates. */
-export function replaceCalibration(store: SqlStore, rows: Calibration[], now: number): void {
-  store.transaction(() => {
-    store.run("DELETE FROM calibration");
-    for (const c of rows) {
-      store.run(
-        "INSERT INTO calibration (cohort_key, n_total, n_filled, fill_rate, updated_at) VALUES (?,?,?,?,?)",
-        c.cohortKey,
-        c.nTotal,
-        c.nFilled,
-        c.fillRate,
-        now,
-      );
-    }
-  });
+export async function replaceCalibration(store: SqlStore, rows: Calibration[], now: number): Promise<void> {
+  await store.batch([
+    { sql: "DELETE FROM calibration" },
+    ...rows.map((c) => ({
+      sql: "INSERT INTO calibration (cohort_key, n_total, n_filled, fill_rate, updated_at) VALUES (?,?,?,?,?)",
+      params: [c.cohortKey, c.nTotal, c.nFilled, c.fillRate, now],
+    })),
+  ]);
 }
 
 /** All scored (consultation, outcome) pairs as cohort/filled tuples for calibration. */
-export function scoredPairs(store: SqlStore): { confidenceBucket: string; filled: boolean }[] {
-  return store
-    .all<{ confidence_bucket: string; filled: number }>(
+export async function scoredPairs(store: SqlStore): Promise<{ confidenceBucket: string; filled: boolean }[]> {
+  return (
+    await store.all<{ confidence_bucket: string; filled: number }>(
       `SELECT c.confidence_bucket, o.filled FROM consultations c
        JOIN consultation_outcomes o ON o.consultation_id = c.id`,
     )
-    .map((r) => ({ confidenceBucket: r.confidence_bucket, filled: !!r.filled }));
+  ).map((r) => ({ confidenceBucket: r.confidence_bucket, filled: !!r.filled }));
 }
 
 // ---- recent news (for the gauge unsettled rule) ----
@@ -349,9 +386,9 @@ export function scoredPairs(store: SqlStore): { confidenceBucket: string; filled
 /** {itemId: true} for items touched by a recent wiki update (>=0.6 confidence,
  *  kind 'recent') within `since`. The RSS legacy path is intentionally dropped
  *  (see parity-checklist). */
-export function recentNewsItems(store: SqlStore, since: number): Set<number> {
+export async function recentNewsItems(store: SqlStore, since: number): Promise<Set<number>> {
   const out = new Set<number>();
-  for (const r of store.all<{ item_id: number }>(
+  for (const r of await store.all<{ item_id: number }>(
     `SELECT a.item_id FROM update_item_associations a
      JOIN wiki_updates u ON u.id = a.update_id
      WHERE a.confidence >= 0.6 AND u.kind = 'recent'
@@ -367,8 +404,8 @@ export function recentNewsItems(store: SqlStore, since: number): Set<number> {
 
 import type { WikiUpdate } from "./mediawiki.ts";
 
-export function upsertWikiUpdate(store: SqlStore, u: WikiUpdate): void {
-  store.run(
+export async function upsertWikiUpdate(store: SqlStore, u: WikiUpdate): Promise<void> {
+  await store.run(
     `INSERT INTO wiki_updates (id, page, title, summary, quote, kind, published_at, discovered_at, wiki_url, classified_at, engine_version)
      VALUES (?,?,?,?,?,?,?,?,?,NULL,0)
      ON CONFLICT(id) DO UPDATE SET
@@ -385,26 +422,26 @@ export function upsertWikiUpdate(store: SqlStore, u: WikiUpdate): void {
   );
 }
 
-export function unclassifiedUpdates(store: SqlStore, limit: number): { id: string; title: string; quote: string }[] {
+export async function unclassifiedUpdates(store: SqlStore, limit: number): Promise<{ id: string; title: string; quote: string }[]> {
   return store.all<{ id: string; title: string; quote: string }>(
     "SELECT id, title, quote FROM wiki_updates WHERE classified_at IS NULL AND quote != '' ORDER BY discovered_at LIMIT ?",
     limit,
   );
 }
 
-export function markClassified(store: SqlStore, id: string, version: number, now: number): void {
-  store.run("UPDATE wiki_updates SET classified_at = ?, engine_version = ? WHERE id = ?", now, version, id);
+export async function markClassified(store: SqlStore, id: string, version: number, now: number): Promise<void> {
+  await store.run("UPDATE wiki_updates SET classified_at = ?, engine_version = ? WHERE id = ?", now, version, id);
 }
 
-export function insertAssociation(
+export async function insertAssociation(
   store: SqlStore,
   updateId: string,
   itemId: number,
   confidence: number,
   justification: string,
   sentiment: string | null = null,
-): void {
-  store.run(
+): Promise<void> {
+  await store.run(
     `INSERT INTO update_item_associations (update_id, item_id, confidence, justification, sentiment)
      VALUES (?,?,?,?,?)
      ON CONFLICT(update_id, item_id) DO UPDATE SET
@@ -422,13 +459,13 @@ export function insertAssociation(
  * 'recent' association within `since`, as `{ dir, strength, ageDays }`. dir maps
  * positive→+1 / negative→−1 / neutral|null→0; strength = classifier confidence.
  */
-export function recentSentiment(
+export async function recentSentiment(
   store: SqlStore,
   since: number,
   now: number,
-): Map<number, { dir: -1 | 0 | 1; strength: number; ageDays: number }> {
+): Promise<Map<number, { dir: -1 | 0 | 1; strength: number; ageDays: number }>> {
   const out = new Map<number, { dir: -1 | 0 | 1; strength: number; ageDays: number }>();
-  for (const r of store.all<{ item_id: number; confidence: number; sentiment: string | null; at: number }>(
+  for (const r of await store.all<{ item_id: number; confidence: number; sentiment: string | null; at: number }>(
     `SELECT a.item_id AS item_id, a.confidence AS confidence, a.sentiment AS sentiment,
             COALESCE(u.published_at, u.discovered_at) AS at
      FROM update_item_associations a
@@ -450,20 +487,20 @@ export function recentSentiment(
 }
 
 /** Hard-prune the price cache: drop prices_5m rows older than `keepDays` days. */
-export function pruneOldData(store: SqlStore, now: number, keepDays = 30): number {
+export async function pruneOldData(store: SqlStore, now: number, keepDays = 30): Promise<number> {
   const cutoff = now - keepDays * 86400;
-  const before = store.get<{ n: number }>("SELECT COUNT(*) AS n FROM prices_5m");
-  store.run("DELETE FROM prices_5m WHERE ts < ?", cutoff);
-  const after = store.get<{ n: number }>("SELECT COUNT(*) AS n FROM prices_5m");
+  const before = await store.get<{ n: number }>("SELECT COUNT(*) AS n FROM prices_5m");
+  await store.run("DELETE FROM prices_5m WHERE ts < ?", cutoff);
+  const after = await store.get<{ n: number }>("SELECT COUNT(*) AS n FROM prices_5m");
   return (before?.n ?? 0) - (after?.n ?? 0);
 }
 
 /** {lowercased name -> item id} closed vocabulary for the classifier. */
-export function itemNameCatalog(store: SqlStore): { id: number; name: string }[] {
+export async function itemNameCatalog(store: SqlStore): Promise<{ id: number; name: string }[]> {
   return store.all<{ id: number; name: string }>("SELECT id, name FROM items ORDER BY name");
 }
 
-export function recordLlmUsage(
+export async function recordLlmUsage(
   store: SqlStore,
   job: string,
   model: string,
@@ -471,8 +508,8 @@ export function recordLlmUsage(
   inputTokens: number,
   outputTokens: number,
   now: number,
-): void {
-  store.run(
+): Promise<void> {
+  await store.run(
     "INSERT INTO llm_usage (ts, job, model, request_count, input_tokens, output_tokens) VALUES (?,?,?,?,?,?)",
     now,
     job,
@@ -482,8 +519,6 @@ export function recordLlmUsage(
     outputTokens,
   );
 }
-
-// ---- pipeline health (heartbeat) ----
 
 // ---- calibration summary (methodology page + in-dialogue confidence) ----
 
@@ -501,8 +536,8 @@ export interface CalibrationSummary {
   exportedAt: number;
 }
 
-export function calibrationSummary(store: SqlStore, now: number): CalibrationSummary {
-  const rows = store.all<{ cohort_key: string; n_total: number; n_filled: number }>(
+export async function calibrationSummary(store: SqlStore, now: number): Promise<CalibrationSummary> {
+  const rows = await store.all<{ cohort_key: string; n_total: number; n_filled: number }>(
     "SELECT cohort_key, n_total, n_filled FROM calibration",
   );
   const overall: CohortStat = { nTotal: 0, nFilled: 0, fillRate: 0 };
@@ -523,8 +558,8 @@ export function calibrationSummary(store: SqlStore, now: number): CalibrationSum
 }
 
 /** Look up the fill rate for one cohort key (in-dialogue confidence). */
-export function cohortFillRate(store: SqlStore, cohortKey: string): CohortStat | null {
-  const r = store.get<{ n_total: number; n_filled: number; fill_rate: number }>(
+export async function cohortFillRate(store: SqlStore, cohortKey: string): Promise<CohortStat | null> {
+  const r = await store.get<{ n_total: number; n_filled: number; fill_rate: number }>(
     "SELECT n_total, n_filled, fill_rate FROM calibration WHERE cohort_key = ?",
     cohortKey,
   );
@@ -544,9 +579,9 @@ export interface WikiNotice {
 }
 
 /** {itemId: notices[]} for high-confidence associations to upcoming/recent updates. */
-export function recentWikiNotices(store: SqlStore, _now: number): Map<number, WikiNotice[]> {
+export async function recentWikiNotices(store: SqlStore, _now: number): Promise<Map<number, WikiNotice[]>> {
   const out = new Map<number, WikiNotice[]>();
-  for (const r of store.all<{
+  for (const r of await store.all<{
     item_id: number;
     kind: "upcoming" | "recent" | "past";
     title: string;
@@ -574,6 +609,8 @@ export function recentWikiNotices(store: SqlStore, _now: number): Map<number, Wi
   return out;
 }
 
+// ---- pipeline health (heartbeat) ----
+
 export interface HealthRow {
   job_name: string;
   last_ok_at: number;
@@ -582,21 +619,21 @@ export interface HealthRow {
   last_error: string | null;
 }
 
-export function allHealth(store: SqlStore): HealthRow[] {
+export async function allHealth(store: SqlStore): Promise<HealthRow[]> {
   return store.all<HealthRow>("SELECT * FROM pipeline_health ORDER BY job_name");
 }
 
 /** Jobs whose last OK is older than `maxAgeSeconds` — the page-the-owner signal
  *  (collector death is the alert per spec §11 Phase 3). */
-export function staleJobs(store: SqlStore, maxAgeSeconds: number, now = Math.floor(Date.now() / 1000)): string[] {
-  return allHealth(store)
+export async function staleJobs(store: SqlStore, maxAgeSeconds: number, now = Math.floor(Date.now() / 1000)): Promise<string[]> {
+  return (await allHealth(store))
     .filter((h) => now - h.last_ok_at > maxAgeSeconds)
     .map((h) => h.job_name);
 }
 
-export function heartbeat(store: SqlStore, job: string, ok: boolean, error?: string): void {
+export async function heartbeat(store: SqlStore, job: string, ok: boolean, error?: string): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
-  store.run(
+  await store.run(
     `INSERT INTO pipeline_health (job_name, last_ok_at, last_run_at, last_status, last_error)
      VALUES (?, ?, ?, ?, ?)
      ON CONFLICT(job_name) DO UPDATE SET

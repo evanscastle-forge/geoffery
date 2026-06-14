@@ -78,14 +78,14 @@ function downsample(series: [number, number][], from: number, to: number, points
   return out;
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const cfg = loadConfig();
   const store = openStore(cfg.dbPath) as SqliteStore;
   mkdirSync(OUT_DIR, { recursive: true });
   const now = Math.floor(Date.now() / 1000);
   const t0 = Date.now();
 
-  const items = allItems(store);
+  const items = await allItems(store);
   const slugById = new Map(items.map((i) => [i.id, i.slug]));
   const nameById = new Map(items.map((i) => [i.id, i.name]));
 
@@ -96,9 +96,9 @@ function main(): void {
   );
 
   // 2) aggregates keyed by slug (+ recent wiki notices from the news layer)
-  const notices = recentWikiNotices(store, now);
+  const notices = await recentWikiNotices(store, now);
   const aggregates: Record<string, unknown> = {};
-  for (const r of store.all<AggRow>("SELECT * FROM aggregates")) {
+  for (const r of await store.all<AggRow>("SELECT * FROM aggregates")) {
     const slug = slugById.get(r.item_id);
     if (!slug) continue;
     aggregates[slug] = {
@@ -165,8 +165,8 @@ function main(): void {
   atomicWrite("sparklines.json", sparklines);
 
   // 4) methodology stats (calibration) + 5) news + 6) meta
-  atomicWrite("methodology-stats.json", calibrationSummary(store, now));
-  atomicWrite("news.json", recentWikiList(store, now));
+  atomicWrite("methodology-stats.json", await calibrationSummary(store, now));
+  atomicWrite("news.json", await recentWikiList(store, now));
   atomicWrite("meta.json", { exportedAt: now, deployment: cfg.deployment });
 
   console.log(
@@ -176,7 +176,7 @@ function main(): void {
   store.close();
 }
 
-function recentWikiList(store: SqliteStore, now: number): unknown[] {
+async function recentWikiList(store: SqliteStore, now: number): Promise<unknown[]> {
   return store.all(
     `SELECT id, title, summary, kind, COALESCE(published_at, discovered_at) AS at, wiki_url
      FROM wiki_updates WHERE COALESCE(published_at, discovered_at) >= ? ORDER BY at DESC LIMIT 30`,
@@ -184,4 +184,7 @@ function recentWikiList(store: SqliteStore, now: number): unknown[] {
   );
 }
 
-main();
+main().catch((e) => {
+  console.error("export failed:", e);
+  process.exit(1);
+});

@@ -15,11 +15,13 @@ import {
   loadConfig,
   openStore,
   snapshotCount,
-  upsertItem,
+  upsertItemStatement,
   type ItemRow,
 } from "@geoffery/data";
 
-function main(): void {
+const ITEM_BATCH = 500;
+
+async function main(): Promise<void> {
   const cfg = loadConfig();
   const archive = new LocalArchiveStore(cfg.archiveDir);
   const store = openStore(cfg.dbPath);
@@ -27,9 +29,10 @@ function main(): void {
 
   // 1) Items (slugs already minted at migration time — immutable URLs).
   const items = archive.readItems<ItemRow>();
-  store.transaction(() => {
-    for (const row of items) upsertItem(store, itemFromRow(row), now);
-  });
+  const itemStmts = items.map((row) => upsertItemStatement(itemFromRow(row), now));
+  for (let i = 0; i < itemStmts.length; i += ITEM_BATCH) {
+    await store.batch(itemStmts.slice(i, i + ITEM_BATCH));
+  }
   console.log(`backfilled ${items.length} items`);
 
   // 2) Price history, day by day.
@@ -45,8 +48,11 @@ function main(): void {
   }
 
   console.log(`\nbackfill done: ${total.toLocaleString()} rows across ${days.length} days`);
-  console.log(`prices_5m now holds ${snapshotCount(store).toLocaleString()} rows`);
+  console.log(`prices_5m now holds ${(await snapshotCount(store)).toLocaleString()} rows`);
   store.close();
 }
 
-main();
+main().catch((e) => {
+  console.error("backfill failed:", e);
+  process.exit(1);
+});

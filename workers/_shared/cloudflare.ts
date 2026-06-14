@@ -7,23 +7,13 @@
 // bundled by wrangler's esbuild without a typecheck). The Node entries
 // (main.node.ts) remain the localhost path and stay fully checked.
 //
-// ─────────────────────────────────────────────────────────────────────────────
-// ⚠ SEAM STATUS — the storage seam is SYNCHRONOUS; D1/R2 are ASYNC-only.
-//
-// The handlers (runCollect/runAggregate/runScorer/runNews/logConsultation) and
-// the packages/data repo helpers call `store.get/all/run/transaction` and
-// `archive.readDay` SYNCHRONOUSLY (node:sqlite + local fs are synchronous).
-// Cloudflare's D1 and R2 APIs are Promise-only. So the adapters below cannot
-// satisfy the *current* sync `SqlStore`/`ArchiveStore` interfaces — making the
-// workers actually EXECUTE on Cloudflare requires converting those seams (and
-// the handlers + repo helpers that ride them) to async. That is a CONTRACT-level
-// change owned by db/schema-smith (SYSTEM_ARCHITECTURE §3.1/§3.2), tracked in
-// docs/RUNBOOK.md → "Cloudflare execution (async seam)". Until then the worker.ts
-// entries fail loudly via `seamNotWired()` rather than run a half-wired path.
-//
-// The async adapters here are written to the real D1/R2 API so that conversion
-// is mechanical: once the seam is `async`, drop the guard and `await` the handler.
-// ─────────────────────────────────────────────────────────────────────────────
+// The storage seam is ASYNC (packages/data/src/db.ts `SqlStore` +
+// archive.ts `ArchiveStore`), which D1/R2 satisfy natively. D1Store and
+// R2Archive below implement those interfaces; the worker.ts entries construct
+// them from the bindings and `await` the portable handler directly.
+
+import type { ArchiveStore, BatchStatement, DayManifest, Snapshot, SqlStore } from "@geoffery/data";
+import { decodeDayObject, encodeDayObject, mergeDaySnapshots, objectKeyFor } from "@geoffery/data";
 
 /** Bindings declared across ops/wrangler/*.toml. Each worker uses a subset. */
 export interface Env {
@@ -36,24 +26,17 @@ export interface Env {
   ANTHROPIC_API_KEY?: string;
 }
 
-/** A descriptive, fail-loud guard for the not-yet-wired async seam (see above). */
-export function seamNotWired(worker: string): never {
-  throw new Error(
-    `[${worker}] not wired for Cloudflare execution: the storage seam is ` +
-      `synchronous and D1/R2 are async-only. Convert SqlStore/ArchiveStore (and ` +
-      `the handlers + repo helpers) to async, then remove this guard. See ` +
-      `docs/RUNBOOK.md → "Cloudflare execution (async seam)".`,
-  );
-}
-
 /**
- * Async D1 adapter — the future `SqlStore` once the seam is async. D1's API maps
- * cleanly to get/all/run; `transaction(fn)` has no direct analogue (D1 exposes
- * `batch()` over an explicit statement list, not an imperative callback) and is
- * the one helper the async conversion must redesign.
+ * D1 adapter for the async `SqlStore` seam. D1's API maps cleanly to
+ * get/all/run; the imperative `transaction(fn)` was redesigned into `batch()`
+ * over an explicit statement list (D1's only atomic primitive).
  */
-export class D1Store {
+export class D1Store implements SqlStore {
   constructor(private readonly db: D1Database) {}
+
+  async exec(sql: string): Promise<void> {
+    await this.db.exec(sql);
+  }
 
   async get<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T | undefined> {
     return (await this.db.prepare(sql).bind(...params).first<T>()) ?? undefined;
@@ -69,21 +52,31 @@ export class D1Store {
   }
 
   /** D1 batches are atomic; callers build the statement list explicitly. */
-  async batch(statements: { sql: string; params?: unknown[] }[]): Promise<void> {
+  async batch(statements: BatchStatement[]): Promise<void> {
+    if (statements.length === 0) return;
     await this.db.batch(statements.map((s) => this.db.prepare(s.sql).bind(...(s.params ?? []))));
   }
+
+  /** D1 has no connection to close; the binding is managed by the runtime. */
+  close(): void {}
 }
 
 /**
- * Async R2 adapter — the future `ArchiveStore`. The on-disk codec (gzipped NDJSON
- * daily files + sha256 manifest) is owned by packages/data/src/archive.ts; this
- * adapter must reuse that codec verbatim (node:zlib is available under
- * compatibility_flags=["nodejs_compat"]) so the R2 archive is byte-identical to
- * the local one. Left as the async-conversion task rather than a second,
- * drift-prone implementation of the codec.
+ * R2 adapter for the async `ArchiveStore` seam. Reuses the gzipped-NDJSON day
+ * codec owned by packages/data/src/archive.ts (node:zlib is available under
+ * compatibility_flags=["nodejs_compat"]) so the R2 archive matches the local
+ * one byte-for-byte rather than carrying a second, drift-prone codec.
  */
-export class R2Archive {
+export class R2Archive implements ArchiveStore {
   constructor(private readonly bucket: R2Bucket) {}
-  // readDay/streamRange/writeDay/appendDay/readManifest — wire to the shared
-  // codec during the async seam conversion (see RUNBOOK).
+
+  async appendDay(day: string, snapshots: Snapshot[]): Promise<DayManifest> {
+    const key = objectKeyFor(day);
+    const existingObj = await this.bucket.get(key);
+    const existing = existingObj ? decodeDayObject(new Uint8Array(await existingObj.arrayBuffer())) : [];
+    const merged = mergeDaySnapshots(existing, snapshots);
+    const { body, rows, minTs, maxTs } = encodeDayObject(merged);
+    await this.bucket.put(key, body);
+    return { object: key, rows, minTs, maxTs };
+  }
 }

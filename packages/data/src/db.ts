@@ -7,13 +7,25 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { SCHEMA } from "./schema.ts";
 
+// The seam is ASYNC (Cloudflare D1/R2 are Promise-only). The local node:sqlite
+// adapter is synchronous under the hood, so SqliteStore keeps a fast synchronous
+// CORE (`*Sync` + prepare/iterate/transactionSync) for the local-only bulk/scan
+// tools, and exposes the async SqlStore interface (thin wrappers over that core)
+// that the portable handlers + repo helpers ride. The D1 adapter
+// (workers/_shared/cloudflare.ts) implements the same async interface natively.
+export interface BatchStatement {
+  sql: string;
+  params?: unknown[];
+}
+
 export interface SqlStore {
-  exec(sql: string): void;
-  run(sql: string, ...params: unknown[]): void;
-  get<T = Record<string, unknown>>(sql: string, ...params: unknown[]): T | undefined;
-  all<T = Record<string, unknown>>(sql: string, ...params: unknown[]): T[];
-  /** Run `fn` inside a single transaction. */
-  transaction(fn: () => void): void;
+  exec(sql: string): Promise<void>;
+  run(sql: string, ...params: unknown[]): Promise<void>;
+  get<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T | undefined>;
+  all<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T[]>;
+  /** Atomic batch of statements (replaces the old imperative transaction(fn);
+   *  D1 has no callback transaction, only an explicit statement list). */
+  batch(statements: BatchStatement[]): Promise<void>;
   close(): void;
 }
 
@@ -28,23 +40,20 @@ export class SqliteStore implements SqlStore {
     }
   }
 
-  exec(sql: string): void {
+  // ---- synchronous core (local-only; node:sqlite is synchronous) ----
+  execSync(sql: string): void {
     this.db.exec(sql);
   }
-
-  run(sql: string, ...params: unknown[]): void {
+  runSync(sql: string, ...params: unknown[]): void {
     this.db.prepare(sql).run(...(params as never[]));
   }
-
-  get<T = Record<string, unknown>>(sql: string, ...params: unknown[]): T | undefined {
+  getSync<T = Record<string, unknown>>(sql: string, ...params: unknown[]): T | undefined {
     return this.db.prepare(sql).get(...(params as never[])) as T | undefined;
   }
-
-  all<T = Record<string, unknown>>(sql: string, ...params: unknown[]): T[] {
+  allSync<T = Record<string, unknown>>(sql: string, ...params: unknown[]): T[] {
     return this.db.prepare(sql).all(...(params as never[])) as T[];
   }
-
-  transaction(fn: () => void): void {
+  transactionSync(fn: () => void): void {
     this.db.exec("BEGIN");
     try {
       fn();
@@ -54,26 +63,52 @@ export class SqliteStore implements SqlStore {
       throw e;
     }
   }
-
-  close(): void {
-    this.db.close();
-  }
-
   /** Escape hatch for the bulk-insert path that needs a reused prepared statement. */
   prepare(sql: string) {
     return this.db.prepare(sql);
   }
-
   /** Stream rows for a large scan without materializing them all at once. */
   *iterate<T = Record<string, unknown>>(sql: string, ...params: unknown[]): IterableIterator<T> {
     yield* this.db.prepare(sql).iterate(...(params as never[])) as IterableIterator<T>;
   }
+
+  // ---- async SqlStore interface (thin wrappers over the sync core) ----
+  async exec(sql: string): Promise<void> {
+    this.execSync(sql);
+  }
+  async run(sql: string, ...params: unknown[]): Promise<void> {
+    this.runSync(sql, ...params);
+  }
+  async get<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T | undefined> {
+    return this.getSync<T>(sql, ...params);
+  }
+  async all<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T[]> {
+    return this.allSync<T>(sql, ...params);
+  }
+  async batch(statements: BatchStatement[]): Promise<void> {
+    this.transactionSync(() => {
+      const cache = new Map<string, ReturnType<DatabaseSync["prepare"]>>();
+      for (const s of statements) {
+        let stmt = cache.get(s.sql);
+        if (!stmt) {
+          stmt = this.db.prepare(s.sql);
+          cache.set(s.sql, stmt);
+        }
+        stmt.run(...((s.params ?? []) as never[]));
+      }
+    });
+  }
+
+  close(): void {
+    this.db.close();
+  }
 }
 
-/** Open (and migrate) the local store. */
+/** Open (and migrate) the local store. Synchronous setup; callers then ride the
+ *  async interface. The Cloudflare path constructs a D1Store directly instead. */
 export function openStore(path: string): SqliteStore {
   const store = new SqliteStore(path);
-  store.exec(SCHEMA);
+  store.execSync(SCHEMA);
   migrate(store);
   return store;
 }
@@ -87,7 +122,7 @@ export function openStore(path: string): SqliteStore {
 function migrate(store: SqliteStore): void {
   const addColumn = (table: string, col: string, decl: string) => {
     try {
-      store.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
+      store.execSync(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
     } catch (e) {
       if (!/duplicate column name/i.test(String(e))) throw e;
     }
@@ -100,18 +135,18 @@ function migrate(store: SqliteStore): void {
   // Widen the consultations.tolerance CHECK to include 'extended' via a standard
   // table-rebuild (recreate just this one table — never the whole SCHEMA here, which
   // carries PRAGMAs that can't run inside a transaction).
-  const row = store.get<{ sql: string }>(
+  const row = store.getSync<{ sql: string }>(
     "SELECT sql FROM sqlite_master WHERE type='table' AND name='consultations'",
   );
   if (row && row.sql.includes("'patient'") && !row.sql.includes("'extended'")) {
     // The prediction log is a rebuildable cache (offline-validation only since the
     // model is deterministic); recreate it empty rather than copy rows (avoids a
     // foreign-key snag on any orphaned consultation, and is far simpler).
-    store.transaction(() => {
-      store.exec("DROP TABLE IF EXISTS consultation_outcomes");
-      store.exec("DROP TABLE IF EXISTS consultations");
-      store.exec(CONSULTATIONS_CREATE);
-      store.exec(CONSULTATION_OUTCOMES_CREATE);
+    store.transactionSync(() => {
+      store.execSync("DROP TABLE IF EXISTS consultation_outcomes");
+      store.execSync("DROP TABLE IF EXISTS consultations");
+      store.execSync(CONSULTATIONS_CREATE);
+      store.execSync(CONSULTATION_OUTCOMES_CREATE);
     });
   }
 }

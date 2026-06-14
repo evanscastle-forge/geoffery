@@ -32,12 +32,13 @@ function main(): void {
 
   // 2) Restore: re-read every day through the ArchiveStore into a fresh store.
   const fresh = new SqliteStore(":memory:");
-  fresh.exec(SCHEMA);
-  // Items must exist for the FK; load the dimension snapshot.
+  fresh.execSync(SCHEMA);
+  // Items must exist for the FK; load the dimension snapshot. Local-only restore
+  // tool → rides SqliteStore's synchronous core directly.
   const items = archive.readItems<Record<string, unknown>>();
-  fresh.transaction(() => {
+  fresh.transactionSync(() => {
     for (const it of items) {
-      fresh.run(
+      fresh.runSync(
         "INSERT INTO items (id, name, slug, members, updated_at) VALUES (?,?,?,?,0)",
         it.id,
         it.name,

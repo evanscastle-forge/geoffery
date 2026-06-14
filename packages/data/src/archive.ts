@@ -62,13 +62,61 @@ function snapshotToLine(s: Snapshot): ArchiveLine {
   return { i: s.itemId, t: s.ts, ah: s.avgHigh, al: s.avgLow, hv: s.highVol, lv: s.lowVol };
 }
 
-/** The archive interface that prod (R2) and local (filesystem) both implement. */
+// ── Portable day-object codec ────────────────────────────────────────────────
+// Pure (no fs) so the Cloudflare R2 adapter (workers/_shared/cloudflare.ts) and
+// LocalArchiveStore share ONE implementation of the gzipped-NDJSON format —
+// node:zlib is available in Workers under compatibility_flags=["nodejs_compat"].
+
+/** R2/object key (also the local relative path) for a day. */
+export function objectKeyFor(day: string): string {
+  return `prices_5m/${day}.ndjson.gz`;
+}
+
+/** Encode snapshots to the gzipped-NDJSON object bytes, sorted ascending by
+ *  (ts, itemId), with the manifest metrics for that object. */
+export function encodeDayObject(snapshots: Snapshot[]): {
+  body: Uint8Array;
+  rows: number;
+  minTs: number;
+  maxTs: number;
+} {
+  const sorted = [...snapshots].sort((a, b) => a.ts - b.ts || a.itemId - b.itemId);
+  const ndjson = sorted.map((s) => JSON.stringify(snapshotToLine(s))).join("\n") + "\n";
+  const body = gzipSync(Buffer.from(ndjson, "utf8"));
+  let minTs = Infinity;
+  let maxTs = -Infinity;
+  for (const s of sorted) {
+    if (s.ts < minTs) minTs = s.ts;
+    if (s.ts > maxTs) maxTs = s.ts;
+  }
+  return { body, rows: sorted.length, minTs, maxTs };
+}
+
+/** Decode gzipped-NDJSON object bytes back to snapshots. */
+export function decodeDayObject(buf: Uint8Array): Snapshot[] {
+  const text = gunzipSync(buf).toString("utf8");
+  const out: Snapshot[] = [];
+  for (const line of text.split("\n")) {
+    if (!line) continue;
+    out.push(lineToSnapshot(JSON.parse(line) as ArchiveLine));
+  }
+  return out;
+}
+
+/** Merge incoming snapshots into an existing day, deduped by (itemId, ts). */
+export function mergeDaySnapshots(existing: Snapshot[], incoming: Snapshot[]): Snapshot[] {
+  const byKey = new Map<string, Snapshot>();
+  for (const s of existing) byKey.set(`${s.itemId}:${s.ts}`, s);
+  for (const s of incoming) byKey.set(`${s.itemId}:${s.ts}`, s);
+  return [...byKey.values()];
+}
+
+/** The portable archive-WRITE contract the collector handler rides; prod (R2) and
+ *  local (filesystem) both implement it. The reader/streaming methods on
+ *  LocalArchiveStore below are synchronous and used only by the local
+ *  migrate/backfill/verify tools, which never run on Cloudflare. */
 export interface ArchiveStore {
-  listDays(): string[];
-  readDay(day: string): Snapshot[];
-  /** Snapshots with `fromTs <= ts < toTs`, ascending by ts, across day boundaries. */
-  streamRange(fromTs: number, toTs: number): Iterable<Snapshot>;
-  readManifest(): ArchiveManifest | null;
+  appendDay(day: string, snapshots: Snapshot[]): Promise<DayManifest>;
 }
 
 export class LocalArchiveStore implements ArchiveStore {

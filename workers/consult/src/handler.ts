@@ -20,19 +20,19 @@ export interface ConsultRequest {
 const VALID_SIDE = new Set(["buy", "sell"]);
 const VALID_TOL = new Set(["instant", "hours", "patient", "extended"]);
 
-export function logConsultation(
+export async function logConsultation(
   store: SqlStore,
   body: ConsultRequest,
   clientId: string,
   now: number = Math.floor(Date.now() / 1000),
-): { ok: boolean; id?: string; error?: string } {
+): Promise<{ ok: boolean; id?: string; error?: string }> {
   if (!body || typeof body.slug !== "string") return { ok: false, error: "missing slug" };
   if (!VALID_SIDE.has(body.side)) return { ok: false, error: "bad side" };
   if (!VALID_TOL.has(body.tolerance)) return { ok: false, error: "bad tolerance" };
   if (!Number.isFinite(body.recommendedPrice) || body.recommendedPrice <= 0)
     return { ok: false, error: "bad price" };
 
-  const item = itemBySlug(store, body.slug);
+  const item = await itemBySlug(store, body.slug);
   if (!item) return { ok: false, error: "unknown item" };
 
   const liquidity = body.liquidityBand ?? "medium";
@@ -51,6 +51,6 @@ export function logConsultation(
     engineVersion: ENGINE_VERSION,
     createdAt: now,
   };
-  insertConsultation(store, consultation);
+  await insertConsultation(store, consultation);
   return { ok: true, id: consultation.id };
 }

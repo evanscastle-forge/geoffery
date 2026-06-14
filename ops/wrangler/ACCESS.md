@@ -6,10 +6,10 @@ identical — only the env file (`env/.env.dev` vs `env/.env.prod`), the wrangle
 `--env` label, and the origin differ. This file is the operator checklist and
 the record of the **dev whitelisting** model.
 
-> ⚠ Before these deploys can *execute*, the storage seam must go async — see
-> `docs/RUNBOOK.md → "Cloudflare execution (async seam)"`. The configs, wrappers,
-> and this checklist are complete; the workers currently fail loudly
-> (`seamNotWired`) until that conversion lands.
+> The storage seam is async and the workers are wired to D1/R2 (`D1Store`/
+> `R2Archive` in `workers/_shared/cloudflare.ts`) — see `docs/RUNBOOK.md →
+> "Cloudflare execution (async seam)"`. Remaining work is operator-side
+> provisioning (account/zone, D1/R2 creation + ids, schema, Access app), below.
 
 ## The two environments
 

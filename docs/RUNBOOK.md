@@ -36,7 +36,7 @@ store is a cache, the OSRS Wiki is the source of truth (2026-06-13). Nothing old
   returns jobs whose last OK is older than the threshold; wire it to an alert in prod.
   Locally, check `pipeline_health`:
   ```bash
-  node --experimental-strip-types -e "import('@geoffery/data').then(async d=>{const s=d.openStore(process.env.GEOFFERY_DB||'./.data/geoffery.db');console.log(d.staleJobs(s, 1200));})"
+  node --experimental-strip-types -e "import('@geoffery/data').then(async d=>{const s=d.openStore(process.env.GEOFFERY_DB||'./.data/geoffery.db');console.log(await d.staleJobs(s, 1200));})"
   ```
 - News/LLM failures are **non-fatal** — updates stay unclassified and retry; no user path waits.
 
@@ -85,17 +85,24 @@ the Pages projects, and the dev Access policy) is the checklist in
 `workers/*/src/worker.ts`. Deploy auth is `wrangler login` once, or a scoped
 `CLOUDFLARE_API_TOKEN` in `env/.env.<target>` (never pasted into chat).
 
-### Cloudflare execution (async seam) — REQUIRED before the workers run
-The storage seam (`SqlStore`, `ArchiveStore`) is **synchronous** (node:sqlite +
-local fs); Cloudflare **D1 and R2 are async-only**. The portable handlers and the
-`packages/data` repo helpers call the seam synchronously, so the D1/R2 binding
-adapters in `workers/_shared/cloudflare.ts` cannot satisfy them as-is. Until the
-seam (and the handlers/repo helpers that ride it) is converted to `async`, each
-`worker.ts` fails loudly via `seamNotWired()` rather than run half-wired. This is
-a CONTRACT-level change (SYSTEM_ARCHITECTURE §3.1/§3.2), owned by db/schema-smith.
-The async D1 adapter is already written to the real API so the conversion is
-mechanical: make the seam async, `await` it through the repo helpers + handlers,
-then delete the guards.
+### Cloudflare execution (async seam) — DONE
+The storage seam (`SqlStore`, `ArchiveStore`) is **async** (Promise-returning), so
+Cloudflare's async-only **D1 and R2** satisfy it natively via `D1Store`/`R2Archive`
+in `workers/_shared/cloudflare.ts`; the `worker.ts` entries construct them from the
+bindings and `await` the portable handler directly. The local `SqliteStore` keeps a
+synchronous CORE (`*Sync` + `prepare`/`iterate`/`transactionSync`) for the
+millions-of-row backfill/restore tools, and wraps it in the async interface the
+handlers ride. Two D1-shaped redesigns came with it (SYSTEM_ARCHITECTURE §3.1/§3.2):
+- **`transaction(fn)` → `batch(statements[])`.** D1 has no imperative callback
+  transaction and cannot read mid-batch. The collector fetches the item-id set once
+  and filters (instead of per-row FK existence checks); the aggregator/scorer gather
+  results by awaiting reads first, then commit them as bounded atomic batches
+  (`writeAggregateStatement`/`insertOutcomeStatement`).
+- **Aggregator scan → keyset pagination.** A single unbounded `ORDER BY (item_id,ts)`
+  scan won't fit a D1 query result; it now reads forward in bounded pages keyed on
+  the `(item_id, ts)` primary key (`workers/aggregator/src/handler.test.ts` proves
+  grouping survives the page boundary). The R2 archive reuses the gzipped-NDJSON day
+  codec from `packages/data/src/archive.ts` (`nodejs_compat`).
 
 ### Publishing aggregates
 The static site reads build-time JSON; cron workers write D1/R2 but the site only

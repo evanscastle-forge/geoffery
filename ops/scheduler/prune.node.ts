@@ -7,12 +7,12 @@ import { LocalArchiveStore, loadConfig, openStore, pruneOldData } from "@geoffer
 
 const KEEP_DAYS = 30;
 
-function main(): void {
+async function main(): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
   const cfg = loadConfig();
   const store = openStore(cfg.dbPath);
   try {
-    const rowsDropped = pruneOldData(store, now, KEEP_DAYS);
+    const rowsDropped = await pruneOldData(store, now, KEEP_DAYS);
     const archive = new LocalArchiveStore(cfg.archiveDir);
     const daysDropped = archive.pruneDays(KEEP_DAYS);
     console.log(`prune ok: dropped ${rowsDropped} prices_5m rows, ${daysDropped} archive day-files (keep ${KEEP_DAYS}d)`);
@@ -21,4 +21,7 @@ function main(): void {
   }
 }
 
-main();
+main().catch((e) => {
+  console.error("prune failed:", e);
+  process.exit(1);
+});

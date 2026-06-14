@@ -32,17 +32,17 @@ const ONE_DAY = 86400;
 const SAMPLE_PER_BAND = 120; // items per liquidity band
 const DECISION_COUNT = 12; // decision times across the usable window
 
-function stratifiedItems(store: SqliteStore): number[] {
+async function stratifiedItems(store: SqliteStore): Promise<number[]> {
   // Use the already-computed aggregates to stratify by liquidity band.
-  const pick = (band: string) =>
-    store
-      .all<{ item_id: number }>(
+  const pick = async (band: string) =>
+    (
+      await store.all<{ item_id: number }>(
         "SELECT item_id FROM aggregates WHERE liquidity_band = ? AND sample_count >= 200 ORDER BY volume_baseline DESC LIMIT ?",
         band,
         SAMPLE_PER_BAND,
       )
-      .map((r) => r.item_id);
-  return [...pick("thick"), ...pick("medium"), ...pick("thin")];
+    ).map((r) => r.item_id);
+  return [...(await pick("thick")), ...(await pick("medium")), ...(await pick("thin"))];
 }
 
 function instaAt(rows: Snapshot[], t: number): { buy: number | null; sell: number | null } {
@@ -55,11 +55,11 @@ function instaAt(rows: Snapshot[], t: number): { buy: number | null; sell: numbe
   return { buy: best.avgHigh ?? best.avgLow, sell: best.avgLow ?? best.avgHigh };
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const cfg = loadConfig();
   const store = openStore(cfg.dbPath);
 
-  const span = store.get<{ lo: number; hi: number }>("SELECT MIN(ts) AS lo, MAX(ts) AS hi FROM prices_5m");
+  const span = await store.get<{ lo: number; hi: number }>("SELECT MIN(ts) AS lo, MAX(ts) AS hi FROM prices_5m");
   if (!span) {
     console.error("no price history");
     process.exit(1);
@@ -73,7 +73,7 @@ function main(): void {
   const step = (usableEnd - usableStart) / (DECISION_COUNT - 1);
   const decisionTimes = Array.from({ length: DECISION_COUNT }, (_, i) => Math.round(usableStart + i * step));
 
-  const items = stratifiedItems(store);
+  const items = await stratifiedItems(store);
   console.log(`backtest: ${items.length} items × ${decisionTimes.length} decision times`);
 
   const pairs: { confidenceBucket: string; filled: boolean }[] = [];
@@ -82,7 +82,7 @@ function main(): void {
 
   for (const itemId of items) {
     // Load the item's full history once; slice per decision time in memory.
-    const all = snapshotsForItem(store, itemId, lo);
+    const all = await snapshotsForItem(store, itemId, lo);
     for (const T of decisionTimes) {
       const trailing = all.filter((s) => s.ts >= T - THIRTY_DAYS && s.ts <= T);
       if (trailing.length < 30) continue;
@@ -119,7 +119,7 @@ function main(): void {
 
   const now = Math.floor(Date.now() / 1000);
   const cohorts = fillRateByCohort(pairs);
-  replaceCalibration(store, cohorts, now);
+  await replaceCalibration(store, cohorts, now);
 
   // Track record summary.
   const overall = pairs.reduce((a, p) => ({ n: a.n + 1, f: a.f + (p.filled ? 1 : 0) }), { n: 0, f: 0 });
@@ -155,4 +155,7 @@ function main(): void {
   store.close();
 }
 
-main();
+main().catch((e) => {
+  console.error("backtest failed:", e);
+  process.exit(1);
+});

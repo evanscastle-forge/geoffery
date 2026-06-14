@@ -28,7 +28,7 @@ app.post("/api/consult", async (c) => {
     return c.json({ ok: false, error: "bad json" }, 400);
   }
   const cid = clientIdFrom(c.req.header("cookie"));
-  const result = logConsultation(store, body, cid);
+  const result = await logConsultation(store, body, cid);
   if (result.ok) {
     c.header(
       "set-cookie",

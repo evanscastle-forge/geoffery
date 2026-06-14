@@ -3,16 +3,19 @@
 import { loadConfig, openStore } from "@geoffery/data";
 import { runAggregate } from "./handler.ts";
 
-function main(): void {
+async function main(): Promise<void> {
   const cfg = loadConfig();
   const store = openStore(cfg.dbPath);
   try {
     const t0 = Date.now();
-    const n = runAggregate(store);
+    const n = await runAggregate(store);
     console.log(`aggregate ok: ${n} items in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
   } finally {
     store.close();
   }
 }
 
-main();
+main().catch((e) => {
+  console.error("aggregate failed:", e);
+  process.exit(1);
+});

@@ -3,6 +3,34 @@
 Newest entry on top. One entry per commit; format in `.claude/prompts.md`. The full per-commit
 history is in `git log`; this file carries the human-readable summaries going forward.
 
+## 2026-06-14 — db — SCOPE: CONTRACT
+**Summary**: Converted the storage seam from synchronous to **async** so Cloudflare's async-only D1/R2
+satisfy it natively — the last gate before the workers can run on Cloudflare. `SqlStore`/`ArchiveStore`
+are now Promise-returning; the local `SqliteStore` keeps a synchronous CORE (`*Sync` + `prepare`/
+`iterate`/`transactionSync`) for the millions-of-row backfill/restore tools and wraps it in the async
+interface the portable handlers ride. Two D1-shaped redesigns: (1) the imperative `transaction(fn)` →
+`batch(statements[])` (D1 has no callback txn and can't read mid-batch) — the collector fetches the
+item-id set once and filters instead of per-row FK checks, and the aggregator/scorer gather results by
+awaiting reads first, then commit bounded atomic batches (`writeAggregateStatement`/
+`insertOutcomeStatement`); (2) the aggregator's single unbounded `(item_id,ts)` scan → **keyset
+pagination** (won't fit a D1 query result otherwise). `D1Store`/`R2Archive` in
+`workers/_shared/cloudflare.ts` are wired and the `worker.ts` entries `await` the handlers directly —
+`seamNotWired()` is gone. The R2 archive reuses the gzipped-NDJSON day codec from `archive.ts`
+(`nodejs_compat`).
+**Files touched**: `packages/data/src/{db,repo,archive}.ts`; `workers/{collector,aggregator,scorer,news,
+consult}/src/{handler,main.node,worker}.ts`; `workers/_shared/cloudflare.ts`;
+`ops/scheduler/export.ts`; `tools/backtest/src/index.ts`; `tools/migrate-legacy/src/restore-drill.ts`;
+`workers/collector/src/backfill.node.ts`; `workers/aggregator/src/handler.test.ts` (new);
+`vitest.config.ts` (node:sqlite shim); `docs/RUNBOOK.md`; `ops/wrangler/ACCESS.md`.
+**SYSTEM_ARCHITECTURE.md sections affected**: §3.1 (SqlStore seam), §3.2 (ArchiveStore seam), §3.5
+(Cloudflare portability seam).
+**Notify**: core, web-app — repo helpers + the consult/scorer handlers they call are now `async`
+(`await` them).
+**Verification**: `npm run check` green (70 tests; new `handler.test.ts` seeds 12.2k rows across 3 items
+to prove the keyset scan's grouping survives the 10k page boundary, plus the scorer→calibration and
+consult-log async paths). `npm run aggregate && npm run export` run clean against the real 624 MB
+local DB (aggregates + site JSON regenerated).
+
 ## 2026-06-14 — design + web-app — SCOPE: LOCAL
 **Summary**: Polish batch ahead of the dev deploy. Jar art re-cropped to keep the "TIPS" sign (Gemini
 watermark still removed); the header brand mark is now the full coin jar, background-removed
