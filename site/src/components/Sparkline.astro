@@ -35,8 +35,8 @@ if (points.length > 1) {
     if (Math.abs(sy(y) - yBase) > 10 && pct(y) !== "100%") ticks.push({ y: sy(y), text: pct(y) });
   }
 }
-// Trend direction (first vs last), not a buy/sell verdict — use the dedicated
-// --trend-* tokens (geoffery-verdict MED, 2026-06-12).
+// Trend direction (overall, first vs last) — green up / red down via the --trend-* tokens
+// (owner directive 2026-06-13). This is price direction, not a buy/sell verdict.
 const rising = points.length > 1 && points[points.length - 1]![1] >= points[0]![1];
 const stroke = rising ? "var(--trend-up)" : "var(--trend-down)";
 ---

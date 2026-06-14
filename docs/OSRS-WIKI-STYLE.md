@@ -58,6 +58,9 @@ relying on them; the wiki's skin evolves.
   (our `--good/--good-bg` etc. follow this construction).
 
 ### Verdict palette — NON-judgmental retune (owner directive, set 2026-06-12)
+> **Partly superseded 2026-06-13** — the gauge bar is now a gold→white ramp and the *sell* side
+> (the Sell chip + the falling-price sparkline) moved off teal to neutral. See "Gauge bar —
+> gold↔white" below; buy / hold / wait here are unchanged.
 - **Why**: owner rejected green→buy / red→sell — "Red has a negative connotation. Selling might
   be good." A verdict chip should name a *move*, not pass a *verdict on the trader*. So the chips
   are now **temperature-coded, not valence-coded**: BUY = warm amber-gold (opportunity, the house
@@ -78,8 +81,9 @@ relying on them; the wiki's skin evolves.
   `--panel-edge` hairline so it reads as a filled chip, and the chip text carries the verdict word
   so colour is never the only signal. On the dark page, verdict labels should use light variants
   (`#edc063 / #cabf9f / #5fc8c4 / #bfc2c8`, all ≥ 8.5:1 on `--bg`).
-- **Sparkline trend tokens also neutralized** (same directive — no red on direction either, and
-  to harmonise with the verdict temperature). Direction stays legible — warm rises, cool falls.
+- **Sparkline trend tokens also neutralized** — *superseded 2026-06-13; see "Sparkline trend — red/
+  green by direction" below.* (same directive — no red on direction either, and to harmonise with the
+  verdict temperature). Direction stays legible — warm rises, cool falls.
   Corrected 2026-06-12: the sparkline's **only** render ground is the parchment cards/panels, so
   the tokens are tuned for `--panel`, not the dark page (the earlier light values measured ~1.5:1
   on parchment — nearly invisible). Shipped: `--trend-up #82430f` (warm amber, 5.73:1 on `--panel`),
@@ -89,6 +93,40 @@ relying on them; the wiki's skin evolves.
 - **For web-app**: nothing to change in components — they read the token KEYS, which are
   unchanged; the new colours flow through automatically. Verified visually on the live gauge
   (`local/feedback-round-2026-06-12/verdict-chips-on-parchment.png`).
+
+### Gauge bar — gold↔white ramp + neutralized sell (owner directive, 2026-06-13)
+- **Why**: the three-stop `--good`(amber)→`--average`(grey)→`--poor`(teal) gauge bar muddied through
+  a dark warm-grey midtone. Owner directive: make the bar a **monochromatic gold→white ramp** — BUY =
+  gold (low price, left), SELL = white (high price, right) — so the middle never looks muddy.
+  the **Sell chip** is neutralized off teal (the trend sparkline is separate — it became red/green by
+  direction the same day, see the next entry). Buy keeps its gold family, hold/wait keep their greys.
+  Teal is retired from verdicts but stays `--teal` (Geoffery's waistcoat). Still non-judgmental —
+  neither end reads as "bad".
+- **Bar**: `Gauge.astro .gauge-track` → `linear-gradient(90deg, var(--gauge-buy) 0%, var(--gauge-sell) 100%)`
+  with new tokens `--gauge-buy #d9b24c` (yellow gold) + `--gauge-sell #ffffff`. The white sell end is
+  pure `#fff`; the track reads against `--panel #e7dfca` via a `--panel-edge` border + an
+  `inset 0 0 0 1px rgba(0,0,0,.06)` hairline.
+- **Sell side re-neutralized** (values changed in `packages/content/src/tokens.css`):
+  | token | was (2026-06-12) | now (2026-06-13) | AA |
+  |---|---|---|---|
+  | `--poor` (sell text) | `#1c5659` teal | `#2f3e46` cool slate | **9.75:1** on `--poor-bg` |
+  | `--poor-bg` (sell chip) | `#c2dcd5` pale teal | `#eef1f3` cool near-white | bordered `#bcc6cc` in `.tag.poor` |
+  The near-white Sell chip is ~1.17:1 against `--panel` alone, so it carries a cool `#bcc6cc` border
+  (vs the warm `--panel-edge` on the other chips) to read as a filled chip; its dark text is the
+  verdict word, so colour is never the only signal. Ratios computed in-browser (chrome-devtools
+  `evaluate_script`); verified on item pages at 1440×900 + 390×844 across all four bands.
+
+### Sparkline trend — red/green by direction (owner directive, 2026-06-13)
+- **Why**: reverses the 2026-06-12 "no red on direction" for the **trend sparklines** (the item-page
+  Recent-trend graphs + the homepage item-of-note cards): green when the overall trend is up, red when
+  it is down. This is **price direction, a fact — not a verdict**; the verdict chips and the gauge bar
+  stay non-red (a red line means "it fell", not "selling is bad").
+- **Values** (`packages/content/src/tokens.css`, consumed only by `Sparkline.astro`): `--trend-up
+  #246b27` (green, 4.93:1 on `--panel`), `--trend-down #b3261e` (red, 4.92:1). House-mixed dark — the
+  bright GEMW green/red `#74c437 / #e0513f` measure ~1.5:1 on parchment. `--trend-flat #6b6150` stays
+  defined but unused (`rising = last >= first`, so flat reads as up/green; a neutral dead-band is a
+  trivial future add). Verified at 1440×900 + 390×844 — the homepage cards + the three Recent-trend
+  graphs each colour by their own first-vs-last trend.
 
 ## Typography
 

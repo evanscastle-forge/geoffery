@@ -3,6 +3,35 @@
 Newest entry on top. One entry per commit; format in `.claude/prompts.md`. The full per-commit
 history is in `git log`; this file carries the human-readable summaries going forward.
 
+## 2026-06-13 — design — SCOPE: LOCAL
+**Summary**: Trend sparklines (item-page Recent-trend graphs + homepage item-of-note cards) now stroke
+**green when the overall trend is up, red when down**, reverting the 2026-06-12 "no red on direction"
+for trend lines only — the verdict chips + gauge bar stay non-red (a red line = "price fell", not a
+verdict). House-mixed dark hues for parchment legibility.
+**Files touched**: `packages/content/src/tokens.css` (`--trend-up` → green `#246b27`, `--trend-down` →
+red `#b3261e` + comment), `site/src/components/Sparkline.astro` (comment only — `rising` logic
+unchanged), `docs/OSRS-WIKI-STYLE.md` (new entry + reconciled the gauge entry).
+**SYSTEM_ARCHITECTURE.md sections affected**: none.
+**Notify**: none (these tokens are consumed only by `Sparkline.astro`).
+**Verification**: chrome-devtools loop at 1440×900 + 390×844 — homepage cards + the three Recent-trend
+graphs each colour by their own first-vs-last trend (green up / red down), legible on parchment.
+In-browser AA on `--panel`: green 4.93:1, red 4.92:1. `npm run check` green.
+
+## 2026-06-13 — design — SCOPE: LOCAL
+**Summary**: Recolored the item-page deal-gauge bar to a monochromatic **gold→white** ramp (buy = gold,
+sell = white) to kill the muddy amber→grey→teal midtone, and neutralized the "sell" side everywhere it
+was teal — the Sell verdict chip (→ cool near-white, cool-bordered). Added `--gauge-buy`/`--gauge-sell`
+tokens; `--teal` (waistcoat) untouched. (The trend sparkline's red/green is a separate entry above.)
+**Files touched**: `packages/content/src/tokens.css` (new `--gauge-buy`/`--gauge-sell`;
+`--poor`/`--poor-bg` retuned + comments), `site/src/components/Gauge.astro`
+(`.gauge-track` gradient + crisp edge), `site/src/styles/global.css` (`.tag.poor` cool border),
+`docs/OSRS-WIKI-STYLE.md` (rationale + values).
+**SYSTEM_ARCHITECTURE.md sections affected**: none.
+**Notify**: web-app (the gauge + sparkline consume these tokens).
+**Verification**: chrome-devtools loop on item pages at 1440×900 + 390×844 across all four bands — bar
+reads gold→white with a clean midpoint, white end crisp via the border; gold Buy chip vs near-white Sell
+chip clearly distinct. In-browser AA: Sell text 9.75:1 on its chip. `npm run check` green.
+
 ## 2026-06-13 — core (+ db, web-app, design) — SCOPE: CROSS-MODULE
 **Summary**: Recommendation-engine overhaul. Replaced the percentile-of-recent-mids heuristic with a
 deterministic first-passage (barrier) fill-probability model: each wait class targets ≥90% fill

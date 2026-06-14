@@ -50,8 +50,12 @@ const showBand = band !== "unsettled" && agg.p25 != null && agg.p75 != null;
   .gauge-verdict { color: var(--ink); font-size: 0.98rem; }
   .gauge-track {
     position: relative; height: 16px; border-radius: 999px;
-    background: linear-gradient(90deg, var(--good) 0%, var(--average) 50%, var(--poor) 100%);
-    border: 1px solid var(--panel-edge-soft);
+    /* Monochromatic buy→sell ramp: gold (low price) → white (high price), owner
+       directive 2026-06-13 — clean midtone, no muddy grey. The white sell end gets a
+       crisp edge against the parchment via the border + an inset hairline. */
+    background: linear-gradient(90deg, var(--gauge-buy) 0%, var(--gauge-sell) 100%);
+    border: 1px solid var(--panel-edge);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
   }
   .gauge-iqr {
     position: absolute; left: 25%; right: 25%; top: 0; bottom: 0;

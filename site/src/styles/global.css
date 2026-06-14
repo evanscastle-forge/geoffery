@@ -107,7 +107,7 @@ main { padding: var(--s-6) 0 var(--s-8); }
 }
 .tag.good { background: var(--good-bg); color: var(--good); }
 .tag.average { background: var(--average-bg); color: var(--average); }
-.tag.poor { background: var(--poor-bg); color: var(--poor); }
+.tag.poor { background: var(--poor-bg); color: var(--poor); border-color: #bcc6cc; }
 .tag.unsettled { background: var(--unsettled-bg); color: var(--unsettled); }
 
 /* Members (gold) / free-to-play (silver) star — house SVGs, shared by
