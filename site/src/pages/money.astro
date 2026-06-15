@@ -2,29 +2,49 @@
 import Base from "../layouts/Base.astro";
 import Dialogue from "../components/Dialogue.astro";
 import Saying from "../components/Saying.astro";
-import { PAGES, DONATIONS, jarLevel, monthOf, easterEggPatrons } from "@geoffery/content";
+import { PAGES, DONATIONS, jarLevel, easterEggPatrons } from "@geoffery/content";
 import { cleanName } from "@geoffery/core";
 
-// Tips, rethought (owner directive 2026-06-14): a monthly tip jar + a wall of the
-// month's patrons (no rankings). Reach the goal and everyone gets bonus consultations
-// that month; a tipper gets the month unhindered. Real charging is stubbed — clicking
-// "tip" sets a per-month cookie + an honest note; donor data is curated content.
+// Tips are real now (Stripe Checkout, spec §7/§8): the buttons POST /api/tip and hand the
+// patron to Stripe; the thank-you/cookie/jar fire only on the success return. The jar
+// level + patrons wall read live per-month totals from the export (donations.json), merged
+// with the curated seed (@geoffery/content) and the easter-egg patrons. Amounts are never
+// shown — only the fill level (spec §8).
 const M = PAGES.money;
 const jarSrc = ["/tipjar-1.png", "/tipjar-2.png", "/tipjar-3.png", "/tipjar-4.png", "/tipjar-5.png"];
 const jarAlt = ["nearly empty", "filling", "half full", "nearly full", "full"];
+const DEFAULT_GOAL = 50;
 
 const nowKey = new Date().toISOString().slice(0, 7);
-const current = monthOf(DONATIONS, nowKey) ?? DONATIONS[0];
-const curLevel = current ? jarLevel(current.total, current.goal) : 0;
+
+// Live per-month tips from the build-time export (absent on a fresh checkout → {} ).
+const liveFiles = import.meta.glob<{ months?: Record<string, { totalCents: number; donors: string[] }> }>(
+  "../generated/donations.json",
+  { eager: true, import: "default" },
+);
+const live = Object.values(liveFiles)[0]?.months ?? {};
+
+const curatedByMonth = new Map(DONATIONS.map((m) => [m.month, m]));
+const totalUsdFor = (key: string): number => {
+  const l = live[key];
+  return l ? Math.round(l.totalCents / 100) : (curatedByMonth.get(key)?.total ?? 0);
+};
+const goalFor = (key: string): number => curatedByMonth.get(key)?.goal ?? DEFAULT_GOAL;
+// Curated seed names + live (opt-in) donor names + the month's easter-egg patrons, deduped.
+const donorsFor = (key: string): string[] =>
+  [...new Set([...(curatedByMonth.get(key)?.donors ?? []), ...(live[key]?.donors ?? []), ...easterEggPatrons(key)])].map(
+    cleanName,
+  );
 
 const pretty = (key: string) =>
   new Date(`${key}-01T00:00:00Z`).toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 
-// Names cleaned at render (profanity filter); embedded so the picker switches client-side.
-// A couple of silly procedural "patrons" are blended into each month (easter egg).
-const withEgg = (m: typeof DONATIONS[number]) => [...m.donors, ...easterEggPatrons(m.month)].map(cleanName);
-const monthsData = DONATIONS.map((m) => ({ key: m.month, label: pretty(m.month), donors: withEgg(m) }));
-const currentDonors = current ? withEgg(current) : [];
+const allMonthKeys = [...new Set([nowKey, ...DONATIONS.map((m) => m.month), ...Object.keys(live)])].sort().reverse();
+const monthsData = allMonthKeys.map((key) => ({ key, label: pretty(key), donors: donorsFor(key) }));
+
+const curLevel = jarLevel(totalUsdFor(nowKey), goalFor(nowKey));
+const currentDonors = donorsFor(nowKey);
+const tipCopy = { cancelled: M.tipCancelled, error: M.tipError };
 ---
 
 <Base title="How this is paid for — Geoffery" description="Geoffery's wage is one gold a month. Tips fill a monthly jar that unlocks bonus consultations for everyone." canonicalPath="/money/">
@@ -43,19 +63,20 @@ const currentDonors = current ? withEgg(current) : [];
       </div>
 
       <!-- Ad-free zone: no ad slots on the payment surface (spec §7). A suggested $5
-           or a custom amount (owner directive 2026-06-14). -->
+           or a custom amount → a real Stripe Checkout (owner directive 2026-06-14). -->
       <div class="tips">
         <button class="tip-btn tip-suggested" type="button">Tip $5</button>
         <form id="tip-custom" class="tip-custom">
           <label class="small muted" for="tip-amount">Or name your own</label>
           <div class="tip-custom-row">
             <span class="tip-prefix" aria-hidden="true">$</span>
-            <input id="tip-amount" name="amount" type="number" min="1" step="1" inputmode="numeric" placeholder="10" aria-label="Custom tip amount in US dollars" />
+            <input id="tip-amount" name="amount" type="number" min="1" max="1000" step="1" inputmode="numeric" placeholder="10" aria-label="Custom tip amount in US dollars" />
             <button class="tip-btn" type="submit">Drop it in the jar</button>
           </div>
         </form>
       </div>
 
+      <p id="tip-msg" class="tip-msg small muted" role="status" hidden></p>
       <div id="tip-note" class="chatbox tip-note" hidden><p>{M.tippedNote}</p></div>
     </section>
 
@@ -65,7 +86,7 @@ const currentDonors = current ? withEgg(current) : [];
         <label class="month-pick">
           <span class="small muted">{M.monthLabel}</span>
           <select id="month-select">
-            {monthsData.map((m) => <option value={m.key} selected={m.key === (current?.month ?? "")}>{m.label}</option>)}
+            {monthsData.map((m) => <option value={m.key} selected={m.key === nowKey}>{m.label}</option>)}
           </select>
         </label>
       </div>
@@ -77,7 +98,7 @@ const currentDonors = current ? withEgg(current) : [];
   </div>
 </Base>
 
-<script define:vars={{ monthsData, nowKey }}>
+<script define:vars={{ monthsData, nowKey, tipCopy }}>
   // Month picker — switch the rendered donor list (all months embedded above).
   const select = document.getElementById("month-select");
   const list = document.getElementById("donor-list");
@@ -95,9 +116,50 @@ const currentDonors = current ? withEgg(current) : [];
   }
   select?.addEventListener("change", () => render(select.value));
 
-  // Tip — MVP: no real charge. Set the per-month "tipper" cookie (→ unlimited
-  // consultations this month, read by the Bell) and surface the thank-you + a full jar.
-  function tip() {
+  const msg = document.getElementById("tip-msg");
+  function showMsg(text) {
+    if (!msg) return;
+    msg.textContent = text;
+    msg.hidden = false;
+    msg.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // A tip → a real Stripe Checkout Session. POST the amount; the worker returns a hosted
+  // checkout url and we hand the patron to Stripe. The thank-you/cookie/jar happen only on
+  // the success return (below), never on click.
+  async function startTip(amountUsd) {
+    const cents = Math.round(Number(amountUsd) * 100);
+    if (!Number.isFinite(cents) || cents < 100) {
+      showMsg("A coin is a whole dollar at least.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/tip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amountCents: cents }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      showMsg(data.error || tipCopy.error);
+    } catch {
+      showMsg(tipCopy.error);
+    }
+  }
+  document.querySelector(".tip-suggested")?.addEventListener("click", () => startTip(5));
+  document.getElementById("tip-custom")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    startTip(document.getElementById("tip-amount")?.value || 0);
+  });
+
+  // Return from Stripe. ?tip=thanks → set the per-month tipper cookie (Bell-unlimited this
+  // month, read by the Bell), show the thank-you, fill the jar. Soft-trust: the cookie only
+  // grants extra consultations, never market data. ?tip=cancelled → a gentle note.
+  const tipState = new URLSearchParams(location.search).get("tip");
+  if (tipState === "thanks") {
     const end = new Date();
     end.setUTCMonth(end.getUTCMonth() + 1, 1);
     end.setUTCHours(0, 0, 0, 0);
@@ -107,9 +169,11 @@ const currentDonors = current ? withEgg(current) : [];
     if (note) { note.hidden = false; note.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
     const jar = document.getElementById("tip-jar");
     if (jar) jar.src = "/tipjar-5.png";
+    history.replaceState(null, "", location.pathname);
+  } else if (tipState === "cancelled") {
+    showMsg(tipCopy.cancelled);
+    history.replaceState(null, "", location.pathname);
   }
-  document.querySelector(".tip-suggested")?.addEventListener("click", tip);
-  document.getElementById("tip-custom")?.addEventListener("submit", (e) => { e.preventDefault(); tip(); });
 </script>
 
 <style>
@@ -132,6 +196,7 @@ const currentDonors = current ? withEgg(current) : [];
     border: 1px solid var(--panel-edge); background: var(--panel); color: var(--ink);
     font-size: 1rem; font-family: var(--sans);
   }
+  .tip-msg { margin-top: var(--s-4); text-align: center; }
   .tip-note { margin-top: var(--s-4); padding: var(--s-4); font-family: var(--chat-font); }
   .tip-note p { margin: 0; }
 

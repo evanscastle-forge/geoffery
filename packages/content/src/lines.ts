@@ -212,7 +212,9 @@ export const PAGES = {
     monthLabel: "Showing",
     noDonors: "No names in the jar yet this month. It would suit you rather well up here.",
     tippedNote:
-      "You have my sincere thanks. The month is yours now, unhindered — ring as often as you like. (No coin actually changes hands yet; real payments arrive with accounts and Stripe. The gratitude, however, is entirely real.)",
+      "Your coin is in the jar — you have my sincere thanks. The month is yours now, unhindered: ring as often as you like. A tip is a gift, never a toll; the market stays free for all, always.",
+    tipCancelled: "No harm done — the jar is still here whenever the mood takes you.",
+    tipError: "The counting-house did not answer just now. Do try again in a moment.",
   },
   ledger: {
     title: "Patrons",

@@ -9,7 +9,9 @@ import {
   allItems,
   calibrationSummary,
   loadConfig,
+  monthlyDonationTotal,
   openStore,
+  recentDonors,
   recentWikiNotices,
   type SqliteStore,
 } from "@geoffery/data/node";
@@ -167,6 +169,20 @@ async function main(): Promise<void> {
   // 4) methodology stats (calibration) + 5) news + 6) meta
   atomicWrite("methodology-stats.json", await calibrationSummary(store, now));
   atomicWrite("news.json", await recentWikiList(store, now));
+
+  // 7) donations (tips, spec §7/§8) — per-month totals + opt-in donor names drive the live
+  // jar level + patrons wall. Amounts (cents) feed only the fill level; never shown publicly.
+  const curMonth = new Date(now * 1000).toISOString().slice(0, 7);
+  const monthRows = await store.all<{ month: string }>("SELECT DISTINCT month FROM donations");
+  const donationMonths: Record<string, { totalCents: number; donors: string[] }> = {};
+  for (const month of new Set([curMonth, ...monthRows.map((r) => r.month)])) {
+    donationMonths[month] = {
+      totalCents: await monthlyDonationTotal(store, month),
+      donors: await recentDonors(store, month),
+    };
+  }
+  atomicWrite("donations.json", { months: donationMonths, exportedAt: now });
+
   atomicWrite("meta.json", { exportedAt: now, deployment: cfg.deployment });
 
   console.log(
