@@ -143,11 +143,13 @@ Each block: **Owning agent · Purpose · Owned data · Public API/interface · R
 
 ### 2.8 workers/consult
 - **Owning agent**: `web-app` (browser-facing contract) + `core` (cohort key); `web-app/dialogue-smith` builds it.
-- **Purpose**: HTTP (Hono) — log each consultation as a falsifiable prediction. No price math (the
-  price was computed at export time and shown to the user; we log exactly that).
-- **Owned data**: writes `consultations`.
-- **Public API**: `POST /api/consult` (body: slug, side, tolerance, recommendedPrice, regime*, liquidityBand); `GET /api/health`. `logConsultation(store, body, clientId, now)` is the portable handler.
-- **Runtime deps**: `hono` + `@hono/node-server`, `packages/data`, `packages/core` (`ENGINE_VERSION`).
+- **Purpose**: HTTP (Hono) — log each consultation as a falsifiable prediction (no price math),
+  and run the **tipping** surface (Stripe Checkout + the donations webhook).
+- **Owned data**: writes `consultations` and `donations`.
+- **Public API**: `POST /api/consult`; `POST /api/tip` (→ a Stripe Checkout Session for the
+  amount); `POST /api/stripe/webhook` (signature-verified → `insertDonation`); `GET /api/health`.
+  Portable handlers: `logConsultation`, `createTipCheckout`, `recordTipFromEvent` (see §3.6).
+- **Runtime deps**: `hono` + `@hono/node-server`, `stripe`, `packages/data`, `packages/core`.
 
 ### 2.9 site
 - **Owning agent**: `web-app` (`web-app/page-smith`, `web-app/dialogue-smith`); `web-app/growth-seo` (URLs/SEO), `web-app/monetization` (money/ledger/ads), `design` (copy/tokens), `design/compliance` (trade dress + disclaimer).
@@ -185,13 +187,20 @@ Each block: **Owning agent · Purpose · Owned data · Public API/interface · R
   addition on `prices_5m`/`aggregates` is a CONTRACT change (core + web-app read them).
 - **3.3 The generated-JSON export** — `db` → `web-app`. Files: `items.json`,
   `aggregates.json` (keyed by slug; gauge + regime + six recs + `wikiNotices`), `sparklines.json`,
-  `methodology-stats.json` (calibration summary), `news.json`, `meta.json`. The site reads these
-  and nothing else at request time. Shape changes are CONTRACT.
+  `methodology-stats.json` (calibration summary), `news.json`, `donations.json` (per-month tip
+  totals + opt-in donor names → the live jar/wall), `meta.json`. The site reads these and nothing
+  else at request time. Shape changes are CONTRACT.
 - **3.4 `POST /api/consult`** — the Bell (`web-app`/`web-app/dialogue-smith`) → `workers/consult`. Body
   pins side/tolerance/recommendedPrice/regime/liquidity; the worker resolves slug→itemId and writes
   a `consultations` row. Fire-and-forget; the user never waits.
 - **3.5 Cloudflare portability seam** — each worker is `handler(env)` + a Node entry (`main.node.ts`)
   and a prod `worker.ts` wiring D1/R2/KV bindings. The handler body is identical across both.
+- **3.6 Tipping seam (Stripe)** — the money page → `POST /api/tip` (consult worker) → a Stripe
+  Checkout Session; Stripe → `POST /api/stripe/webhook` (signature-verified, idempotent on the
+  session id) → `insertDonation`. `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` are worker secrets;
+  dev uses Stripe **test mode**. The webhook is server-to-server, so its exact path carries a
+  Cloudflare Access **Bypass** on dev (the Stripe signature is the auth). Amounts feed only the
+  jar/goal math and are never shown (spec §8). The donor wall is opt-in names only.
 
 ## 4. System invariants (cross-cutting; re-verified at every gate)
 
@@ -228,7 +237,7 @@ areas of the codebase; this is the triage map. `db` owns the repo-layout guard t
 | Wrong verdicts / bad recommendations | `core` | `packages/core` (gauge/regime/offers/scoring) |
 | Broken or slow pages | `web-app` | `site/` |
 | Off-voice copy | `design` | `packages/content` |
-| Billing / ads wrong | `web-app/monetization` | `site/` tip + ad components |
+| Billing / ads wrong / tips not charging | `web-app/monetization` | `site/` tip + ad components, `workers/consult` (`/api/tip` + `/api/stripe/webhook`) |
 | Outages / cost spikes | `db` | `ops/`, schedulers |
 | Cloudflare deploy/provisioning fails (`10042` R2, `10063` workers.dev, `node:sqlite` bundle, DNS delegation) | `db` | `docs/CLOUDFLARE-SETUP.md`, `ops/run.sh <env> doctor` |
 | "How is hosting set up / how do I redo it?" | `db` | `docs/CLOUDFLARE-SETUP.md` |

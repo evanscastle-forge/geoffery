@@ -39,6 +39,10 @@ Create a **self-hosted application** (once):
   add Google later if desired.
 - For any *automated* hit on dev (a smoke script, CI), add a **Service Token**
   and a second Allow rule for it — do not weaken the email rule.
+- The **Stripe webhook** (`/api/stripe/webhook`) is server-to-server and cannot pass the login,
+  so it needs a separate Access application on that exact path with action **Bypass** (public) —
+  the Stripe signature is the auth, not Access. Everything else on dev stays gated. See
+  `docs/CLOUDFLARE-SETUP.md` §5b.
 
 Prod (`geoffery.gg`) has **no** Access application — it is the public site.
 

@@ -3,6 +3,34 @@
 Newest entry on top. One entry per commit; format in `.claude/prompts.md`. The full per-commit
 history is in `git log`; this file carries the human-readable summaries going forward.
 
+## 2026-06-15 — web-app + db — SCOPE: CONTRACT
+**Summary**: Monetization fleshed out — real tipping (Stripe Checkout, **test mode** on dev) + wired
+AdSense. Landed in four feature-step commits (proposal `.claude/proposals/001-monetization.md`).
+(1) **Backend**: a `donations` table + repo helpers (`insertDonation`/`monthlyDonationTotal`/
+`recentDonors`); the consult worker gains `POST /api/tip` (a Stripe Checkout Session for the exact
+amount, incl. the custom box) and `POST /api/stripe/webhook` (signature-verified via
+`constructEventAsync` + SubtleCrypto → `insertDonation`, idempotent on the session id), portable in
+`workers/consult/src/tip.ts`. (2) **Money page**: the buttons POST `/api/tip` and redirect to Stripe;
+the thank-you/tipper-cookie/full-jar fire only on the `?tip=thanks` return. The jar level + patrons
+wall read live per-month totals from a new `donations.json` export, merged with the curated seed +
+easter-egg patrons; amounts are never shown (spec §8). (3) **Ads**: `AdSlot`/`Base` render real
+AdSense manual units only when `PUBLIC_ADSENSE_CLIENT` + per-kind slot ids are set (Auto Ads off, 3
+slots, money page ad-free via a new `adFree` prop); dev/localhost stay dormant. (4) **Docs**.
+**Files touched**: `packages/data/src/{schema.ts,repo.ts}`; `workers/consult/src/{tip.ts (new),worker,
+main.node}.ts`; `workers/_shared/cloudflare.ts`; `ops/wrangler/consult.toml` (STRIPE_* secrets +
+GEOFFERY_SITE_URL); `ops/scheduler/export.ts`; `site/src/pages/money.astro`, `site/src/components/
+AdSlot.astro`, `site/src/layouts/Base.astro`; `packages/content/src/lines.ts`; `package.json` (stripe);
+`.env.example`; `docs/{AD-POLICY,CLOUDFLARE-SETUP,CHANGELOG}.md`, `ops/wrangler/ACCESS.md`,
+`SYSTEM_ARCHITECTURE.md`; `.claude/proposals/001-monetization.md`.
+**SYSTEM_ARCHITECTURE.md sections affected**: §2.8 (consult tip + webhook routes), §2.2 (donations),
+§3.3 (donations.json export), §3.6 (new Stripe tipping seam), §5 (routing row).
+**Notify**: design/compliance — the tip-as-gift copy, donor-wall PII (opt-in names only), and the
+ad-category blocks are a required compliance gate before prod. core — no math change.
+**Verification**: `npm run check` green (70 tests); `dry-run` bundles consult with the Stripe SDK
+(83 KiB gzip); `astro build` 4576 pages (a fake-`ca-pub` build renders units + loader on item pages
+and none on `/money/`; a no-env build is fully dormant). Live tipping verification (a test tip hitting
+the Stripe dashboard) needs the owner's Stripe test keys + the webhook Access-bypass — CLOUDFLARE-SETUP §5b.
+
 ## 2026-06-15 — db — SCOPE: CONTRACT
 **Summary**: Unblocked the dev deploy and made Cloudflare provisioning reproducible + interrogable.
 (1) **`node:sqlite` worker-bundle fix (CONTRACT):** `wrangler` dry-run failed with `Could not

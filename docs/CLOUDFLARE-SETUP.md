@@ -87,7 +87,7 @@ D1 manages journaling/synchronous/foreign-keys itself and rejects them):
 ```bash
 ops/run.sh dev provision-schema     # gen-d1-schema.mjs → PRAGMA-stripped SQL → d1 execute --remote
 ```
-Idempotent (all `CREATE … IF NOT EXISTS`). Expect 11 tables.
+Idempotent (all `CREATE … IF NOT EXISTS`). Expect 12 tables (11 core + `donations`).
 
 ### 2e. Smoke, then deploy
 ```bash
@@ -148,6 +148,29 @@ These cannot be scripted with the current token; do them in the dashboard.
 
 ---
 
+## 5b. Monetization activation (Stripe tips + AdSense)
+
+**Tips (Stripe Checkout — the consult worker serves `/api/tip` + `/api/stripe/webhook`):**
+1. Stripe → **Test mode** → Developers → API keys → copy the test secret key (`sk_test_…`).
+2. `ops/run.sh dev secret STRIPE_SECRET_KEY consult` (wrangler prompts; value never shown).
+3. Stripe → Developers → **Webhooks** → add endpoint `https://dev.geoffery.gg/api/stripe/webhook`,
+   event `checkout.session.completed`. Copy its signing secret (`whsec_…`) →
+   `ops/run.sh dev secret STRIPE_WEBHOOK_SECRET consult`.
+4. **Access Bypass for the webhook** (Stripe is server-to-server and can't pass the login wall):
+   Zero Trust → Access → Applications → Add → Self-hosted, domain
+   `dev.geoffery.gg/api/stripe/webhook`, one policy action **Bypass → Everyone**. The Stripe
+   signature (step 3) is the real auth; the main dev app keeps gating everything else.
+5. `ops/run.sh dev deploy-workers` (if secrets were set after the last deploy). **Verify:** tip $1
+   on `dev.geoffery.gg/money/` → Stripe test Checkout → pay `4242 4242 4242 4242` → the payment
+   appears in the Stripe **test** dashboard and a `donations` row lands in D1; the jar/wall update
+   after the next `export` + `deploy-site`. Prod swaps `sk_live_…` + a prod webhook (no Access
+   Bypass — prod isn't gated).
+
+**Ads (AdSense):** set `PUBLIC_ADSENSE_CLIENT` (`ca-pub-…`) + the three `PUBLIC_ADSENSE_SLOT_*`
+unit ids in `env/.env.<env>` once the site is AdSense-approved, then rebuild + `deploy-site`.
+Empty → dormant. Keep **Auto Ads off** in the account; the category blocks (gold sellers/RWT,
+gambling, get-rich-quick) are a `design/compliance` gate. Real fill is prod-only.
+
 ## 6. Aspirational / not-yet-done (capture, don't rediscover)
 
 - [ ] Prod environment fully provisioned (§2 + §4 with prod names).
@@ -165,7 +188,7 @@ These cannot be scripted with the current token; do them in the dashboard.
 ## 7. Validation
 
 ```bash
-ops/run.sh dev doctor      # auth · account id/zone · R2 enabled · R2 bucket · D1 11 tables · DNS
+ops/run.sh dev doctor      # auth · account id/zone · R2 enabled · R2 bucket · D1 schema · DNS
 ```
 Then confirm a first collector run wrote a heartbeat and the site loads behind the gate.
 
@@ -194,7 +217,7 @@ Non-secret identifiers (the D1 id already lives in the committed tomls):
 | --- | --- |
 | Account | `evanscastle.forge@gmail.com` · `6c2c5d6f402ccbe5aeec06b7b56cf4f3` |
 | Zone | `geoffery.gg` (registrar Porkbun → Cloudflare NS `albert`/`isla`) |
-| D1 | `geoffery-dev` = `2df02cda-965b-4f08-b78a-12cdf7ecbe13` (11 tables) |
+| D1 | `geoffery-dev` = `2df02cda-965b-4f08-b78a-12cdf7ecbe13` (12 tables incl. `donations`) |
 | R2 | `geoffery-archive-dev` |
 | wrangler | `3.114.17` (pinned `^3`) |
 

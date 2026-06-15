@@ -4,6 +4,13 @@ The ad surface on localhost is **dormant**: reserved fixed-dimension containers 
 but load no ad script and no Auto Ads (DECISIONS D-LOCAL-004). This document is the
 policy those containers will enforce in production, and the compliance checklist.
 
+**Status (2026-06-15):** the integration is **wired and env-gated**. `AdSlot.astro` renders a
+real manual unit and `Base.astro` injects the loader only when `PUBLIC_ADSENSE_CLIENT` + the
+per-kind `PUBLIC_ADSENSE_SLOT_*` ids are set; dev/localhost have no publisher id → dormant.
+Activation is prod-only: set the env vars after AdSense approves the site, keep Auto Ads off,
+and have `design/compliance` confirm the category blocks before flipping it on (see
+`docs/CLOUDFLARE-SETUP.md` §5b).
+
 ## Placement — "three slots, total, ever"
 - Item pages, desktop: one horizontal unit **below** the verdict/gauge block + one at page bottom.
 - Item pages, mobile: ONE in-content unit. The price check never requires scrolling past an ad.
