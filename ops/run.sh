@@ -39,6 +39,10 @@
 #   deploy        — build the site, then deploy every Worker + the Pages site
 #   deploy-workers — deploy the cron/HTTP Workers only (no site)
 #   deploy-site   — build + deploy the Astro static site to Pages only
+#   provision-schema — apply the D1 schema (generated from schema.ts) to the remote
+#                 DB; idempotent (CREATE … IF NOT EXISTS). See docs/CLOUDFLARE-SETUP.md
+#   doctor        — read-only check of every provisioning prerequisite (auth, account
+#                 id/zone, R2 enabled, D1 schema, R2 bucket, DNS), with the fix for each
 #   tail [worker] — stream live logs (wrangler tail) for one worker (default: consult)
 #   secret <NAME> [worker]  — set a Worker secret via `wrangler secret put`
 #                 (wrangler prompts for the value on its own tty; this script
@@ -207,12 +211,73 @@ deploy_site() {
         --project-name "geoffery-${TARGET}" --branch "${TARGET}"
 }
 
+# Apply the D1 schema to the remote DB. The SQL is generated from the SCHEMA const
+# in packages/data/src/schema.ts (PRAGMAs stripped — D1 manages those itself) by
+# ops/gen-d1-schema.mjs; no committed .sql artifact, so it can never drift. Idempotent:
+# the schema is all CREATE … IF NOT EXISTS, so re-running is a no-op.
+provision_schema() {
+    local db="geoffery-${TARGET}"
+    local sql="${TMPDIR:-/tmp}/geoffery-schema-${TARGET}.sql"
+    node "${SCRIPT_DIR}/gen-d1-schema.mjs" "${sql}"
+    echo "${LOG} ▶ apply schema → D1 '${db}' (--remote, idempotent)"
+    "${WRANGLER[@]}" d1 execute "${db}" --remote --file "${sql}" --yes
+}
+
+# Read-only provisioning diagnostic: report each prerequisite + the exact fix for the
+# account-level gates that otherwise surface only as cryptic API errors (see
+# docs/CLOUDFLARE-SETUP.md). Makes the setup interrogable by a human or a future agent.
+deploy_doctor() {
+    local db="geoffery-${TARGET}" bucket="geoffery-archive-${TARGET}" cnt
+    echo "${LOG} ▶ doctor: ${TARGET} (read-only)"
+    if "${WRANGLER[@]}" whoami >/dev/null 2>&1; then
+        echo "  ✓ wrangler authenticated"
+    else
+        echo "  ✗ wrangler NOT authenticated → run: npx wrangler login"
+    fi
+    [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]] && echo "  ✓ CLOUDFLARE_ACCOUNT_ID set" \
+        || echo "  ✗ CLOUDFLARE_ACCOUNT_ID missing → fill ${ENV_FILE}"
+    [[ -n "${GEOFFERY_ZONE:-}" ]] && echo "  ✓ GEOFFERY_ZONE=${GEOFFERY_ZONE}" \
+        || echo "  ✗ GEOFFERY_ZONE missing → fill ${ENV_FILE}"
+    if "${WRANGLER[@]}" r2 bucket list >/dev/null 2>&1; then
+        echo "  ✓ R2 enabled on account"
+        if "${WRANGLER[@]}" r2 bucket list 2>/dev/null | grep -q "${bucket}"; then
+            echo "  ✓ R2 bucket '${bucket}' exists"
+        else
+            echo "  ✗ R2 bucket '${bucket}' missing → run: wrangler r2 bucket create ${bucket}"
+        fi
+    else
+        echo "  ✗ R2 not enabled (API 10042) → enable R2 in the Cloudflare dashboard → R2"
+    fi
+    cnt="$("${WRANGLER[@]}" d1 execute "${db}" --remote --json \
+        --command "SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'd1_%'" 2>/dev/null \
+        | grep -oE '"n": *[0-9]+' | grep -oE '[0-9]+' | head -1 || true)"
+    if [[ -z "${cnt}" ]]; then
+        echo "  ✗ D1 '${db}' not reachable/created → run: wrangler d1 create ${db}"
+        echo "      then paste the database_id over REPLACE_WITH_$(echo "${TARGET}" | tr a-z A-Z)_D1_ID in ops/wrangler/*.toml"
+    elif [[ "${cnt}" -ge 11 ]]; then
+        echo "  ✓ D1 '${db}' schema applied (${cnt} tables)"
+    else
+        echo "  ✗ D1 '${db}' has only ${cnt} tables → run: ops/run.sh ${TARGET} provision-schema"
+    fi
+    if command -v dig >/dev/null 2>&1 && [[ -n "${GEOFFERY_ZONE:-}" ]]; then
+        if dig +short NS "${GEOFFERY_ZONE}" @1.1.1.1 2>/dev/null | grep -qi cloudflare; then
+            echo "  ✓ DNS: ${GEOFFERY_ZONE} delegated to Cloudflare"
+        else
+            echo "  – DNS: ${GEOFFERY_ZONE} not yet on Cloudflare NS (registrar/propagation) — does NOT block provisioning"
+        fi
+    fi
+    echo "  – workers.dev subdomain: checked at deploy time; if a deploy fails with API 10063,"
+    echo "      open Workers & Pages in the dashboard once to auto-create it"
+}
+
 run_deploy() {
     local cmd="${1:-deploy}"; shift || true
     case "${cmd}" in
         deploy)         preflight_deploy; deploy_workers; deploy_site ;;
         deploy-workers) preflight_deploy; deploy_workers ;;
         deploy-site)    preflight_deploy; deploy_site ;;
+        provision-schema) preflight_deploy; provision_schema ;;
+        doctor)         deploy_doctor ;;
         dry-run)
             preflight_deploy
             for w in "${WORKERS[@]}"; do

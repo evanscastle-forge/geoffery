@@ -44,35 +44,20 @@ Prod (`geoffery.gg`) has **no** Access application — it is the public site.
 
 ## First-time provisioning (per environment)
 
-Run these once for `dev`, then again for `prod` (substitute the names from the
-table). `wrangler` comes from the repo devDependency; `npm install` first.
+The full reproducible sequence — account prerequisites (R2 enablement / error
+`10042`, the `workers.dev` subdomain / error `10063`), `wrangler login` + the v3 pin,
+D1/R2 creation, the `.toml` ids, schema apply, dry-run/deploy, the DNS/registrar
+steps, and the dashboard custom-domain attach — lives in **`docs/CLOUDFLARE-SETUP.md`**
+(the authority). Highlights:
 
-```bash
-wrangler login                                   # OAuth; or set CLOUDFLARE_API_TOKEN
-cp env/.env.dev.example env/.env.dev             # fill account id + zone in your editor
+- Apply the schema with `ops/run.sh <env> provision-schema` — it generates a
+  PRAGMA-stripped `.sql` from `packages/data/src/schema.ts` (there is **no** committed
+  `schema.sql`) and runs `wrangler d1 execute --remote`. Idempotent.
+- `ops/run.sh <env> doctor` checks every prerequisite and prints the fix for each.
+- `ops/run.sh <env> deploy` = `deploy-workers` + `deploy-site` once the one-time
+  resources exist.
 
-wrangler d1 create geoffery-dev                  # → copy database_id into ops/wrangler/*.toml
-wrangler r2 bucket create geoffery-archive-dev   # ARCHIVE bucket
-
-# Paste the printed database_id over every REPLACE_WITH_DEV_D1_ID in ops/wrangler/*.toml.
-
-# Apply the schema to D1 (packages/data/src/schema.ts is the source of truth):
-wrangler d1 execute geoffery-dev --remote --file packages/data/src/schema.sql   # see RUNBOOK note
-
-# Push the archive history into R2 (the irreplaceable asset), then the workers:
-ops/run.sh dev deploy-workers
-ops/run.sh dev secret ANTHROPIC_API_KEY news     # wrangler prompts; value never shown
-
-# Pages site: create the project (once), then deploy.
-wrangler pages project create geoffery-dev --production-branch dev
-ops/run.sh dev deploy-site                       # build + wrangler pages deploy
-# In the dashboard, add the custom domain dev.geoffery.gg to the geoffery-dev Pages project.
-
-# Finally, create the Access application above so the dev origin is gated.
-```
-
-`ops/run.sh dev deploy` does `deploy-workers` + `deploy-site` together once the
-above one-time resources exist.
+Then create the **Access application** below so the dev origin is gated.
 
 ## Publishing aggregates (open design item)
 

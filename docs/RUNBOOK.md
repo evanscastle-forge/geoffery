@@ -77,9 +77,11 @@ wrangler `--env` label differ ("works in dev ⇒ works in prod").
     ops/run.sh dev  secret NAME [w] # wrangler secret put (value never printed)
     ops/run.sh prod deploy          # same, against geoffery.gg
 
-First-time provisioning (account/zone, D1/R2 creation, the `.toml` resource ids,
-the Pages projects, and the dev Access policy) is the checklist in
-`ops/wrangler/ACCESS.md`. Configs live in
+First-time provisioning — account prerequisites (R2 enablement, the `workers.dev`
+subdomain), D1/R2 creation, the `.toml` resource ids, schema apply, DNS/registrar,
+and the dashboard steps — is the reproducible runbook in `docs/CLOUDFLARE-SETUP.md`
+(the dev Access policy detail stays in `ops/wrangler/ACCESS.md`). Run
+`ops/run.sh <env> doctor` to check every prerequisite. Configs live in
 `ops/wrangler/{collector,aggregator,scorer,news,consult}.toml` with
 `[env.dev]`/`[env.prod]` sections + cron triggers; binding wrappers are
 `workers/*/src/worker.ts`. Deploy auth is `wrangler login` once, or a scoped
@@ -111,8 +113,11 @@ a cron) is the open item — see `ops/wrangler/ACCESS.md`.
 
 ### Schema on D1
 `packages/data/src/schema.ts` exports `SCHEMA` — the same DDL node:sqlite applies.
-For D1 apply it once with `wrangler d1 execute <db> --remote` (from a generated
-`.sql` mirror or `--command`); the schema is byte-trivial to port (spec §2.2).
+Apply it to D1 with `ops/run.sh <env> provision-schema`: `ops/gen-d1-schema.mjs`
+emits a PRAGMA-stripped `.sql` from `SCHEMA` (D1 manages journal_mode/synchronous/
+foreign_keys itself and rejects those PRAGMAs) and runs `wrangler d1 execute --remote`.
+Idempotent (all `CREATE … IF NOT EXISTS`); no committed `.sql` artifact, so it can't
+drift. See `docs/CLOUDFLARE-SETUP.md`.
 
 ### Rollback
 - **Localhost:** revert the commit; `npm run backfill` re-derives D1 from the R2 archive.

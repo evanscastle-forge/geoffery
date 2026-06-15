@@ -11,7 +11,7 @@ import type {
   Snapshot,
 } from "@geoffery/core";
 import type { SqlStore } from "./db.ts";
-import { SqliteStore } from "./db.ts";
+import type { SqliteStore } from "./db.node.ts";
 
 // ---- items ----
 

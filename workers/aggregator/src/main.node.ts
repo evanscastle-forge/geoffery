@@ -1,6 +1,6 @@
 // Node entry for the aggregator cron job.
 
-import { loadConfig, openStore } from "@geoffery/data";
+import { loadConfig, openStore } from "@geoffery/data/node";
 import { runAggregate } from "./handler.ts";
 
 async function main(): Promise<void> {

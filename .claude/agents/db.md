@@ -26,6 +26,10 @@ record, and the maintenance budget is a hard constraint.
   Cloudflare `wrangler` configs (written, not the localhost path).
 - Monitoring + alerting (`pipeline_health`, `staleJobs`), backups + the R2 restore drill
   (`tools/migrate-legacy/restore-drill.ts`), `docs/RUNBOOK.md`, cost control.
+- The Cloudflare hosting runbook `docs/CLOUDFLARE-SETUP.md` (reproducible, interrogable
+  first-time provisioning — account prereqs, D1/R2, schema, DNS, deploy) and its
+  automation: `ops/run.sh <env> {provision-schema,doctor}` + `ops/gen-d1-schema.mjs`.
+  When asked how hosting is set up or to redo it, this is the authority.
 - **Repo layout & doc/config hygiene** — the top-level allowlist guard
   (`tools/check-repo-layout.mjs`, run by `npm run check`), keeping the root lean: new prose
   docs land in `docs/`, relocatable build config in `config/`, per the CHARTER "Repo layout"

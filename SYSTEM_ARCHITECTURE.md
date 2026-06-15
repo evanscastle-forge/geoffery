@@ -91,12 +91,16 @@ Each block: **Owning agent · Purpose · Owned data · Public API/interface · R
 - **Owning agent**: `db` (`db/schema-smith`).
 - **Purpose**: storage adapters only — the seam workers bind to. No business math.
 - **Owned data**: all persisted schema (`schema.ts`, ported verbatim for byte-trivial D1 migration).
-- **Public API**: `ArchiveStore`/`LocalArchiveStore` + `DayWriter` (R2 daily-file codec);
-  `SqlStore`/`SqliteStore` + `openStore` (D1 seam); the typed repo helpers (`upsertItem`,
+- **Public API**: two entry points. The portable barrel `@geoffery/data` (what workers
+  import) is **`node:sqlite`-free**: `ArchiveStore`/`LocalArchiveStore` + `DayWriter` (R2
+  daily-file codec); the `SqlStore` interface (types); the typed repo helpers (`upsertItem`,
   `snapshotsForItem`, `writeAggregate`, `insertConsultation`, `pendingConsultations`,
   `replaceCalibration`, `calibrationSummary`, `recentWikiNotices`, `heartbeat`, `staleJobs`, …);
   the wiki clients (`fetchMapping`/`fetchLatest`/`fetch5m`, `fetchWikiUpdates`); `loadConfig`.
-- **Runtime deps**: `@geoffery/core` (types only), `node:sqlite`, `node:zlib`, `fetch`.
+  The Node-only entry `@geoffery/data/node` (CLIs, tools, tests, `.node.ts` entries) adds the
+  local `SqliteStore` + `openStore` runtime. See §3.2.
+- **Runtime deps**: `@geoffery/core` (types only), `node:zlib`, `fetch`. The `@geoffery/data/node`
+  entry additionally uses `node:sqlite` (`db.node.ts`).
 
 ### 2.3 packages/content
 - **Owning agent**: `design`.
@@ -171,9 +175,14 @@ Each block: **Owning agent · Purpose · Owned data · Public API/interface · R
 - **3.1 `ArchiveStore` (R2 seam)** — `readDay`/`streamRange`/`writeDay`/`appendDay`/`readManifest`.
   The one reader shared by migrate-legacy, the collector backfill, the aggregator, and the backtest;
   they cannot drift. On-disk format: gzipped NDJSON daily files + a sha256-stamped manifest.
-- **3.2 `SqlStore` (D1 seam)** — `prepare/run/get/all/iterate/transaction`. Prod (D1 binding) and
-  local (`node:sqlite`) adapters are surface-identical; a column addition on `prices_5m`/`aggregates`
-  is a CONTRACT change (core + web-app read them).
+- **3.2 `SqlStore` (D1 seam)** — async `exec/run/get/all/batch/close`. Prod (`D1Store`) and
+  local (`SqliteStore`) adapters are surface-identical. **Package split:** the portable barrel
+  `@geoffery/data` is `node:sqlite`-free (workers import only it); the Node-only `SqliteStore`/
+  `openStore` live behind the `@geoffery/data/node` subpath (CLIs, tools, tests, `.node.ts`
+  entries). A Cloudflare `worker.ts`/`handler.ts` must **never** reach `@geoffery/data/node` —
+  esbuild resolves every reachable import *before* tree-shaking, so a barrel re-export of a
+  `node:sqlite` module hard-fails the worker bundle regardless of `sideEffects`. A column
+  addition on `prices_5m`/`aggregates` is a CONTRACT change (core + web-app read them).
 - **3.3 The generated-JSON export** — `db` → `web-app`. Files: `items.json`,
   `aggregates.json` (keyed by slug; gauge + regime + six recs + `wikiNotices`), `sparklines.json`,
   `methodology-stats.json` (calibration summary), `news.json`, `meta.json`. The site reads these
@@ -221,6 +230,8 @@ areas of the codebase; this is the triage map. `db` owns the repo-layout guard t
 | Off-voice copy | `design` | `packages/content` |
 | Billing / ads wrong | `web-app/monetization` | `site/` tip + ad components |
 | Outages / cost spikes | `db` | `ops/`, schedulers |
+| Cloudflare deploy/provisioning fails (`10042` R2, `10063` workers.dev, `node:sqlite` bundle, DNS delegation) | `db` | `docs/CLOUDFLARE-SETUP.md`, `ops/run.sh <env> doctor` |
+| "How is hosting set up / how do I redo it?" | `db` | `docs/CLOUDFLARE-SETUP.md` |
 | Search rankings / URLs | `web-app/growth-seo` | `site/` routing, sitemap |
 | Aesthetic judgement / artistic direction | `design/geoffery` | review gate, no single file |
 | "Is this allowed?" (IP / data source / ad category) | `design/compliance` | review gate, no single file |

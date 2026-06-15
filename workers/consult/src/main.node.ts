@@ -4,7 +4,7 @@
 
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { loadConfig, openStore } from "@geoffery/data";
+import { loadConfig, openStore } from "@geoffery/data/node";
 import { logConsultation, type ConsultRequest } from "./handler.ts";
 
 const cfg = loadConfig();

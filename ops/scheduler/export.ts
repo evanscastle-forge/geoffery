@@ -12,7 +12,7 @@ import {
   openStore,
   recentWikiNotices,
   type SqliteStore,
-} from "@geoffery/data";
+} from "@geoffery/data/node";
 
 const ONE_DAY = 86400;
 const SPARK_POINTS = 48;

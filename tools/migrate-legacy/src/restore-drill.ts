@@ -6,8 +6,8 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { LocalArchiveStore, SqliteStore, insertSnapshots, loadConfig } from "@geoffery/data";
-import { SCHEMA } from "@geoffery/data";
+import { LocalArchiveStore, SqliteStore, insertSnapshots, loadConfig } from "@geoffery/data/node";
+import { SCHEMA } from "@geoffery/data/node";
 
 function main(): void {
   const cfg = loadConfig();

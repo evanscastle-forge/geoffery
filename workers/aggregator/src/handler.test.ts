@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import type { Snapshot } from "@geoffery/core";
-import { insertSnapshots, openStore, upsertLatestStatement, type SqliteStore } from "@geoffery/data";
+import { insertSnapshots, openStore, upsertLatestStatement, type SqliteStore } from "@geoffery/data/node";
 import { runAggregate } from "./handler.ts";
 import { runScorer } from "../../scorer/src/handler.ts";
 import { logConsultation } from "../../consult/src/handler.ts";

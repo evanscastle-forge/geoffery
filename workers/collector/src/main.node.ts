@@ -1,7 +1,7 @@
 // Node entry for the collector cron job. Wires local adapters + config and runs
 // the portable handler once. (A Cloudflare scheduled() entry would wire bindings.)
 
-import { LocalArchiveStore, loadConfig, openStore } from "@geoffery/data";
+import { LocalArchiveStore, loadConfig, openStore } from "@geoffery/data/node";
 import { runCollect } from "./handler.ts";
 
 async function main(): Promise<void> {

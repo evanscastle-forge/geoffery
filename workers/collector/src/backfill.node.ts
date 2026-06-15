@@ -17,7 +17,7 @@ import {
   snapshotCount,
   upsertItemStatement,
   type ItemRow,
-} from "@geoffery/data";
+} from "@geoffery/data/node";
 
 const ITEM_BATCH = 500;
 

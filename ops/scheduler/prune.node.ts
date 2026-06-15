@@ -3,7 +3,7 @@
 // queryable prices_5m table and the gzipped archive day-files to a rolling 30 days so
 // the cache cannot balloon. Runs in the pipeline after collect.
 
-import { LocalArchiveStore, loadConfig, openStore, pruneOldData } from "@geoffery/data";
+import { LocalArchiveStore, loadConfig, openStore, pruneOldData } from "@geoffery/data/node";
 
 const KEEP_DAYS = 30;
 

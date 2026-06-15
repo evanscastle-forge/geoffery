@@ -24,7 +24,7 @@ import {
   replaceCalibration,
   snapshotsForItem,
   type SqliteStore,
-} from "@geoffery/data";
+} from "@geoffery/data/node";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 

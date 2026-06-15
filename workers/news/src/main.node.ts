@@ -1,6 +1,6 @@
 // Node entry for the news cron job. Polls the wiki + (if a key is present)
 // classifies via Haiku. Without a key it degrades cleanly.
-import { loadConfig, openStore } from "@geoffery/data";
+import { loadConfig, openStore } from "@geoffery/data/node";
 import { runNews } from "./handler.ts";
 
 async function main(): Promise<void> {

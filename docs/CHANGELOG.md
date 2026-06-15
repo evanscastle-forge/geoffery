@@ -3,6 +3,40 @@
 Newest entry on top. One entry per commit; format in `.claude/prompts.md`. The full per-commit
 history is in `git log`; this file carries the human-readable summaries going forward.
 
+## 2026-06-15 — db — SCOPE: CONTRACT
+**Summary**: Unblocked the dev deploy and made Cloudflare provisioning reproducible + interrogable.
+(1) **`node:sqlite` worker-bundle fix (CONTRACT):** `wrangler` dry-run failed with `Could not
+resolve "node:sqlite"` because the `@geoffery/data` barrel re-exported the Node-only local store
+(`db.ts` imported `node:sqlite`), and esbuild resolves every reachable import *before* tree-shaking
+(so `sideEffects:false` can't help). Split `packages/data/src/db.ts` into a **portable, type-only**
+module (the `SqlStore`/`BatchStatement` interfaces) + a new `db.node.ts` runtime (`SqliteStore`,
+`openStore`); added the `@geoffery/data/node` subpath export (`index.node.ts`). Workers import the
+portable barrel `@geoffery/data` (now `node:sqlite`-free); CLIs/tools/tests/`.node.ts` entries import
+`@geoffery/data/node`. **Rule: a `worker.ts`/`handler.ts` must never reach `@geoffery/data/node`.**
+(2) **Hosting capability (LOCAL):** new `docs/CLOUDFLARE-SETUP.md` — the full reproducible dev→prod→
+launch runbook (account prereqs incl. R2 `10042` + workers.dev `10063`, D1/R2, schema, DNS/registrar,
+deploy, troubleshooting, as-built record). New automation: `ops/gen-d1-schema.mjs` (emits a
+PRAGMA-stripped `.sql` from the `SCHEMA` const — fixes ACCESS.md's dead `schema.sql` reference at the
+root) wired as `ops/run.sh <env> provision-schema`, plus `ops/run.sh <env> doctor` (read-only
+prerequisite check). Realigned `ACCESS.md` (Access-policy focus, points to the new doc) and
+`RUNBOOK.md` (deploy + schema sections).
+**Files touched**: `packages/data/src/{db.ts (now types-only), db.node.ts (new), index.node.ts (new),
+repo.ts}`; `packages/data/package.json` (`sideEffects:false`, `./node` export); 11 consumers redirected
+to `@geoffery/data/node` (`tools/{backtest/src/index,migrate-legacy/src/restore-drill}.ts`,
+`workers/{collector/src/{main.node,backfill.node},aggregator/src/{main.node,handler.test},scorer/src/
+main.node,news/src/main.node,consult/src/main.node}.ts`, `ops/scheduler/{export,prune.node}.ts`);
+`ops/run.sh` (provision-schema + doctor); `ops/gen-d1-schema.mjs` (new); `docs/CLOUDFLARE-SETUP.md`
+(new); `ops/wrangler/ACCESS.md`; `docs/RUNBOOK.md`; `SYSTEM_ARCHITECTURE.md`; `.claude/agents/db.md`.
+**SYSTEM_ARCHITECTURE.md sections affected**: §2.2 (packages/data two entry points), §3.2 (SqlStore
+seam — the portable/node split + the no-`node:sqlite`-in-workers rule), §5 (symptom routing rows).
+**Notify**: core, web-app — no behaviour change, but their worker handlers must import the portable
+`@geoffery/data`, never `@geoffery/data/node` (CI guard is the worker `dry-run`).
+**Verification**: `npm run check` green (typecheck/lint/purity/layout/**70 tests**); `ops/run.sh dev
+dry-run` bundles all 5 workers with **no** `node:sqlite` error; `ops/run.sh dev provision-schema`
+idempotent (11 tables); `ops/run.sh dev doctor` reports the live dev state correctly. Dev deploy of the
+collector confirmed bindings (D1 `geoffery-dev`, R2 `geoffery-archive-dev`); cron registration pending
+the workers.dev subdomain (dashboard).
+
 ## 2026-06-14 — db — SCOPE: CONTRACT
 **Summary**: Converted the storage seam from synchronous to **async** so Cloudflare's async-only D1/R2
 satisfy it natively — the last gate before the workers can run on Cloudflare. `SqlStore`/`ArchiveStore`

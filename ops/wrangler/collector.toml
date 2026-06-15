@@ -20,7 +20,7 @@ vars = { GEOFFERY_DEPLOYMENT_NAME = "dev", GEOFFERY_USER_AGENT = "Geoffery dev (
 [[env.dev.d1_databases]]
 binding = "DB"
 database_name = "geoffery-dev"
-database_id = "REPLACE_WITH_DEV_D1_ID"
+database_id = "2df02cda-965b-4f08-b78a-12cdf7ecbe13"
 
 [[env.dev.r2_buckets]]
 binding = "ARCHIVE"
