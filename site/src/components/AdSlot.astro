@@ -1,12 +1,37 @@
 ---
-// Reserved, zero-CLS ad container (spec §7). Three slots, total, ever:
-// item-mid + item-bottom (desktop), one in-content (mobile). DORMANT on localhost
-// — no AdSense script, no Auto Ads, fixed dimensions present whether filled or not.
-// Never rendered in ad-free zones (consultation, ledger, payment).
+// Reserved, zero-CLS ad container (spec §7). Three slots, total, ever: item-mid +
+// item-bottom (desktop), one in-content (mobile). A real **manual** AdSense unit renders
+// only when PUBLIC_ADSENSE_CLIENT + the per-kind PUBLIC_ADSENSE_SLOT_* id are set (prod,
+// after AdSense approval); otherwise a dormant placeholder (localhost/dev — no script, no
+// fill). Auto Ads stay OFF (an account setting); manual units only. The fixed-dimension
+// outer container is present whether filled or not, so the ad can never shift layout.
+// Never rendered in ad-free zones (the Bell, the Ledger, the money/payment page).
 interface Props { kind: "item-mid" | "item-bottom" | "mobile"; }
 const { kind } = Astro.props;
 const cls = kind === "mobile" ? "mobile" : "desktop";
+
+const client = import.meta.env.PUBLIC_ADSENSE_CLIENT;
+const slotByKind: Record<Props["kind"], string | undefined> = {
+  "item-mid": import.meta.env.PUBLIC_ADSENSE_SLOT_ITEM_MID,
+  "item-bottom": import.meta.env.PUBLIC_ADSENSE_SLOT_ITEM_BOTTOM,
+  mobile: import.meta.env.PUBLIC_ADSENSE_SLOT_MOBILE,
+};
+const slot = slotByKind[kind];
+const live = Boolean(client && slot);
 ---
-<div class={`ad-slot ${cls}`} data-ad-slot={kind} aria-hidden="true">
-  <span>advertisement</span>
-</div>
+{live ? (
+  <div class={`ad-slot ${cls}`} data-ad-slot={kind}>
+    <ins
+      class="adsbygoogle"
+      style="display:block;width:100%;height:100%"
+      data-ad-client={client}
+      data-ad-slot={slot}
+      data-ad-format="horizontal"
+      data-full-width-responsive="false"></ins>
+    <script is:inline>(window.adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+) : (
+  <div class={`ad-slot ${cls}`} data-ad-slot={kind} aria-hidden="true">
+    <span>advertisement</span>
+  </div>
+)}

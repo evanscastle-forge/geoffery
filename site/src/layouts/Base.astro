@@ -12,12 +12,19 @@ interface Props {
   noindex?: boolean;
   itemSlug?: string;
   itemName?: string;
+  /** Suppress the AdSense loader entirely (ad-free zones: the money/payment page, ledger). */
+  adFree?: boolean;
 }
-const { title, description, canonicalPath, noindex, itemSlug, itemName } = Astro.props;
+const { title, description, canonicalPath, noindex, itemSlug, itemName, adFree } = Astro.props;
 const site = Astro.site?.toString() || "http://127.0.0.1:4321";
 const canonical = canonicalPath ? new URL(canonicalPath, site).toString() : undefined;
 const m = meta();
 const isLocal = (m.deployment ?? "local") === "local";
+// AdSense (spec §7): manual units only, Auto Ads off (account setting). The loader is
+// injected only when PUBLIC_ADSENSE_CLIENT is set (prod, post-approval) and the page is not
+// an ad-free zone. Dev/localhost have no publisher id → dormant. Real fill is prod-only.
+const adsenseClient = import.meta.env.PUBLIC_ADSENSE_CLIENT;
+const showAds = Boolean(adsenseClient) && !adFree;
 ---
 
 <!doctype html>
@@ -38,6 +45,9 @@ const isLocal = (m.deployment ?? "local") === "local";
     <meta property="og:title" content={title} />
     {description && <meta property="og:description" content={description} />}
     <!-- Search Console verification is stubbed on localhost (DECISIONS D-LOCAL-004). -->
+    {showAds && (
+      <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`} crossorigin="anonymous"></script>
+    )}
   </head>
   <body data-item-slug={itemSlug} data-item-name={itemName}>
     <header class="site-header">
