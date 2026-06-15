@@ -20,10 +20,14 @@ export interface Env {
   DB: D1Database;
   ARCHIVE?: R2Bucket;
   GEOFFERY_DEPLOYMENT_NAME?: string;
+  GEOFFERY_SITE_URL?: string;
   GEOFFERY_USER_AGENT?: string;
   GEOFFERY_NEWS_CLASSIFIER_MODEL?: string;
-  // Secret (wrangler secret put), never a [vars] entry. Optional → news degrades.
+  // Secrets (wrangler secret put), never a [vars] entry. Optional → the feature degrades.
   ANTHROPIC_API_KEY?: string;
+  // Tipping (consult worker). Without the secret, /api/tip returns "not configured".
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
 }
 
 /**

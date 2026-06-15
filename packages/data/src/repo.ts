@@ -651,3 +651,52 @@ export async function heartbeat(store: SqlStore, job: string, ok: boolean, error
     error ?? null,
   );
 }
+
+// ---- donations (tips, spec §7/§8) ----
+
+export interface Donation {
+  /** Stripe Checkout Session id — the idempotency key (the webhook may retry). */
+  id: string;
+  amountCents: number;
+  currency: string;
+  /** "YYYY-MM" the tip is credited to (the jar resets monthly). */
+  month: string;
+  /** Opt-in display name from Stripe customer details; null otherwise. */
+  donorName: string | null;
+  paymentIntent: string | null;
+  createdAt: number;
+}
+
+/** Record a completed tip. Idempotent on the Stripe session id. */
+export async function insertDonation(store: SqlStore, d: Donation): Promise<void> {
+  await store.run(
+    `INSERT INTO donations (id, amount_cents, currency, month, donor_name, payment_intent, created_at)
+     VALUES (?,?,?,?,?,?,?)
+     ON CONFLICT(id) DO NOTHING`,
+    d.id,
+    d.amountCents,
+    d.currency,
+    d.month,
+    d.donorName,
+    d.paymentIntent,
+    d.createdAt,
+  );
+}
+
+/** Total USD cents tipped in a month — drives the jar level/goal. Amounts never shown publicly. */
+export async function monthlyDonationTotal(store: SqlStore, month: string): Promise<number> {
+  return (
+    (await store.get<{ c: number }>("SELECT COALESCE(SUM(amount_cents), 0) AS c FROM donations WHERE month = ?", month))
+      ?.c ?? 0
+  );
+}
+
+/** Opt-in donor display names for a month, oldest first, for the patrons wall. */
+export async function recentDonors(store: SqlStore, month: string): Promise<string[]> {
+  return (
+    await store.all<{ donor_name: string | null }>(
+      "SELECT donor_name FROM donations WHERE month = ? AND donor_name IS NOT NULL AND donor_name != '' ORDER BY created_at",
+      month,
+    )
+  ).map((r) => r.donor_name as string);
+}

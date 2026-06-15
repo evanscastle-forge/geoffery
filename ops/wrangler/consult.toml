@@ -13,7 +13,11 @@ workers_dev = false
 
 [env.dev]
 name = "geoffery-consult-dev"
-vars = { GEOFFERY_DEPLOYMENT_NAME = "dev" }
+# GEOFFERY_SITE_URL is the trusted origin for Stripe Checkout return URLs (not the worker
+# origin). STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET are *secrets*, never [vars]:
+#   ops/run.sh dev secret STRIPE_SECRET_KEY consult
+#   ops/run.sh dev secret STRIPE_WEBHOOK_SECRET consult
+vars = { GEOFFERY_DEPLOYMENT_NAME = "dev", GEOFFERY_SITE_URL = "https://dev.geoffery.gg" }
 routes = [{ pattern = "dev.geoffery.gg/api/*", zone_name = "geoffery.gg" }]
 
 [[env.dev.d1_databases]]
@@ -23,7 +27,7 @@ database_id = "2df02cda-965b-4f08-b78a-12cdf7ecbe13"
 
 [env.prod]
 name = "geoffery-consult-prod"
-vars = { GEOFFERY_DEPLOYMENT_NAME = "prod" }
+vars = { GEOFFERY_DEPLOYMENT_NAME = "prod", GEOFFERY_SITE_URL = "https://geoffery.gg" }
 routes = [{ pattern = "geoffery.gg/api/*", zone_name = "geoffery.gg" }]
 
 [[env.prod.d1_databases]]

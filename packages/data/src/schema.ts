@@ -150,4 +150,20 @@ CREATE TABLE IF NOT EXISTS llm_usage (
 );
 CREATE INDEX IF NOT EXISTS llm_usage_ts ON llm_usage(ts);
 CREATE INDEX IF NOT EXISTS llm_usage_job ON llm_usage(job);
+
+-- Tips (spec §7/§8). One row per completed Stripe Checkout (id = session id, idempotent).
+-- amount_cents is stored for the monthly jar/goal math + reconciliation only; amounts are
+-- NEVER shown publicly. donor_name is opt-in (from Stripe customer details) — display is a
+-- compliance decision. The curated packages/content donations.ts is the seed/fallback.
+CREATE TABLE IF NOT EXISTS donations (
+    id              TEXT PRIMARY KEY,
+    amount_cents    INTEGER NOT NULL,
+    currency        TEXT NOT NULL DEFAULT 'usd',
+    month           TEXT NOT NULL,
+    donor_name      TEXT,
+    payment_intent  TEXT,
+    created_at      INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS donations_month ON donations(month);
+CREATE INDEX IF NOT EXISTS donations_created ON donations(created_at);
 `;
