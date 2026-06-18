@@ -1,7 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
 import Dialogue from "../components/Dialogue.astro";
-import Saying from "../components/Saying.astro";
 import { PAGES, DONATIONS, jarLevel, easterEggPatrons } from "@geoffery/content";
 import { cleanName } from "@geoffery/core";
 
@@ -11,7 +10,7 @@ import { cleanName } from "@geoffery/core";
 // The jar level + patrons wall read live per-month totals from the export (donations.json),
 // merged with the curated seed (@geoffery/content) and the easter-egg patrons. Amounts are
 // never shown — only the fill level (spec §8).
-const M = PAGES.money;
+const M = PAGES.tips;
 // Build-time pick of the "what Geoffery does with the money" line; the client script below
 // re-picks per page load (mirrors Saying.astro). Graceful no-JS fallback to this pick.
 const usesInitial = M.uses.length ? M.uses[Math.floor(Math.random() * M.uses.length)] : "";
@@ -51,10 +50,9 @@ const currentDonors = donorsFor(nowKey);
 const tipCopy = { cancelled: M.tipCancelled, error: M.tipError };
 ---
 
-<Base title="How this is paid for — Geoffery" description="Geoffery's wage is one gold a month. Tips are voluntary — the market, the figures, and the bell stay free for everyone." canonicalPath="/money/" adFree>
+<Base title="How this is paid for — Geoffery" description="Tip Geoffery if you like — it's voluntary. The market, the figures, and the bell stay free for everyone." canonicalPath="/tips/" adFree>
   <div class="wrap measure">
     <h1>{M.title}</h1>
-    <Saying page="money" />
     <Dialogue><p class="money-uses" data-uses={JSON.stringify(M.uses)} data-intro={M.usesIntro}>{M.usesIntro}{usesInitial}.</p></Dialogue>
 
     <section class="panel doc">
@@ -127,8 +125,8 @@ const tipCopy = { cancelled: M.tipCancelled, error: M.tipError };
   }
 
   // A tip → a real Stripe Checkout Session. POST the amount; the worker returns a hosted
-  // checkout url and we hand the patron to Stripe. The thank-you/cookie/jar happen only on
-  // the success return (below), never on click.
+  // checkout url and we hand the patron to Stripe. The thank-you/jar happen only on the
+  // success return (below), never on click.
   async function startTip(amountUsd) {
     const cents = Math.round(Number(amountUsd) * 100);
     if (!Number.isFinite(cents) || cents < 100) {

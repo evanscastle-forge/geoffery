@@ -71,7 +71,7 @@ const appVersion = import.meta.env.GEOFFERY_APP_VERSION;
           </div>
           <nav class="nav" aria-label="Primary">
             <a href="/">Home</a>
-            <a class="nav-tip" href="/money/">Tip Geoffery</a>
+            <a class="nav-tip" href="/tips/">Tip Geoffery</a>
             <a href="/about/">About</a>
           </nav>
         </div>
@@ -88,23 +88,17 @@ const appVersion = import.meta.env.GEOFFERY_APP_VERSION;
 
     <footer class="site-footer">
       <div class="wrap">
-        <!-- Mirrors the header nav exactly (owner feedback 2026-06-12). -->
+        <!-- One nav row: primary + legal + version together (owner directive 2026-06-18). -->
         <div class="links">
           <a href="/">Home</a>
-          <a href="/money/">Tip Geoffery</a>
+          <a href="/tips/">Tip Geoffery</a>
           <a href="/about/">About</a>
-        </div>
-        <p class="small">{SITE.footerDisclaimer}</p>
-        <!-- Legal/compliance links — a separate row so the owner-locked Home·Tip·About
-             mirror above stays untouched (footer mirrors header, feedback 2026-06-12). -->
-        <div class="legal-links small">
-          <a href="/methodology/">Methodology</a>
           <a href="/privacy/">Privacy</a>
           <a href="/terms/">Terms</a>
           <a href="/cookies/">Cookies</a>
+          <a href="/version.json">v{appVersion}</a>
         </div>
-        <!-- Build/version tag → /version.json carries version + commit + builtAt. -->
-        <p class="build-tag small"><a href="/version.json">v{appVersion}</a></p>
+        <p class="small">{SITE.footerDisclaimer}</p>
       </div>
     </footer>
 

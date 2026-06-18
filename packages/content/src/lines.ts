@@ -31,18 +31,6 @@ export const HOME = {
 // A small lineup of witty, page-aware asides (owner directive 2026-06-14). One is
 // picked at random per visit on each non-home page; the home page stays static.
 export const SAYINGS: Record<string, string[]> = {
-  about: [
-    "The page where I stop performing and start explaining.",
-    "No theatre here — just the method, and the door.",
-    "You wanted to know how the figures are reckoned. Here it is, plainly.",
-    "Plainer talk than usual. Do not grow accustomed to it.",
-  ],
-  money: [
-    "A jar, some coins, and my undivided gratitude.",
-    "The ink does not buy itself, alas.",
-    "Tips fund the ink; the ink funds the figures.",
-    "Underpaid, yes — but discreet about it.",
-  ],
   item: [
     "One item, thirty days of its history, and my opinion.",
     "I have read this item's figures so you needn't.",
@@ -170,10 +158,8 @@ export const BELL = {
   noFigures: "I have not the figures to advise that honestly.",
 };
 
-// ---- Legal / compliance pages (privacy, terms, cookies). Plainer than the rest of
-// the house — these exist to be clear and accurate (and to satisfy ad-network review),
-// with only a light touch of Geoffery in the intros. Every claim here must stay true to
-// what the code actually does; reviewed by design/compliance before shipping.
+// ---- Legal pages (privacy, terms, cookies). Terse plain-legal copy — NOT Geoffery's voice
+// (owner directive 2026-06-18). Every claim must stay true to what the code actually does.
 export interface DocLink {
   href: string;
   text: string;
@@ -193,95 +179,59 @@ export interface DocPage {
 }
 
 const GOOGLE_PARTNER_URL = "https://policies.google.com/technologies/partner-sites";
-const GOOGLE_ADSETTINGS_URL = "https://adssettings.google.com";
 
 export const PRIVACY: DocPage = {
-  title: "Privacy",
+  title: "Privacy Policy",
   updated: "Last updated 18 June 2026.",
-  intro:
-    "I keep careful accounts — and I am just as careful with yours. I gather as little as I can, sell none of it, and set the whole of it out here, plainly.",
+  intro: "This policy explains what data geoffery.gg collects and how it is used.",
   sections: [
     {
-      h: "What I record",
+      h: "Data collected",
       p: [
-        "When you ring the bell and I give a recommendation, I log that consultation: the item, whether you were buying or selling, how long you said you would wait, the price I suggested, and the market conditions at that moment. I do this to grade myself — every recommendation is later checked against what the market actually did, and the tally is published on the methodology page.",
-        "So your own consultations can be grouped together — and for nothing else — your browser is given a random identifier, the geoffery_cid cookie. It is a string of random characters: not your name, not your email, nothing that identifies you. It is never sold, shared, or used to follow you about other sites.",
-        "There are no accounts, no logins, and none of my own analytics or tracking.",
+        "Consultations (the item, buy or sell, time tolerance, and the suggested price) are logged anonymously to measure recommendation accuracy. No account, name, or email is required or collected.",
+        "A first-party cookie, geoffery_cid, stores a random identifier used to group consultations. It contains no personal data and is not used to track you across other sites.",
+        "If you tip, payment is processed by Stripe; this site never receives your card details. A name entered at checkout may appear on the public patrons list.",
       ],
     },
     {
-      h: "Tips",
-      p: "Tips are handled by Stripe, who process the payment; I never see your card details. If you enter a name at checkout, it may appear on that month's wall of patrons — the only personal detail a tip can surface, and only if you choose to give it. Amounts are never shown publicly.",
-    },
-    {
-      h: "Advertising",
+      h: "Advertising and cookies",
       p: [
-        "To help cover its costs, this site shows ads from Google AdSense. Google and its partners may use cookies to serve and measure those ads.",
-        "Where the law requires it — for example in the UK and EU — you are asked to consent before any advertising cookies are set, through Google's consent prompt, and you may change or withdraw that choice at any time.",
+        "This site shows ads through Google AdSense. Google and its partners may use cookies to serve and measure ads. Where required by law, consent is requested before advertising cookies are set, via Google's consent message.",
+        "You can opt out of personalised advertising in your Google Ad Settings, and clear or block cookies in your browser at any time. See the cookies page for the full list.",
       ],
       link: { href: GOOGLE_PARTNER_URL, text: "How Google uses information from sites that use its services", external: true },
     },
     {
-      h: "Cookies and storage",
-      p: "For the complete list of the cookies and storage this site uses, see the cookies page.",
-      link: { href: "/cookies/", text: "the cookies page" },
-    },
-    {
-      h: "Your choices",
-      p: [
-        "You can clear cookies and site data at any time in your browser's settings; that removes the geoffery_cid identifier, and a fresh one is made the next time you ring the bell.",
-        "You can opt out of personalised Google ads, and manage advertising consent through the prompt mentioned above.",
-        "To ask what is held about you, or to have it removed, write to me at the address below.",
-      ],
-      link: { href: GOOGLE_ADSETTINGS_URL, text: "your Google Ad Settings", external: true },
-    },
-    {
-      h: "Children",
-      p: "Geoffery is a general-audience tool about a video game's market. It is not directed at children under 13, and I do not knowingly collect their information.",
-    },
-    {
-      h: "Changes",
-      p: "If this policy changes, the date above changes with it.",
+      h: "Your rights and contact",
+      p: "To request access to, or deletion of, data associated with you, use the contact below. This site is not directed at children under 13. If this policy changes, the date above is updated.",
     },
   ],
-  contactLine: "Questions about your privacy go to the same place as everything else:",
+  contactLine: "Contact:",
 };
 
 export const TERMS: DocPage = {
-  title: "Terms",
+  title: "Terms of Use",
   updated: "Last updated 18 June 2026.",
-  intro:
-    "Using Geoffery comes with a few plain understandings — no fine-print games, just what you may expect of me and what I ask of you.",
+  intro: "By using geoffery.gg you agree to these terms.",
   sections: [
     {
-      h: "Using the site",
-      p: "Geoffery is free to use for your own trading in Old School RuneScape. Please don't pound the site with automated requests, try to break it, or pass its figures off as your own. Otherwise, enjoy it — that is what it is for.",
-    },
-    {
-      h: "Not financial or trading advice",
-      p: [
-        "Everything here — the gauges, the prices, and the recommendations from the bell — is arithmetic on past market data, offered for information and entertainment. It concerns an in-game economy, not real money, and it is not financial advice.",
-        "The market can and does move against any figure I give. I can be wrong, and on occasion am. Every trade you make is your own decision; always check the live price before you commit to it.",
-      ],
+      h: "Not financial advice",
+      p: "All figures, gauges, and recommendations are estimates based on past in-game market data, provided for information only. They are not financial advice. Prices can move against any figure shown, and trading decisions are your own.",
     },
     {
       h: "No warranty",
-      p: "The site is provided “as is”, without warranty of any kind. I do not guarantee that the figures are accurate or current, nor that the site will always be available. To the fullest extent the law allows, I am not liable for any loss arising from your use of it.",
+      p: "The site is provided “as is”, without warranty of any kind. No guarantee is made that figures are accurate or current, or that the site will be available. To the fullest extent permitted by law, no liability is accepted for any loss arising from use of the site.",
     },
     {
-      h: "Where the data comes from",
-      p: "Prices come from the OSRS Wiki's real-time price API and related MediaWiki content, used gratefully under their CC BY-NC-SA licence. The data is a signal I compute upon, never republished wholesale. The character Geoffery and the artwork are original.",
+      h: "Acceptable use",
+      p: "Do not abuse, overload, or attempt to disrupt the site, or redistribute its data as your own.",
     },
     {
-      h: "Not affiliated with Jagex",
-      p: "RuneScape and Old School RuneScape are trademarks of Jagex Limited. Geoffery is an independent, unofficial tool — not affiliated with, endorsed by, or associated with Jagex in any way.",
-    },
-    {
-      h: "Changes",
-      p: "These terms may change in time; the date above tracks it.",
+      h: "Data and trademarks",
+      p: "Price data is sourced from the OSRS Wiki real-time price API under its CC BY-NC-SA licence. RuneScape and Old School RuneScape are trademarks of Jagex Limited; this site is independent and not affiliated with, endorsed by, or associated with Jagex.",
     },
   ],
-  contactLine: "Anything here unclear? Write to me:",
+  contactLine: "Contact:",
 };
 
 export interface CookieRow {
@@ -306,64 +256,40 @@ export interface CookiePage {
 }
 
 export const COOKIES: CookiePage = {
-  title: "Cookies",
+  title: "Cookie Policy",
   updated: "Last updated 18 June 2026.",
-  intro: "I use as few cookies as I can manage, and none of my own for tracking. Here is the complete list.",
+  intro: "This site uses the cookies listed below.",
   colName: "Cookie",
   colParty: "Set by",
-  colPurpose: "What it is for",
-  colDuration: "Kept for",
+  colPurpose: "Purpose",
+  colDuration: "Duration",
   cookies: [
     {
       name: "geoffery_cid",
       party: "First-party",
-      purpose:
-        "A random identifier that groups your own consultations so I can score my recommendations honestly. Not linked to your identity, and never used to follow you across other sites.",
+      purpose: "A random identifier used to group consultations for accuracy measurement. Contains no personal data.",
       duration: "1 year",
     },
     {
       name: "Google AdSense cookies",
-      party: "Third-party — Google",
-      purpose:
-        "Set by Google to serve and measure the ads that help fund the site, and only with your consent where the law requires it.",
-      duration: "Varies (set by Google)",
+      party: "Third-party (Google)",
+      purpose: "Serve and measure advertising, subject to consent where required by law.",
+      duration: "Set by Google",
     },
   ],
   storageNote:
-    "The site also keeps a small cache in your browser (a service worker) so it loads quickly and works offline. That is storage, not a tracking cookie, and it holds nothing personal.",
+    "A service-worker cache is also stored in your browser so the site loads quickly and works offline; it holds no personal data.",
   manageNote:
-    "You can clear or block cookies in your browser whenever you like, and manage advertising consent through Google's prompt. The site keeps working either way — you may simply see less relevant ads.",
-  privacyNote: "For what each cookie is used for and the choices you have, see the privacy page.",
-  contactLine: "Questions about cookies are welcome:",
+    "You can clear or block cookies in your browser, and manage advertising consent through Google's prompt, at any time.",
+  privacyNote: "See the privacy policy for details.",
+  contactLine: "Contact:",
 };
 
 export const PAGES = {
-  // Methodology is deliberately plainer than the rest of the house: it exists to
-  // reassure people Geoffery isn't guessing. Short, no theatre, no detail dump.
-  methodology: {
-    title: "How the ledger is kept",
-    intro:
-      "Every figure here is arithmetic on real market data — recent prices and volumes, compared against the last thirty days. No guesswork, no gut feel. What I recommend, I write down and check.",
-    accuracyHeading: "The fill record",
-    accuracyIntro:
-      "Every recommendation is recorded as a prediction, then checked against what the market actually did. The results are below — the hits and the misses alike.",
-    overallLabel: "Across every recommendation I have scored",
-    toleranceHeading: "By how long you said you'd wait",
-    colTolerance: "Patience",
-    colSample: "Scored",
-    colFillRate: "Filled as advised",
-    toleranceLabels: { instant: "Right now", hours: "A few hours", patient: "A day or two", extended: "A long while" },
-    untested:
-      "I have not scored enough recommendations yet to quote an honest figure. Give me time — I am new here, and I intend to be insufferably accurate.",
-    footnote:
-      "A recommendation “fills” when the market reached the price I suggested within the window I named. These figures update as more recommendations are scored.",
-  },
   // The About page speaks directly to the reader — plainer and more serious than the
-  // rest of the house (owner directive 2026-06-14): what it is, how it works, who makes it.
+  // rest of the house (owner directive 2026-06-14): what it does, how it works, who makes it.
   about: {
     title: "About Geoffery",
-    intro:
-      "Geoffery is a free price guide and trading assistant for the Old School RuneScape Grand Exchange. It reads the live market, rates whether an item is cheap or dear against its own recent history, and — when you ask — suggests a price to buy or sell at.",
     whatHeading: "What it does",
     whatBody:
       "Every tradeable item gets a deal gauge: the current price set against where it has actually traded over the last thirty days. Lower in that range is a better moment to buy; higher, a better moment to sell. Search any item to see its gauge, its recent price history, and a read on how volatile its market is.",
@@ -378,9 +304,9 @@ export const PAGES = {
       "Found a bug, have an idea, or just want to say hello? Email is the surest way to reach the person behind Geoffery.",
     contactCta: "Email support",
   },
-  money: {
+  tips: {
     title: "How this is paid for",
-    // The money page shows a random one of these as Geoffery's dialogue, a new pick per page
+    // The tips page shows a random one of these as Geoffery's dialogue, a new pick per page
     // load (owner directive 2026-06-18). Infinitive phrases — each follows `usesIntro`.
     usesIntro: "The jar empties on the first of each month. Geoffery uses the money to ",
     uses: [

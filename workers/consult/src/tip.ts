@@ -45,8 +45,8 @@ export async function createTipCheckout(
       },
     ],
     metadata: { purpose: "tip", month: monthKey(now) },
-    success_url: `${origin}/money/?tip=thanks&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/money/?tip=cancelled`,
+    success_url: `${origin}/tips/?tip=thanks&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/tips/?tip=cancelled`,
   });
   return session.url ? { ok: true, url: session.url } : { ok: false, error: "no checkout url" };
 }

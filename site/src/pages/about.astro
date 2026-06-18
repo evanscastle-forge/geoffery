@@ -1,6 +1,5 @@
 ---
 import Base from "../layouts/Base.astro";
-import Saying from "../components/Saying.astro";
 import { PAGES } from "@geoffery/content";
 
 // The About page speaks directly to the reader (owner directive 2026-06-14):
@@ -12,8 +11,6 @@ const CONTACT_MAILTO = "mailto:support@geoffery.gg";
 <Base title="About Geoffery — OSRS Grand Exchange price guide" description="What Geoffery is, how it rates prices and recommends offers, who makes it, and how to get in touch." canonicalPath="/about/">
   <div class="wrap measure">
     <h1>{A.title}</h1>
-    <Saying page="about" />
-    <p class="lede">{A.intro}</p>
 
     <section class="panel doc">
       <h2>{A.whatHeading}</h2>
@@ -33,7 +30,6 @@ const CONTACT_MAILTO = "mailto:support@geoffery.gg";
 </Base>
 
 <style>
-  .lede { color: var(--paper-text); font-size: 1.12rem; line-height: 1.6; margin: var(--s-4) 0 0; }
   .doc { margin-top: var(--s-5); }
   .doc h2 { margin-top: var(--s-5); }
   /* Centered email button (owner feedback 2026-06-14). */

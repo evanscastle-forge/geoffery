@@ -94,3 +94,37 @@ export async function fetch5m(userAgent: string, timestamp?: number): Promise<Sn
   }
   return out;
 }
+
+export type Timestep = "5m" | "1h" | "6h" | "24h";
+
+interface TimeseriesResponse {
+  data: {
+    timestamp: number;
+    avgHighPrice: number | null;
+    avgLowPrice: number | null;
+    highPriceVolume: number | null;
+    lowPriceVolume: number | null;
+  }[];
+}
+
+/**
+ * Per-item price history (up to 365 points at the chosen timestep — `6h` ≈ 91 days,
+ * `24h` ≈ 365 days). Used to backfill a fresh DB that has no accumulated 5m history; the
+ * coarse points are sufficient for the 30-day gauge/sparklines (only the 24h chart wants 5m,
+ * which the live collector fills going forward). One item per call — be gentle with these.
+ */
+export async function fetchTimeseries(userAgent: string, itemId: number, timestep: Timestep = "6h"): Promise<Snapshot[]> {
+  const json = await getJson<TimeseriesResponse>(`${BASE}/timeseries?timestep=${timestep}&id=${itemId}`, userAgent);
+  const out: Snapshot[] = [];
+  for (const d of json.data ?? []) {
+    out.push({
+      itemId,
+      ts: d.timestamp,
+      avgHigh: d.avgHighPrice ?? null,
+      avgLow: d.avgLowPrice ?? null,
+      highVol: d.highPriceVolume ?? null,
+      lowVol: d.lowPriceVolume ?? null,
+    });
+  }
+  return out;
+}

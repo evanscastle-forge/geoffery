@@ -42,6 +42,8 @@
 #   publish       — refresh the site's data from the remote D1, then build + deploy the
 #                 site. How fresh prices + committed code reach prod; used by CI on
 #                 push-to-main and on an hourly schedule.
+#   backfill-history — one-time: backfill the remote D1's 30-day price history from the OSRS
+#                 Wiki timeseries (a fresh DB has none); coarse 6h points, idempotent upsert
 #   provision-schema — apply the D1 schema (generated from schema.ts) to the remote
 #                 DB; idempotent (CREATE … IF NOT EXISTS). See docs/CLOUDFLARE-SETUP.md
 #   doctor        — read-only check of every provisioning prerequisite (auth, account
@@ -282,8 +284,40 @@ refresh_data_from_remote() {
     "${WRANGLER[@]}" d1 export "${db}" --remote --output "${dump}"
     echo "${LOG} ▶ load dump → local snapshot (${snapshot})"
     node "${SCRIPT_DIR}/scheduler/load-d1-dump.mjs" "${dump}" "${snapshot}"
+    echo "${LOG} ▶ recompute aggregates from the snapshot (a stale prod aggregates table can't blank the site)"
+    GEOFFERY_DB="${snapshot}" npm run aggregate
     echo "${LOG} ▶ generate site JSON from the snapshot"
     GEOFFERY_DB="${snapshot}" npm run export
+    guard_thin_data
+}
+
+# Refuse to ship a thin build: the generated aggregates must cover a real chunk of the catalogue
+# with live prices. Stops a freshly-provisioned / half-populated D1 (no history) from blanking
+# the live site. Override an intentional first publish with GEOFFERY_FORCE_DEPLOY=1.
+guard_thin_data() {
+    [[ "${GEOFFERY_FORCE_DEPLOY:-}" == "1" ]] && { echo "${LOG} ⚠ GEOFFERY_FORCE_DEPLOY=1 — skipping the thin-data guard"; return 0; }
+    local min="${GEOFFERY_MIN_PRICED_ITEMS:-1000}" priced
+    priced="$(node -e 'const a=require(process.argv[1]);let n=0;for(const k in a)if(a[k]&&a[k].currentPrice!=null)n++;console.log(n)' "${REPO_ROOT}/site/src/generated/aggregates.json" 2>/dev/null || echo 0)"
+    if [[ "${priced}" -lt "${min}" ]]; then
+        echo "${LOG} ✗ thin data: only ${priced} items have a live price (need ≥ ${min})." >&2
+        echo "${LOG}   The DB likely lacks history — run 'ops/run.sh ${TARGET} backfill-history' first," >&2
+        echo "${LOG}   or set GEOFFERY_FORCE_DEPLOY=1 to publish anyway." >&2
+        exit 1
+    fi
+    echo "${LOG} ✓ data guard: ${priced} items priced (≥ ${min})"
+}
+
+# One-time history backfill (a fresh D1 has no 30-day history). Fetch the OSRS Wiki per-item 6h
+# timeseries → a SQL file → import into the remote D1 (upsert). Coarse points are enough for the
+# 30-day gauge/sparklines; the live 5m collector supersedes them over ~30 days. See
+# workers/collector/src/backfill-timeseries.node.ts.
+backfill_history() {
+    local db="geoffery-${TARGET}" out="${TMPDIR:-/tmp}/geoffery-backfill-${TARGET}.sql"
+    ensure_site_deps
+    echo "${LOG} ▶ fetch wiki timeseries → ${out} (~4,600 gentle wiki calls; a few minutes)"
+    GEOFFERY_BACKFILL_OUT="${out}" npm run backfill:history
+    echo "${LOG} ▶ import → D1 '${db}' (upsert)"
+    "${WRANGLER[@]}" d1 import "${db}" --remote --file "${out}"
 }
 
 # Apply the D1 schema to the remote DB. The SQL is generated from the SCHEMA const
@@ -352,6 +386,7 @@ run_deploy() {
         deploy-workers) preflight_deploy; deploy_workers ;;
         deploy-site)    preflight_deploy; deploy_site ;;
         publish)        preflight_deploy; publish ;;
+        backfill-history) preflight_deploy; backfill_history ;;
         provision-schema) preflight_deploy; provision_schema ;;
         doctor)         deploy_doctor ;;
         dry-run)

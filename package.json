@@ -26,6 +26,7 @@
     "collect": "node --experimental-strip-types workers/collector/src/main.node.ts",
     "aggregate": "node --experimental-strip-types workers/aggregator/src/main.node.ts",
     "backfill": "node --experimental-strip-types workers/collector/src/backfill.node.ts",
+    "backfill:history": "node --experimental-strip-types workers/collector/src/backfill-timeseries.node.ts",
     "scorer": "node --experimental-strip-types workers/scorer/src/main.node.ts",
     "news": "node --experimental-strip-types workers/news/src/main.node.ts",
     "backtest": "node --experimental-strip-types tools/backtest/src/index.ts",

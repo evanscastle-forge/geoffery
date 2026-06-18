@@ -1,0 +1,3 @@
+# Cloudflare Pages redirects. /money was renamed to /tips (2026-06-18).
+/money/ /tips/ 301
+/money /tips/ 301

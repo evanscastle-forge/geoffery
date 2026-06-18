@@ -136,9 +136,7 @@ main { padding: var(--s-6) 0 var(--s-8); }
   background: var(--bg-raised);
 }
 .site-footer .wrap { display: grid; gap: var(--s-3); }
-.site-footer .links { display: flex; flex-wrap: wrap; gap: var(--s-4); }
-/* Legal/compliance links — a separate row from the owner-locked Home·Tip·About mirror. */
-.site-footer .legal-links { display: flex; flex-wrap: wrap; gap: var(--s-4); opacity: 0.85; }
+.site-footer .links { display: flex; flex-wrap: wrap; gap: var(--s-4); align-items: baseline; }
 
 /* reserved, zero-CLS ad containers (spec §7) — present whether filled or not. */
 .ad-slot {
