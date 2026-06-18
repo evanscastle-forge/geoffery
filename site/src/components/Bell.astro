@@ -3,13 +3,10 @@
 // Server-side, we precompute Geoffery's copy (from @geoffery/content, the sole
 // source of his words) into a plain object the client state machine interpolates.
 // The dialogue/ledger/payment surfaces are ad-free zones (spec §7).
-import { BELL, GAUGE, DONATIONS, monthOf, thresholdMet } from "@geoffery/content";
+import { BELL, GAUGE } from "@geoffery/content";
 
-const DAILY_LIMIT = 5; // soft meter, 3–5/day (spec §5)
-
-// This month's tip goal met → everyone gets a bonus consultation (owner directive 2026-06-14).
-const bonusActive = thresholdMet(monthOf(DONATIONS, new Date().toISOString().slice(0, 7)));
-
+// Usage is unlimited and free; tips are voluntary and grant no extra access
+// (owner directive 2026-06-18). No meter, no tip-gated bonus.
 const powerPhrase = { buyer: GAUGE.regime.buyer, seller: GAUGE.regime.seller, balanced: GAUGE.regime.balanced };
 const stab = ["steady", "volatile"] as const;
 
@@ -43,11 +40,7 @@ const copy = {
   noFigures: BELL.noFigures,
   startOver: BELL.startOver,
   visitItem: BELL.visitItem,
-  limitReached: BELL.limitReached(DAILY_LIMIT),
-  limitTipCta: BELL.limitTipCta,
   regimeNotes,
-  dailyLimit: DAILY_LIMIT,
-  bonusActive,
 };
 ---
 

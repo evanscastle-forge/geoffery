@@ -29,6 +29,7 @@ const ALLOWED = new Set([
   ".env.example",
   // directories
   ".claude",
+  ".github", // CI/CD workflows (deploy on push/schedule → prod)
   "config",
   "docs",
   // per-target deploy config sourced by ops/run.sh (env/.env.dev|prod + .example

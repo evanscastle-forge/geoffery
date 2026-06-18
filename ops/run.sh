@@ -39,6 +39,9 @@
 #   deploy        — build the site, then deploy every Worker + the Pages site
 #   deploy-workers — deploy the cron/HTTP Workers only (no site)
 #   deploy-site   — build + deploy the Astro static site to Pages only
+#   publish       — refresh the site's data from the remote D1, then build + deploy the
+#                 site. How fresh prices + committed code reach prod; used by CI on
+#                 push-to-main and on an hourly schedule.
 #   provision-schema — apply the D1 schema (generated from schema.ts) to the remote
 #                 DB; idempotent (CREATE … IF NOT EXISTS). See docs/CLOUDFLARE-SETUP.md
 #   doctor        — read-only check of every provisioning prerequisite (auth, account
@@ -73,6 +76,12 @@ if BUILD_SHA="$(git rev-parse --short HEAD 2>/dev/null)" && [[ -n "${BUILD_SHA}"
 else
     export GEOFFERY_BUILD_VERSION="dev-$(date +%s)"
 fi
+# Human release version (package.json) + ISO build time — baked into the site and surfaced
+# at /version.json; the commit sha above is the provenance beneath it. The prod deploy guard
+# (guard_no_regression) compares these against what is already live.
+GEOFFERY_APP_VERSION="$(node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")"
+GEOFFERY_BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+export GEOFFERY_APP_VERSION GEOFFERY_BUILT_AT
 
 # ── arg parse: target first ─────────────────────────────────────────────────
 TARGET="${1:-}"
@@ -101,6 +110,10 @@ if [[ -f "${ENV_FILE}" ]]; then
     # shellcheck disable=SC1090
     source "${ENV_FILE}"
     set +a
+elif [[ "${PUBLIC}" == "1" && -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+    # CI mode: no committed env file — config arrives via the process environment
+    # (e.g. GitHub Actions secrets). The preflight below still validates the required vars.
+    echo "${LOG} no ${ENV_FILE}; using config from the environment (CI mode)" >&2
 elif [[ "${PUBLIC}" == "1" ]]; then
     echo "${LOG} env file ${ENV_FILE} not found." >&2
     echo "${LOG}   cp env/.env.${TARGET}.example ${ENV_FILE} and fill it in (account id, zone," >&2
@@ -192,6 +205,40 @@ preflight_deploy() {
     fi
 }
 
+# Prevent accidentally shipping older code to prod: compare the local release version +
+# commit against what /version.json reports live. Refuse a lower semver, or a deploy whose
+# checkout is BEHIND the live commit (a stale local tree). GEOFFERY_FORCE_DEPLOY=1 overrides
+# (an intentional rollback). prod-only; first deploy / unreachable live site → no-op.
+guard_no_regression() {
+    [[ "${TARGET}" == "prod" ]] || return 0
+    if [[ "${GEOFFERY_FORCE_DEPLOY:-}" == "1" ]]; then
+        echo "${LOG} ⚠ GEOFFERY_FORCE_DEPLOY=1 — skipping the version regression guard"
+        return 0
+    fi
+    local live local_ver live_ver live_commit
+    live="$(curl -fsS --max-time 10 "${SITE_URL}/version.json" 2>/dev/null || true)"
+    if [[ -z "${live}" ]]; then
+        echo "${LOG} regression guard: no live /version.json yet (first deploy or unreachable) — proceeding"
+        return 0
+    fi
+    local_ver="$(node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")"
+    live_ver="$(printf '%s' "${live}"    | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).version || ""' 2>/dev/null || true)"
+    live_commit="$(printf '%s' "${live}" | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).commit  || ""' 2>/dev/null || true)"
+    if [[ -n "${live_ver}" ]] && ! node "${SCRIPT_DIR}/scheduler/semver-gte.mjs" "${local_ver}" "${live_ver}"; then
+        echo "${LOG} ✗ regression: would ship v${local_ver} over the live v${live_ver}." >&2
+        echo "${LOG}   Bump package.json (npm version …), or set GEOFFERY_FORCE_DEPLOY=1 for an intentional rollback." >&2
+        exit 1
+    fi
+    if [[ -n "${live_commit}" && "${live_commit}" != "unknown" ]] && git cat-file -e "${live_commit}^{commit}" 2>/dev/null; then
+        if ! git merge-base --is-ancestor "${live_commit}" HEAD 2>/dev/null; then
+            echo "${LOG} ✗ regression: prod's live commit ${live_commit} is not in this checkout's history — prod is ahead of you." >&2
+            echo "${LOG}   Pull/rebase onto the deployed commit, or set GEOFFERY_FORCE_DEPLOY=1 to override." >&2
+            exit 1
+        fi
+    fi
+    echo "${LOG} ✓ regression guard ok: v${local_ver} ≥ live v${live_ver:-none}; HEAD contains the live commit"
+}
+
 deploy_worker() { # <worker>
     local w="$1"
     echo "${LOG} ▶ deploy worker: ${w}"
@@ -203,12 +250,40 @@ deploy_workers() {
 }
 
 deploy_site() {
-    echo "${LOG} ▶ build site (GEOFFERY_BUILD_VERSION=${GEOFFERY_BUILD_VERSION})"
+    guard_no_regression
+    echo "${LOG} ▶ build site (v${GEOFFERY_APP_VERSION} · ${GEOFFERY_BUILD_VERSION})"
     ensure_site_deps
     npm --workspace site run build
     echo "${LOG} ▶ deploy Pages site → ${SITE_URL}"
     "${WRANGLER[@]}" pages deploy "${REPO_ROOT}/site/dist" \
         --project-name "geoffery-${TARGET}" --branch "${TARGET}"
+}
+
+# Republish the live site from a snapshot of the remote D1: pull the DB → generate the
+# site JSON → build + deploy. This is how fresh prices AND committed code reach the static
+# site (the site reads build-time JSON, so it only changes on a rebuild). CI runs this on
+# push-to-main and on an hourly schedule; it is equally runnable by hand. The export reads
+# a local node:sqlite file, so we first pull the remote DB into a snapshot (D1 holds the
+# ~30-day hot window the sparklines + aggregates need).
+publish() {
+    echo "${LOG} ▶ publish: refresh data from remote D1, then build + deploy the site"
+    ensure_site_deps
+    refresh_data_from_remote
+    deploy_site
+}
+
+refresh_data_from_remote() {
+    local db="geoffery-${TARGET}"
+    local work="${TMPDIR:-/tmp}/geoffery-publish-${TARGET}"
+    local dump="${work}/d1-dump.sql"
+    local snapshot="${work}/geoffery.db"
+    rm -rf "${work}"; mkdir -p "${work}"
+    echo "${LOG} ▶ export remote D1 '${db}' → SQL dump"
+    "${WRANGLER[@]}" d1 export "${db}" --remote --output "${dump}"
+    echo "${LOG} ▶ load dump → local snapshot (${snapshot})"
+    node "${SCRIPT_DIR}/scheduler/load-d1-dump.mjs" "${dump}" "${snapshot}"
+    echo "${LOG} ▶ generate site JSON from the snapshot"
+    GEOFFERY_DB="${snapshot}" npm run export
 }
 
 # Apply the D1 schema to the remote DB. The SQL is generated from the SCHEMA const
@@ -276,6 +351,7 @@ run_deploy() {
         deploy)         preflight_deploy; deploy_workers; deploy_site ;;
         deploy-workers) preflight_deploy; deploy_workers ;;
         deploy-site)    preflight_deploy; deploy_site ;;
+        publish)        preflight_deploy; publish ;;
         provision-schema) preflight_deploy; provision_schema ;;
         doctor)         deploy_doctor ;;
         dry-run)

@@ -1,0 +1,60 @@
+---
+// Generic renderer for a plain legal/compliance page (privacy, terms). Copy is a
+// DocPage from @geoffery/content — these pages are deliberately plainer than the rest
+// of the house. Sections may carry one link (internal or external).
+import type { DocPage } from "@geoffery/content";
+
+interface Props {
+  page: DocPage;
+}
+const { page } = Astro.props;
+const CONTACT_MAILTO = "mailto:support@geoffery.gg";
+const paras = (p: string | string[]): string[] => (Array.isArray(p) ? p : [p]);
+---
+
+<div class="wrap measure">
+  <h1>{page.title}</h1>
+  <p class="updated small muted">{page.updated}</p>
+  <p class="lede">{page.intro}</p>
+
+  <section class="panel doc">
+    {
+      page.sections.map((s) => (
+        <Fragment>
+          <h2>{s.h}</h2>
+          {paras(s.p).map((para) => (
+            <p>{para}</p>
+          ))}
+          {s.link && (
+            <p>
+              {s.link.external ? (
+                <a href={s.link.href} target="_blank" rel="noopener noreferrer">
+                  {s.link.text}
+                </a>
+              ) : (
+                <a href={s.link.href}>{s.link.text}</a>
+              )}
+            </p>
+          )}
+        </Fragment>
+      ))
+    }
+
+    <p>{page.contactLine}</p>
+    <p class="cta-row"><a class="contact-cta" href={CONTACT_MAILTO}>Email support</a></p>
+  </section>
+</div>
+
+<style>
+  .lede { color: var(--paper-text); font-size: 1.12rem; line-height: 1.6; margin: var(--s-4) 0 0; }
+  .updated { margin: 6px 0 0; }
+  .doc { margin-top: var(--s-5); }
+  .doc h2 { margin-top: var(--s-5); }
+  .doc p { line-height: 1.6; }
+  .cta-row { margin-top: var(--s-5); text-align: center; }
+  .contact-cta {
+    display: inline-block; padding: 10px 18px; border-radius: var(--radius);
+    background: var(--brass); color: #1c1709; font-weight: 700;
+  }
+  .contact-cta:hover { text-decoration: none; filter: brightness(1.05); }
+</style>

@@ -1,8 +1,8 @@
 // Client-side state machine for the Butler's Bell. Thin: all copy comes from the
 // server-rendered #bell-copy payload (which is sourced from @geoffery/content).
 // Logs each consultation as a falsifiable prediction (fire-and-forget POST to the
-// consult worker); the soft meter is cookie/localStorage and trivially evadable
-// by design (spec §5).
+// consult worker). Usage is unlimited and free; tips are voluntary and grant no
+// extra access (owner directive 2026-06-18).
 
 import { memberStar } from "./memberStar.ts";
 
@@ -51,51 +51,10 @@ interface Copy {
   noFigures: string;
   startOver: string;
   visitItem: string;
-  limitReached: string;
-  limitTipCta: string;
   regimeNotes: Record<string, string>;
-  dailyLimit: number;
-  // True when this month's tip goal is met → everyone gets bonus consultations
-  // (owner directive 2026-06-14). Computed at build time from the donations ledger.
-  bonusActive: boolean;
 }
 
 const CONSULT_URL = "/api/consult";
-const METER_KEY = "geoffery_meter";
-
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function meterCount(): number {
-  try {
-    const raw = JSON.parse(localStorage.getItem(METER_KEY) || "{}");
-    return raw.day === todayKey() ? raw.n || 0 : 0;
-  } catch {
-    return 0;
-  }
-}
-function meterInc(): void {
-  try {
-    localStorage.setItem(METER_KEY, JSON.stringify({ day: todayKey(), n: meterCount() + 1 }));
-  } catch {
-    /* meter is best-effort */
-  }
-}
-
-// Tips (owner directive 2026-06-14): a tipper this calendar month gets unlimited use;
-// when the house goal is met, everyone gets a bonus. Tipper status is a cookie set on
-// the Tip page; the bonus flag rides in the copy payload from the donations ledger.
-function tipMonthKey(): string {
-  return new Date().toISOString().slice(0, 7); // YYYY-MM
-}
-function isTipperThisMonth(): boolean {
-  return document.cookie.split("; ").includes(`geoffery_tip_${tipMonthKey()}=1`);
-}
-function effectiveLimit(copy: Copy): number {
-  if (isTipperThisMonth()) return Infinity;
-  return copy.bonusActive ? copy.dailyLimit * 2 : copy.dailyLimit;
-}
 
 function gp(n: number): string {
   return Math.round(n).toLocaleString("en-US");
@@ -154,13 +113,6 @@ export function initBell(): void {
 
   function open(): void {
     panel!.hidden = false;
-    if (meterCount() >= effectiveLimit(copy)) {
-      clearChoices();
-      // The limit is a door to the tip jar, not a wall (owner feedback 2026-06-12).
-      setLine(copy.limitReached + " " + copy.limitTipCta);
-      ctaLink("The tip jar", "/money/");
-      return;
-    }
     if (itemCtx) {
       void startWithItem(itemCtx.slug);
     } else {
@@ -256,7 +208,6 @@ export function initBell(): void {
       choicesEl!.appendChild(newsEl);
     }
 
-    meterInc();
     logConsultation(t, price);
     // Two ways onward (owner feedback 2026-06-14): start the consultation over from
     // the prompt, or jump to the item page with the recommendation pinned above the figures.

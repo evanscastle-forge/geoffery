@@ -64,7 +64,6 @@ h3 { border-bottom: none; }
 /* brand (left) · Ring the bell (centre) · nav (right) — owner feedback 2026-06-14. */
 .site-header .bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--s-4); }
 .brand { display: flex; align-items: center; gap: var(--s-3); font-family: var(--serif); font-size: 1.3rem; color: var(--paper-text); justify-self: start; }
-.brand .mark { height: 36px; width: auto; flex: none; }
 .wordmark { font-weight: 700; letter-spacing: 0.06em; }
 .wordmark .offer { color: var(--brass); }
 .nav { display: flex; gap: var(--s-4); font-size: 0.95rem; flex-wrap: wrap; justify-self: end; }
@@ -138,6 +137,8 @@ main { padding: var(--s-6) 0 var(--s-8); }
 }
 .site-footer .wrap { display: grid; gap: var(--s-3); }
 .site-footer .links { display: flex; flex-wrap: wrap; gap: var(--s-4); }
+/* Legal/compliance links — a separate row from the owner-locked Home·Tip·About mirror. */
+.site-footer .legal-links { display: flex; flex-wrap: wrap; gap: var(--s-4); opacity: 0.85; }
 
 /* reserved, zero-CLS ad containers (spec §7) — present whether filled or not. */
 .ad-slot {

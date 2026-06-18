@@ -37,6 +37,8 @@ export interface AggregateView {
   p50: number | null;
   p75: number | null;
   currentPrice: number | null;
+  /** Fractional 30-day price move (e.g. -0.08 for −8%); null when history is too thin. */
+  change30d: number | null;
   flags: string[];
   sampleCount: number;
   volume24h: number;

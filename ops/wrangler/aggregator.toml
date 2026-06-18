@@ -10,7 +10,8 @@ workers_dev = false
 
 [env.dev]
 name = "geoffery-aggregator-dev"
-triggers.crons = ["0 * * * *"]
+# dev runs no cron — free-plan 5-trigger/account cap, prod's crons take priority (2026-06-18).
+triggers.crons = []
 vars = { GEOFFERY_DEPLOYMENT_NAME = "dev" }
 
 [[env.dev.d1_databases]]
@@ -26,4 +27,4 @@ vars = { GEOFFERY_DEPLOYMENT_NAME = "prod" }
 [[env.prod.d1_databases]]
 binding = "DB"
 database_name = "geoffery-prod"
-database_id = "REPLACE_WITH_PROD_D1_ID"
+database_id = "6d9b40d7-a91d-4874-9a85-4c364e216d0c"

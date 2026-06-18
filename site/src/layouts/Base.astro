@@ -25,6 +25,7 @@ const isLocal = (m.deployment ?? "local") === "local";
 // an ad-free zone. Dev/localhost have no publisher id → dormant. Real fill is prod-only.
 const adsenseClient = import.meta.env.PUBLIC_ADSENSE_CLIENT;
 const showAds = Boolean(adsenseClient) && !adFree;
+const appVersion = import.meta.env.GEOFFERY_APP_VERSION;
 ---
 
 <!doctype html>
@@ -45,6 +46,9 @@ const showAds = Boolean(adsenseClient) && !adFree;
     <meta property="og:title" content={title} />
     {description && <meta property="og:description" content={description} />}
     <!-- Search Console verification is stubbed on localhost (DECISIONS D-LOCAL-004). -->
+    <!-- AdSense site verification: present on every page (even ad-free ones) whenever a
+         publisher id is set, so Google can verify ownership during review. -->
+    {adsenseClient && <meta name="google-adsense-account" content={adsenseClient} />}
     {showAds && (
       <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`} crossorigin="anonymous"></script>
     )}
@@ -54,7 +58,6 @@ const showAds = Boolean(adsenseClient) && !adFree;
       <div class="wrap header-inner">
         <div class="bar">
           <a class="brand" href="/" aria-label={SITE.name}>
-            <img class="mark" src="/brand-jar.png" alt="" width="20" height="36" />
             <!-- GE-OFFER-Y wordmark: the OFFER is the point (owner feedback 2026-06-12). -->
             <span class="wordmark" aria-hidden="true">GE<span class="offer">OFFER</span>Y</span>
           </a>
@@ -92,6 +95,16 @@ const showAds = Boolean(adsenseClient) && !adFree;
           <a href="/about/">About</a>
         </div>
         <p class="small">{SITE.footerDisclaimer}</p>
+        <!-- Legal/compliance links — a separate row so the owner-locked Home·Tip·About
+             mirror above stays untouched (footer mirrors header, feedback 2026-06-12). -->
+        <div class="legal-links small">
+          <a href="/methodology/">Methodology</a>
+          <a href="/privacy/">Privacy</a>
+          <a href="/terms/">Terms</a>
+          <a href="/cookies/">Cookies</a>
+        </div>
+        <!-- Build/version tag → /version.json carries version + commit + builtAt. -->
+        <p class="build-tag small"><a href="/version.json">v{appVersion}</a></p>
       </div>
     </footer>
 

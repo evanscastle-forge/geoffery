@@ -80,6 +80,32 @@ function downsample(series: [number, number][], from: number, to: number, points
   return out;
 }
 
+/** Median of a numeric array (null if empty). */
+function median(xs: number[]): number | null {
+  if (xs.length === 0) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
+}
+
+/**
+ * Robust 30-day price move from a per-item mid series (sorted by ts): the median of the first
+ * ~3 days vs the median of the last ~3 days, as a fraction (e.g. -0.08 for −8%). Endpoint
+ * medians shrug off single-tick noise; null when there isn't enough to compare. This feeds the
+ * item page's directional market badge — it does not touch the buy/hold/sell gauge.
+ */
+function thirtyDayChange(series: [number, number][], from: number, to: number): number | null {
+  if (series.length < 2) return null;
+  const earlyEnd = from + 3 * ONE_DAY;
+  const lateStart = to - 3 * ONE_DAY;
+  const early = series.filter(([ts]) => ts <= earlyEnd).map(([, v]) => v);
+  const late = series.filter(([ts]) => ts >= lateStart).map(([, v]) => v);
+  const e = median(early.length ? early : [series[0]![1]]);
+  const l = median(late.length ? late : [series[series.length - 1]![1]]);
+  if (e === null || l === null || e <= 0) return null;
+  return l / e - 1;
+}
+
 async function main(): Promise<void> {
   const cfg = loadConfig();
   const store = openStore(cfg.dbPath) as SqliteStore;
@@ -135,10 +161,9 @@ async function main(): Promise<void> {
       wikiNotices: notices.get(r.item_id) ?? [],
     };
   }
-  atomicWrite("aggregates.json", aggregates);
-
-  // 3) sparklines: one sequential scan of the trailing 30 days, per item.
+  // 3) sparklines + the 30-day trend, from one sequential scan of the trailing 30 days.
   const sparklines: Record<string, { d1: [number, number][]; w1: [number, number][]; m1: [number, number][] }> = {};
+  const change30dBySlug = new Map<string, number | null>();
   const cutoff = now - 30 * ONE_DAY;
   let buf: [number, number][] = [];
   let curItem = -1;
@@ -150,6 +175,7 @@ async function main(): Promise<void> {
       w1: downsample(series, now - 7 * ONE_DAY, now, SPARK_POINTS),
       m1: downsample(series, cutoff, now, SPARK_POINTS),
     };
+    change30dBySlug.set(slug, thirtyDayChange(series, cutoff, now));
   };
   for (const row of store.iterate<{ item_id: number; ts: number; avg_high: number | null; avg_low: number | null }>(
     "SELECT item_id, ts, avg_high, avg_low FROM prices_5m WHERE ts >= ? ORDER BY item_id, ts",
@@ -165,6 +191,12 @@ async function main(): Promise<void> {
   }
   if (curItem !== -1) flush(curItem, buf);
   atomicWrite("sparklines.json", sparklines);
+
+  // Merge the 30-day trend (computed above from the same scan) into the aggregates, then write.
+  for (const [slug, agg] of Object.entries(aggregates)) {
+    (agg as { change30d?: number | null }).change30d = change30dBySlug.get(slug) ?? null;
+  }
+  atomicWrite("aggregates.json", aggregates);
 
   // 4) methodology stats (calibration) + 5) news + 6) meta
   atomicWrite("methodology-stats.json", await calibrationSummary(store, now));

@@ -7,8 +7,8 @@ import WikiNotice from "../../components/WikiNotice.astro";
 import MemberStar from "../../components/MemberStar.astro";
 import Saying from "../../components/Saying.astro";
 import { aggregates, sparklines, items } from "../../lib/data";
-import { GAUGE } from "@geoffery/content";
-import { volatilityLevel } from "@geoffery/core";
+import { GAUGE, SITE } from "@geoffery/content";
+import { marketCharacter } from "@geoffery/core";
 import { gp, itemTitle, metaDescription } from "../../lib/format";
 
 export function getStaticPaths() {
@@ -24,10 +24,15 @@ const spark = sparklines()[slug];
 const memberMap = new Map(items().map((i) => [i.slug, i.members]));
 const isMember = memberMap.get(slug) ?? false;
 
-// Market character: a 3-level volatility badge from the 30-day IQR spread
-// (owner directive 2026-06-13, replaces the old buyer/seller/steady regime text).
-const vol = volatilityLevel(agg.p25, agg.p50, agg.p75);
-const volLabel = GAUGE.volatility[vol];
+// Market character: a clearly-trending item reads as Falling/Rising with its 30-day move;
+// otherwise the 3-level IQR-spread volatility badge (owner directive 2026-06-18 — the
+// volatility level alone called a smoothly-falling item "Steady").
+const market = marketCharacter(agg.change30d, agg.p25, agg.p50, agg.p75);
+const marketLabel =
+  market.kind === "trend"
+    ? `${market.direction === "down" ? GAUGE.trend.falling : GAUGE.trend.rising} ${Math.round(Math.abs(market.changePct))}%`
+    : GAUGE.volatility[market.level];
+const marketClass = market.kind === "trend" ? `trend-${market.direction}` : `vol-${market.level}`;
 
 const desc = metaDescription(agg.name, agg.verdictText);
 
@@ -60,7 +65,7 @@ const ld = {
         {agg.p50 != null && (
           <div class="price">
             <span class="small muted">Market</span>
-            <span class={`vol-badge vol-${vol}`}>{volLabel}</span>
+            <span class={`vol-badge ${marketClass}`}>{marketLabel}</span>
           </div>
         )}
       </div>
@@ -69,6 +74,8 @@ const ld = {
       <div id="consulted-panel" class="consulted" hidden></div>
 
       <Gauge agg={agg} />
+
+      <p class="advice-note small muted">{SITE.adviceDisclaimer}</p>
     </article>
 
     <AdSlot kind="item-mid" />
@@ -114,8 +121,12 @@ const ld = {
   .vol-steady { background: #d4e6c8; color: #2e6b2a; border-color: #a9cf98; }
   .vol-some { background: #f0e0b0; color: #855410; border-color: #d9c184; }
   .vol-high { background: #f1cdc7; color: #a3271b; border-color: #dca79f; }
+  /* Directional 30-day trend — informational (not a green/red value signal); design may refine. */
+  .trend-down { background: #dce6ef; color: #2f4d6e; border-color: #b6c8dc; }
+  .trend-up { background: #efe4d2; color: #6e4d2f; border-color: #dac7ad; }
   .charts { margin-top: var(--s-4); }
   .spark-grid { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
   .consulted { margin: var(--s-4) 0; padding: var(--s-4); border-radius: var(--radius); background: var(--bg-raised); color: var(--paper-text); border: 1px solid var(--brass); }
   .consulted .rec-line { font-family: var(--serif); font-size: 1.15rem; }
+  .advice-note { display: block; margin-top: var(--s-4); line-height: 1.5; }
 </style>

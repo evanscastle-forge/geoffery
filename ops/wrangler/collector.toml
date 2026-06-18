@@ -14,7 +14,9 @@ workers_dev = false
 # ── dev: dev.geoffery.gg ────────────────────────────────────────────────────
 [env.dev]
 name = "geoffery-collector-dev"
-triggers.crons = ["*/5 * * * *"]
+# dev runs no cron — the free plan allows 5 triggers/account and prod's 4 take priority
+# (2026-06-18). Run the pipeline locally for dev smoke; restore by going Workers Paid.
+triggers.crons = []
 vars = { GEOFFERY_DEPLOYMENT_NAME = "dev", GEOFFERY_USER_AGENT = "Geoffery dev (evanscastle.forge@gmail.com)" }
 
 [[env.dev.d1_databases]]
@@ -35,7 +37,7 @@ vars = { GEOFFERY_DEPLOYMENT_NAME = "prod", GEOFFERY_USER_AGENT = "Geoffery (eva
 [[env.prod.d1_databases]]
 binding = "DB"
 database_name = "geoffery-prod"
-database_id = "REPLACE_WITH_PROD_D1_ID"
+database_id = "6d9b40d7-a91d-4874-9a85-4c364e216d0c"
 
 [[env.prod.r2_buckets]]
 binding = "ARCHIVE"

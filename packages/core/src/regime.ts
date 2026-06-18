@@ -137,3 +137,30 @@ export function volatilityLevel(
   if (spread >= VOL_SOME_SPREAD) return "some";
   return "steady";
 }
+
+// A clearly-trending item should read as falling/rising, not merely "steady" — the IQR-spread
+// volatility level is blind to direction, so a smooth 30-day decline still scores "steady"
+// (owner directive 2026-06-18). When the 30-day move clears this band, the badge shows the
+// direction + magnitude instead of the volatility word.
+export const TREND_BADGE_THRESHOLD = 0.05; // ±5% over 30 days → a trend, not just "steady"
+
+export type MarketCharacter =
+  | { kind: "trend"; direction: "down" | "up"; changePct: number } // changePct signed, e.g. -8.2
+  | { kind: "vol"; level: VolatilityLevel };
+
+/**
+ * What to call an item's market on its page. `change30d` is the fractional 30-day price move
+ * (e.g. -0.08 for −8%); null when history is too thin → falls back to the volatility level.
+ * This does NOT touch the buy/hold/sell gauge — it only labels the market's character.
+ */
+export function marketCharacter(
+  change30d: number | null,
+  p25: number | null,
+  p50: number | null,
+  p75: number | null,
+): MarketCharacter {
+  if (change30d !== null && Math.abs(change30d) >= TREND_BADGE_THRESHOLD) {
+    return { kind: "trend", direction: change30d < 0 ? "down" : "up", changePct: change30d * 100 };
+  }
+  return { kind: "vol", level: volatilityLevel(p25, p50, p75) };
+}

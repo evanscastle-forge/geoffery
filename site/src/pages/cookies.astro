@@ -1,0 +1,75 @@
+---
+import Base from "../layouts/Base.astro";
+import { COOKIES } from "@geoffery/content";
+
+const C = COOKIES;
+const CONTACT_MAILTO = "mailto:support@geoffery.gg";
+---
+
+<Base
+  title="Cookies — Geoffery"
+  description="The complete list of cookies and storage Geoffery uses, what each is for, and how to manage them."
+  canonicalPath="/cookies/"
+>
+  <div class="wrap measure">
+    <h1>{C.title}</h1>
+    <p class="updated small muted">{C.updated}</p>
+    <p class="lede">{C.intro}</p>
+
+    <section class="panel doc">
+      <div class="table-wrap">
+        <table class="cookie-table">
+          <thead>
+            <tr>
+              <th>{C.colName}</th>
+              <th>{C.colParty}</th>
+              <th>{C.colPurpose}</th>
+              <th>{C.colDuration}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              C.cookies.map((row) => (
+                <tr>
+                  <td class="cookie-name">{row.name}</td>
+                  <td>{row.party}</td>
+                  <td>{row.purpose}</td>
+                  <td class="nowrap">{row.duration}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <p>{C.storageNote}</p>
+      <p>{C.manageNote}</p>
+      <p>{C.privacyNote} <a href="/privacy/">Privacy →</a></p>
+
+      <p>{C.contactLine}</p>
+      <p class="cta-row"><a class="contact-cta" href={CONTACT_MAILTO}>Email support</a></p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .lede { color: var(--paper-text); font-size: 1.12rem; line-height: 1.6; margin: var(--s-4) 0 0; }
+  .updated { margin: 6px 0 0; }
+  .doc { margin-top: var(--s-5); }
+  .doc p { line-height: 1.6; }
+  .table-wrap { overflow-x: auto; margin: var(--s-4) 0; }
+  .cookie-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  .cookie-table th, .cookie-table td {
+    text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--panel-edge);
+    vertical-align: top;
+  }
+  .cookie-table th { font-family: var(--sans); font-weight: 700; color: var(--ink); }
+  .cookie-table .cookie-name { font-family: var(--mono, monospace); white-space: nowrap; }
+  .cookie-table .nowrap { white-space: nowrap; }
+  .cta-row { margin-top: var(--s-5); text-align: center; }
+  .contact-cta {
+    display: inline-block; padding: 10px 18px; border-radius: var(--radius);
+    background: var(--brass); color: #1c1709; font-weight: 700;
+  }
+  .contact-cta:hover { text-decoration: none; filter: brightness(1.05); }
+</style>

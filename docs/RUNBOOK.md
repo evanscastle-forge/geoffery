@@ -107,9 +107,12 @@ handlers ride. Two D1-shaped redesigns came with it (SYSTEM_ARCHITECTURE §3.1/�
   codec from `packages/data/src/archive.ts` (`nodejs_compat`).
 
 ### Publishing aggregates
-The static site reads build-time JSON; cron workers write D1/R2 but the site only
-picks it up on the next `deploy-site`. A scheduled Pages rebuild (a deploy hook on
-a cron) is the open item — see `ops/wrangler/ACCESS.md`.
+The static site reads build-time JSON; cron workers write D1/R2, and the site picks
+that up on the next publish. `ops/run.sh <env> publish` pulls the remote D1 into a
+local snapshot → regenerates the JSON (`npm run export`) → builds → deploys. CI runs
+`publish` on every push to `main` and hourly (`.github/workflows/deploy.yml`), so the
+live site auto-refreshes; `deploy-site` remains the manual build-from-local path used
+for the first prod seed. Launch sequence: `docs/GO-LIVE.md`.
 
 ### Schema on D1
 `packages/data/src/schema.ts` exports `SCHEMA` — the same DDL node:sqlite applies.

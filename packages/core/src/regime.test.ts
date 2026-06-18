@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { classify, liquidityBand, volatilityLevel } from "./regime.ts";
+import { classify, liquidityBand, marketCharacter, TREND_BADGE_THRESHOLD, volatilityLevel } from "./regime.ts";
 import type { Snapshot } from "./types.ts";
 
 const FIVE_MIN = 300;
@@ -93,4 +93,23 @@ test("volatilityLevel buckets the relative IQR spread", () => {
   expect(volatilityLevel(93, 100, 107)).toBe("high"); // exactly 14% (≥ boundary)
   expect(volatilityLevel(null, 100, 102)).toBe("steady"); // missing data
   expect(volatilityLevel(98, 0, 102)).toBe("steady"); // p50 ≤ 0 guard
+});
+
+test("marketCharacter flags a clear 30-day trend over the volatility level", () => {
+  // −8% over 30 days → falling, even though the tight IQR alone reads "steady".
+  const falling = marketCharacter(-0.08, 98, 100, 102);
+  expect(falling.kind).toBe("trend");
+  if (falling.kind === "trend") {
+    expect(falling.direction).toBe("down");
+    expect(falling.changePct).toBeCloseTo(-8, 6);
+  }
+  expect(marketCharacter(0.12, 98, 100, 102)).toMatchObject({ kind: "trend", direction: "up" });
+});
+
+test("marketCharacter falls back to volatility when flat or data is thin", () => {
+  expect(marketCharacter(0.03, 98, 100, 102)).toEqual({ kind: "vol", level: "steady" }); // under ±5%
+  expect(marketCharacter(-0.04, 94, 100, 104)).toEqual({ kind: "vol", level: "some" });
+  // exactly at the threshold counts as a trend (≥)
+  expect(marketCharacter(-TREND_BADGE_THRESHOLD, 98, 100, 102)).toMatchObject({ kind: "trend", direction: "down" });
+  expect(marketCharacter(null, 85, 100, 115)).toEqual({ kind: "vol", level: "high" }); // null → volatility
 });

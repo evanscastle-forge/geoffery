@@ -33,4 +33,4 @@ routes = [{ pattern = "geoffery.gg/api/*", zone_name = "geoffery.gg" }]
 [[env.prod.d1_databases]]
 binding = "DB"
 database_name = "geoffery-prod"
-database_id = "REPLACE_WITH_PROD_D1_ID"
+database_id = "6d9b40d7-a91d-4874-9a85-4c364e216d0c"

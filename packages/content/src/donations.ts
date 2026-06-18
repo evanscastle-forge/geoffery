@@ -1,13 +1,13 @@
-// Monthly tip ledger (owner directive 2026-06-14). Curated by hand at MVP — real
-// payments are stubbed, so this file is the source of truth for the donor list and
-// the tip-jar fill. Amounts are never shown publicly (spec §8); `total`/`goal` (USD)
-// drive only the jar level and the monthly bonus threshold. Display names are passed
-// through cleanName() at render. Newest month first.
+// Monthly tip ledger (owner directive 2026-06-14). Curated by hand — real Stripe tips
+// merge in from the export, so this file is the seed for the donor list and the tip-jar
+// fill. Amounts are never shown publicly (spec §8); `total`/`goal` (USD) drive only the
+// jar's visual fill level. Tips are voluntary and unlock nothing (owner directive
+// 2026-06-18). Display names are passed through cleanName() at render. Newest month first.
 
 export interface DonationMonth {
   /** "YYYY-MM" */
   month: string;
-  /** USD goal that, once reached, unlocks bonus consultations for everyone that month. */
+  /** USD goal for the jar's visual fill (the jar shows full at/above goal). Unlocks nothing. */
   goal: number;
   /** USD raised so far this month (curated; never shown as a figure). */
   total: number;
@@ -39,7 +39,7 @@ export function jarLevel(total: number, goal: number): 0 | 1 | 2 | 3 | 4 {
   return Math.min(3, Math.floor(r * 4)) as 0 | 1 | 2 | 3;
 }
 
-/** Has this month reached its goal (→ bonus usage for everyone)? */
+/** Has this month reached its goal? (Jar shows full at/above goal; grants no usage benefit.) */
 export function thresholdMet(m: DonationMonth | undefined): boolean {
   return !!m && m.goal > 0 && m.total >= m.goal;
 }

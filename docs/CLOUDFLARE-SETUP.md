@@ -138,11 +138,12 @@ These cannot be scripted with the current token; do them in the dashboard.
 
 - **Prod provisioning** = §1c is already done; repeat §2 with prod names and §4's
   custom-domain attach. No Access app.
-- **Publishing on cron (open item):** the static site reads build-time JSON; cron workers
-  write D1/R2 but the site only refreshes on the next `deploy-site`. A scheduled Pages
-  rebuild (deploy hook on a cron, or a "rebuild" worker) is not yet wired — see
-  `docs/RUNBOOK.md` → "Publishing aggregates". Until then, publishing new prices is a
-  manual `ops/run.sh prod deploy-site`.
+- **Publishing on cron (resolved):** the static site reads build-time JSON; cron workers
+  write D1/R2, and `ops/run.sh <env> publish` pulls the remote D1 → regenerates the JSON →
+  builds → deploys. `.github/workflows/deploy.yml` runs `publish` on every push to `main`
+  and hourly, so the live site auto-refreshes (`deploy-site` remains the manual
+  build-from-local path for the first prod seed). See `docs/GO-LIVE.md` and
+  `docs/RUNBOOK.md` → "Publishing aggregates".
 - **Launch cutover** is DNS; rollback is a DNS revert, kept viable 30 days (spec §11
   Phase 7). Workers/Pages also roll back to a prior version in the dashboard.
 
@@ -173,11 +174,17 @@ gambling, get-rich-quick) are a `design/compliance` gate. Real fill is prod-only
 
 ## 6. Aspirational / not-yet-done (capture, don't rediscover)
 
+For the full ordered launch sequence (provision → domain → CI → AdSense), follow
+**`docs/GO-LIVE.md`**. Remaining items:
+
 - [ ] Prod environment fully provisioned (§2 + §4 with prod names).
 - [ ] Custom domains attached (dev + prod) once DNS is live.
 - [ ] dev Access app created.
 - [ ] `ANTHROPIC_API_KEY` set on the `news` worker (both envs).
-- [ ] Scheduled Pages rebuild so the live site auto-refreshes (publish-on-cron).
+- [x] Scheduled rebuild so the live site auto-refreshes — done via `ops/run.sh <env> publish`
+      + `.github/workflows/deploy.yml` (push-to-main + hourly).
+- [ ] CI secrets added in GitHub (`CLOUDFLARE_API_TOKEN` scoped, `CLOUDFLARE_ACCOUNT_ID`,
+      `GEOFFERY_ZONE`) so the deploy workflow runs — `docs/GO-LIVE.md` §4.
 - [ ] Monitoring: wire `staleJobs` → a page-the-owner alert in prod (collector death is
       the one alert that matters — RUNBOOK "Alerts").
 - [ ] R2 restore drill run against the prod archive (`npm run restore:drill`).
@@ -221,4 +228,17 @@ Non-secret identifiers (the D1 id already lives in the committed tomls):
 | R2 | `geoffery-archive-dev` |
 | wrangler | `3.114.17` (pinned `^3`) |
 
-Prod row: TBD when prod is provisioned.
+### Prod (2026-06-18)
+
+| Item | Value |
+| --- | --- |
+| Origin | `geoffery.gg` (Pages project `geoffery-prod`; **custom-domain attach pending** — §4) |
+| D1 | `geoffery-prod` = `6d9b40d7-a91d-4874-9a85-4c364e216d0c` (12 tables) |
+| R2 | `geoffery-archive-prod` |
+| Workers | `geoffery-{collector,aggregator,scorer,news}-prod` (cron) + `geoffery-consult-prod` (HTTP) |
+| Pages | `geoffery-prod` — first deployment live at `geoffery-prod.pages.dev` (seed build, `noindex` until first `publish`) |
+
+**Cron budget:** the free plan caps **5 cron triggers per account**. Prod uses 4
+(collector `*/5`, aggregator `0 *`, scorer `*/30`, news `0 */6`); to fit, **dev's crons were
+cleared** (`triggers.crons = []` in the `[env.dev]` sections, workers kept). Re-enabling dev
+crons needs Workers Paid or freeing prod slots.

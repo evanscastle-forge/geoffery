@@ -5,12 +5,16 @@ import Saying from "../components/Saying.astro";
 import { PAGES, DONATIONS, jarLevel, easterEggPatrons } from "@geoffery/content";
 import { cleanName } from "@geoffery/core";
 
-// Tips are real now (Stripe Checkout, spec §7/§8): the buttons POST /api/tip and hand the
-// patron to Stripe; the thank-you/cookie/jar fire only on the success return. The jar
-// level + patrons wall read live per-month totals from the export (donations.json), merged
-// with the curated seed (@geoffery/content) and the easter-egg patrons. Amounts are never
-// shown — only the fill level (spec §8).
+// Tips are real (Stripe Checkout, spec §7/§8): the buttons POST /api/tip and hand the
+// patron to Stripe; the thank-you + jar fill fire only on the success return. Tips are
+// voluntary and grant no extra access (owner directive 2026-06-18) — no cookie is set.
+// The jar level + patrons wall read live per-month totals from the export (donations.json),
+// merged with the curated seed (@geoffery/content) and the easter-egg patrons. Amounts are
+// never shown — only the fill level (spec §8).
 const M = PAGES.money;
+// Build-time pick of the "what Geoffery does with the money" line; the client script below
+// re-picks per page load (mirrors Saying.astro). Graceful no-JS fallback to this pick.
+const usesInitial = M.uses.length ? M.uses[Math.floor(Math.random() * M.uses.length)] : "";
 const jarSrc = ["/tipjar-1.png", "/tipjar-2.png", "/tipjar-3.png", "/tipjar-4.png", "/tipjar-5.png"];
 const jarAlt = ["nearly empty", "filling", "half full", "nearly full", "full"];
 const DEFAULT_GOAL = 50;
@@ -47,19 +51,17 @@ const currentDonors = donorsFor(nowKey);
 const tipCopy = { cancelled: M.tipCancelled, error: M.tipError };
 ---
 
-<Base title="How this is paid for — Geoffery" description="Geoffery's wage is one gold a month. Tips fill a monthly jar that unlocks bonus consultations for everyone." canonicalPath="/money/" adFree>
+<Base title="How this is paid for — Geoffery" description="Geoffery's wage is one gold a month. Tips are voluntary — the market, the figures, and the bell stay free for everyone." canonicalPath="/money/" adFree>
   <div class="wrap measure">
     <h1>{M.title}</h1>
     <Saying page="money" />
-    <Dialogue><p>{M.wage}</p></Dialogue>
+    <Dialogue><p class="money-uses" data-uses={JSON.stringify(M.uses)} data-intro={M.usesIntro}>{M.usesIntro}{usesInitial}.</p></Dialogue>
 
     <section class="panel doc">
       <h2>{M.tipsHeading}</h2>
-      <p>{M.tipsDisclosure}</p>
 
       <div class="jar">
         <img id="tip-jar" src={jarSrc[curLevel]} alt={`The month's tip jar — ${jarAlt[curLevel]}`} width="600" height="436" />
-        <p class="small muted">{M.goalNote}</p>
       </div>
 
       <!-- Ad-free zone: no ad slots on the payment surface (spec §7). A suggested $5
@@ -98,7 +100,7 @@ const tipCopy = { cancelled: M.tipCancelled, error: M.tipError };
   </div>
 </Base>
 
-<script define:vars={{ monthsData, nowKey, tipCopy }}>
+<script define:vars={{ monthsData, tipCopy }}>
   // Month picker — switch the rendered donor list (all months embedded above).
   const select = document.getElementById("month-select");
   const list = document.getElementById("donor-list");
@@ -155,16 +157,10 @@ const tipCopy = { cancelled: M.tipCancelled, error: M.tipError };
     startTip(document.getElementById("tip-amount")?.value || 0);
   });
 
-  // Return from Stripe. ?tip=thanks → set the per-month tipper cookie (Bell-unlimited this
-  // month, read by the Bell), show the thank-you, fill the jar. Soft-trust: the cookie only
-  // grants extra consultations, never market data. ?tip=cancelled → a gentle note.
+  // Return from Stripe. ?tip=thanks → show the thank-you, fill the jar. Tips are voluntary
+  // and grant no extra access, so no cookie is set. ?tip=cancelled → a gentle note.
   const tipState = new URLSearchParams(location.search).get("tip");
   if (tipState === "thanks") {
-    const end = new Date();
-    end.setUTCMonth(end.getUTCMonth() + 1, 1);
-    end.setUTCHours(0, 0, 0, 0);
-    const maxAge = Math.max(60, Math.floor((end.getTime() - Date.now()) / 1000));
-    document.cookie = `geoffery_tip_${nowKey}=1; path=/; max-age=${maxAge}; samesite=lax`;
     const note = document.getElementById("tip-note");
     if (note) { note.hidden = false; note.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
     const jar = document.getElementById("tip-jar");
@@ -173,6 +169,20 @@ const tipCopy = { cancelled: M.tipCancelled, error: M.tipError };
   } else if (tipState === "cancelled") {
     showMsg(tipCopy.cancelled);
     history.replaceState(null, "", location.pathname);
+  }
+</script>
+
+<script>
+  // Per-page-load random for the "what Geoffery does with the money" dialogue (mirrors the
+  // Saying component): the full list rides in data-uses; re-pick on each load.
+  for (const el of document.querySelectorAll(".money-uses[data-uses]")) {
+    try {
+      const list = JSON.parse(el.getAttribute("data-uses") || "[]");
+      const intro = el.getAttribute("data-intro") || "";
+      if (Array.isArray(list) && list.length) {
+        el.textContent = intro + list[Math.floor(Math.random() * list.length)] + ".";
+      }
+    } catch { /* keep the server-rendered pick */ }
   }
 </script>
 

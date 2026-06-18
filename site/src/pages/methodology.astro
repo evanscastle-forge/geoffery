@@ -1,0 +1,88 @@
+---
+import Base from "../layouts/Base.astro";
+import { PAGES } from "@geoffery/content";
+import { methodologyStats, type CohortStat } from "../lib/data";
+
+const M = PAGES.methodology;
+const stats = methodologyStats();
+const pct = (r: number): string => `${Math.round(r * 100)}%`;
+const tolOrder = ["instant", "hours", "patient", "extended"] as const;
+const hasData = stats.overall.nTotal > 0;
+
+// Only show tolerance rows that have actually been scored.
+const tolRows = tolOrder
+  .map((t) => ({ label: M.toleranceLabels[t], stat: stats.byTolerance[t] }))
+  .filter((r): r is { label: string; stat: CohortStat } => Boolean(r.stat) && r.stat!.nTotal > 0);
+---
+
+<Base
+  title="How the figures are checked — Geoffery"
+  description="Geoffery records every recommendation as a prediction and scores it against what the market did. The fill record, kept in the open."
+  canonicalPath="/methodology/"
+>
+  <div class="wrap measure">
+    <h1>{M.title}</h1>
+    <p class="lede">{M.intro}</p>
+
+    <section class="panel doc">
+      <h2>{M.accuracyHeading}</h2>
+      <p>{M.accuracyIntro}</p>
+
+      {
+        hasData ? (
+          <Fragment>
+            <p class="overall">
+              {M.overallLabel}: <strong>{pct(stats.overall.fillRate)}</strong>{" "}
+              <span class="small muted">({stats.overall.nFilled} of {stats.overall.nTotal})</span>
+            </p>
+            {tolRows.length > 0 && (
+              <Fragment>
+                <h2>{M.toleranceHeading}</h2>
+                <div class="table-wrap">
+                  <table class="fill-table">
+                    <thead>
+                      <tr>
+                        <th>{M.colTolerance}</th>
+                        <th>{M.colSample}</th>
+                        <th>{M.colFillRate}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tolRows.map((r) => (
+                        <tr>
+                          <td>{r.label}</td>
+                          <td>{r.stat.nTotal}</td>
+                          <td>{pct(r.stat.fillRate)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Fragment>
+            )}
+            <p class="small muted footnote">{M.footnote}</p>
+          </Fragment>
+        ) : (
+          <p>{M.untested}</p>
+        )
+      }
+    </section>
+  </div>
+</Base>
+
+<style>
+  .lede { color: var(--paper-text); font-size: 1.12rem; line-height: 1.6; margin: var(--s-4) 0 0; }
+  .doc { margin-top: var(--s-5); }
+  .doc h2 { margin-top: var(--s-5); }
+  .doc p { line-height: 1.6; }
+  .overall { font-size: 1.1rem; }
+  .overall strong { font-family: var(--sans); font-variant-numeric: tabular-nums; }
+  .table-wrap { overflow-x: auto; margin: var(--s-4) 0; }
+  .fill-table { width: 100%; border-collapse: collapse; font-size: 0.98rem; }
+  .fill-table th, .fill-table td {
+    text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--panel-edge);
+  }
+  .fill-table th { font-family: var(--sans); font-weight: 700; color: var(--ink); }
+  .fill-table td:nth-child(2), .fill-table td:nth-child(3) { font-variant-numeric: tabular-nums; }
+  .footnote { margin-top: var(--s-4); }
+</style>
