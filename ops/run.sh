@@ -312,12 +312,25 @@ guard_thin_data() {
 # 30-day gauge/sparklines; the live 5m collector supersedes them over ~30 days. See
 # workers/collector/src/backfill-timeseries.node.ts.
 backfill_history() {
-    local db="geoffery-${TARGET}" out="${TMPDIR:-/tmp}/geoffery-backfill-${TARGET}.sql"
+    local db="geoffery-${TARGET}" work="${TMPDIR:-/tmp}/geoffery-backfill-${TARGET}"
+    local out="${work}/backfill.sql" chunklines="${GEOFFERY_BACKFILL_CHUNK:-5000}"
+    rm -rf "${work}"; mkdir -p "${work}"
     ensure_site_deps
     echo "${LOG} ▶ fetch wiki timeseries → ${out} (~4,600 gentle wiki calls; a few minutes)"
     GEOFFERY_BACKFILL_OUT="${out}" npm run backfill:history
-    echo "${LOG} ▶ import → D1 '${db}' (upsert)"
-    "${WRANGLER[@]}" d1 import "${db}" --remote --file "${out}"
+    # wrangler v3 has no `d1 import`; apply the SQL in chunks via `d1 execute --file`. One INSERT
+    # per line, so a line-split never breaks a statement. Upserts → safe to re-run / resume.
+    echo "${LOG} ▶ import → D1 '${db}' in ${chunklines}-statement chunks"
+    ( cd "${work}" && split -l "${chunklines}" backfill.sql chunk_ )
+    local i=0 fails=0 total
+    total=$(ls "${work}"/chunk_* 2>/dev/null | wc -l | tr -d ' ')
+    for chunk in "${work}"/chunk_*; do
+        i=$((i + 1))
+        printf '%s   chunk %s/%s\n' "${LOG}" "${i}" "${total}"
+        "${WRANGLER[@]}" d1 execute "${db}" --remote --file "${chunk}" --yes >/dev/null \
+            || { fails=$((fails + 1)); echo "${LOG}   ⚠ chunk ${i} failed (continuing)"; }
+    done
+    echo "${LOG} ✓ backfill applied: ${total} chunks, ${fails} failed. Next: ops/run.sh ${TARGET} publish"
 }
 
 # Apply the D1 schema to the remote DB. The SQL is generated from the SCHEMA const
