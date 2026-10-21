@@ -13,7 +13,7 @@ workers_dev = false
 name = "geoffery-news-dev"
 # dev runs no cron — free-plan 5-trigger/account cap, prod's crons take priority (2026-06-18).
 triggers.crons = []
-vars = { GEOFFERY_DEPLOYMENT_NAME = "dev", GEOFFERY_USER_AGENT = "Geoffery dev (evanscastle.forge@gmail.com)", GEOFFERY_NEWS_CLASSIFIER_MODEL = "claude-haiku-4-5-20251001" }
+vars = { GEOFFERY_DEPLOYMENT_NAME = "dev", GEOFFERY_USER_AGENT = "Geoffery dev (contact@evancastle.com)", GEOFFERY_NEWS_CLASSIFIER_MODEL = "claude-haiku-4-5-20251001" }
 
 [[env.dev.d1_databases]]
 binding = "DB"
@@ -27,7 +27,7 @@ name = "geoffery-news-prod"
 # also spends Anthropic tokens classifying new updates. Restore with
 # triggers.crons = ["0 */6 * * *"].
 triggers.crons = []
-vars = { GEOFFERY_DEPLOYMENT_NAME = "prod", GEOFFERY_USER_AGENT = "Geoffery (evanscastle.forge@gmail.com)", GEOFFERY_NEWS_CLASSIFIER_MODEL = "claude-haiku-4-5-20251001" }
+vars = { GEOFFERY_DEPLOYMENT_NAME = "prod", GEOFFERY_USER_AGENT = "Geoffery (contact@evancastle.com)", GEOFFERY_NEWS_CLASSIFIER_MODEL = "claude-haiku-4-5-20251001" }
 
 [[env.prod.d1_databases]]
 binding = "DB"

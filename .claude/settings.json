@@ -8,7 +8,6 @@
       "mcp__chrome-devtools__list_network_requests",
       "mcp__chrome-devtools__take_snapshot",
       "mcp__chrome-devtools__take_screenshot",
-      "mcp__chrome-devtools__evaluate_script",
       "mcp__chrome-devtools__resize_page",
       "mcp__chrome-devtools__close_page",
       "mcp__chrome-devtools__performance_start_trace",
@@ -18,9 +17,6 @@
       "Bash(npm install)",
       "Bash(npx vitest *)",
       "Bash(git status)",
-      "Bash(git add *)",
-      "Bash(git commit *)",
-      "Bash(git push *)",
       "Bash(git log *)",
       "Bash(git diff *)",
       "Bash(lsof -nP -iTCP:4321 -sTCP:LISTEN)",
@@ -30,7 +26,6 @@
       "Bash(pkill -f astro)",
       "Bash(pkill -f \"consult/src/main\")",
       "Bash(pkill -f dev-up)",
-      "Bash(curl *)",
       "Bash(sqlite3 .data/geoffery.db *)"
     ]
   }

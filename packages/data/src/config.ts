@@ -43,7 +43,7 @@ export function loadConfig(): Config {
   return {
     deployment: env.GEOFFERY_DEPLOYMENT_NAME ?? "local",
     siteUrl: env.GEOFFERY_SITE_URL ?? "http://127.0.0.1:4321",
-    userAgent: env.GEOFFERY_USER_AGENT ?? "Geoffery local-dev (evanscastle.forge@gmail.com)",
+    userAgent: env.GEOFFERY_USER_AGENT ?? "Geoffery local-dev (contact@evancastle.com)",
     archiveDir: resolve(process.cwd(), env.GEOFFERY_ARCHIVE_DIR ?? "./.data/archive"),
     dbPath: resolve(process.cwd(), env.GEOFFERY_DB ?? "./.data/geoffery.db"),
     legacyDbPath: resolve(

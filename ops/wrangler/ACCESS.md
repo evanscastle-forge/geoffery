@@ -33,7 +33,7 @@ Create a **self-hosted application** (once):
 - **Application domain:** `dev.geoffery.gg`, path `*` (covers the site and the
   consult worker's `/api/*` route on the same host).
 - **Session duration:** 24h is fine for a solo dev gate.
-- **Policy:** action **Allow**, rule **Emails** → `evanscastle.forge@gmail.com`.
+- **Policy:** action **Allow**, rule **Emails** → the owner's login email (not committed).
   Everyone else gets the Access login wall and never reaches the origin.
 - **Identity provider:** the built-in One-time PIN is enough for a single owner;
   add Google later if desired.

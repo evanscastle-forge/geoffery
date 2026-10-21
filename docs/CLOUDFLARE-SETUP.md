@@ -222,9 +222,9 @@ Non-secret identifiers (the D1 id already lives in the committed tomls):
 
 | Item | Value |
 | --- | --- |
-| Account | `evanscastle.forge@gmail.com` · `6c2c5d6f402ccbe5aeec06b7b56cf4f3` |
+| Account | id from `wrangler whoami` (not committed) |
 | Zone | `geoffery.gg` (registrar Porkbun → Cloudflare NS `albert`/`isla`) |
-| D1 | `geoffery-dev` = `2df02cda-965b-4f08-b78a-12cdf7ecbe13` (12 tables incl. `donations`) |
+| D1 | `geoffery-dev` (id in `ops/wrangler/*.toml`) (12 tables incl. `donations`) |
 | R2 | `geoffery-archive-dev` |
 | wrangler | `3.114.17` (pinned `^3`) |
 
@@ -233,7 +233,7 @@ Non-secret identifiers (the D1 id already lives in the committed tomls):
 | Item | Value |
 | --- | --- |
 | Origin | `geoffery.gg` (Pages project `geoffery-prod`; **custom-domain attach pending** — §4) |
-| D1 | `geoffery-prod` = `6d9b40d7-a91d-4874-9a85-4c364e216d0c` (12 tables) |
+| D1 | `geoffery-prod` (id in `ops/wrangler/*.toml`) (12 tables) |
 | R2 | `geoffery-archive-prod` |
 | Workers | `geoffery-{collector,aggregator,scorer,news}-prod` (cron) + `geoffery-consult-prod` (HTTP) |
 | Pages | `geoffery-prod` — first deployment live at `geoffery-prod.pages.dev` (seed build, `noindex` until first `publish`) |

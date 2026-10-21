@@ -17,7 +17,7 @@ name = "geoffery-collector-dev"
 # dev runs no cron — the free plan allows 5 triggers/account and prod's 4 take priority
 # (2026-06-18). Run the pipeline locally for dev smoke; restore by going Workers Paid.
 triggers.crons = []
-vars = { GEOFFERY_DEPLOYMENT_NAME = "dev", GEOFFERY_USER_AGENT = "Geoffery dev (evanscastle.forge@gmail.com)" }
+vars = { GEOFFERY_DEPLOYMENT_NAME = "dev", GEOFFERY_USER_AGENT = "Geoffery dev (contact@evancastle.com)" }
 
 [[env.dev.d1_databases]]
 binding = "DB"
@@ -36,7 +36,7 @@ name = "geoffery-collector-prod"
 # prices_latest upserts + ~1.4k prices_5m inserts, every 5 min). Restore with
 # triggers.crons = ["*/5 * * * *"] once the writes fit the plan.
 triggers.crons = []
-vars = { GEOFFERY_DEPLOYMENT_NAME = "prod", GEOFFERY_USER_AGENT = "Geoffery (evanscastle.forge@gmail.com)" }
+vars = { GEOFFERY_DEPLOYMENT_NAME = "prod", GEOFFERY_USER_AGENT = "Geoffery (contact@evancastle.com)" }
 
 [[env.prod.d1_databases]]
 binding = "DB"

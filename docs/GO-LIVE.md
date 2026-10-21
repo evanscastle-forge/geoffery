@@ -69,7 +69,7 @@ Add these **repository secrets** (never paste a token into chat — type it into
 
 | Secret | Value |
 | --- | --- |
-| `CLOUDFLARE_ACCOUNT_ID` | `6c2c5d6f402ccbe5aeec06b7b56cf4f3` |
+| `CLOUDFLARE_ACCOUNT_ID` | from `wrangler whoami` |
 | `GEOFFERY_ZONE` | `geoffery.gg` |
 | `CLOUDFLARE_API_TOKEN` | a **scoped** token (create at dash.cloudflare.com/profile/api-tokens) |
 
