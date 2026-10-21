@@ -9,6 +9,21 @@ All-TypeScript monorepo: a pure domain core with zero I/O; a two-layer store (an
 R2 archive + a queryable D1/SQLite store); a static Astro site. Runs on **localhost** for
 development and deploys to **Cloudflare** (Workers + Pages) at `geoffery.gg`.
 
+**Live site: <https://geoffery.gg>**
+
+![An item page: market price, deal gauge against the 30-day median, regime label, and 24h/7d/30d sparklines](docs/img/item-page.png)
+
+**Where to look**
+- `SYSTEM_ARCHITECTURE.md` — as-built module map, data flow, and system invariants
+- `docs/RECOMMENDATION-METHODOLOGY.md` — how a recommended price is derived and scored
+- `packages/core` — the pure domain layer (zero I/O, enforced by `npm run check:purity`)
+
+> The live data pipeline has been paused since 2026-08-25 to stay within Cloudflare D1's free
+> tier, so prices on the site are a snapshot. Restoring it is waiting on making the
+> aggregator scan incremental (see `ops/wrangler/*.toml`).
+
+Source shared for portfolio review. All rights reserved.
+
 ## Deploy a new version
 
 Versions follow **`MAJOR.MINOR.PATCH`** semver. Bump with one of these (it edits
