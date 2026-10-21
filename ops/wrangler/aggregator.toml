@@ -21,7 +21,11 @@ database_id = "2df02cda-965b-4f08-b78a-12cdf7ecbe13"
 
 [env.prod]
 name = "geoffery-aggregator-prod"
-triggers.crons = ["0 * * * *"]
+# prod cron off (2026-08-25) — the trailing-30d scan reads ~12.5M rows per run,
+# so hourly was ~300M rows/day against D1's 5M free-tier cap (enforced
+# 2026-09-01). Restore with triggers.crons = ["0 * * * *"] only after the scan
+# is incremental — an hourly full-window re-read can never fit the free plan.
+triggers.crons = []
 vars = { GEOFFERY_DEPLOYMENT_NAME = "prod" }
 
 [[env.prod.d1_databases]]

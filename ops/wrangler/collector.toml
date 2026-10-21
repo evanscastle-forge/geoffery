@@ -31,7 +31,11 @@ bucket_name = "geoffery-archive-dev"
 # ── prod: geoffery.gg ───────────────────────────────────────────────────────
 [env.prod]
 name = "geoffery-collector-prod"
-triggers.crons = ["*/5 * * * *"]
+# prod cron off (2026-08-25) — D1 starts enforcing the free-tier daily limits on
+# 2026-09-01 and this cron alone wrote ~1.7M rows/day against a 100k cap (4.4k
+# prices_latest upserts + ~1.4k prices_5m inserts, every 5 min). Restore with
+# triggers.crons = ["*/5 * * * *"] once the writes fit the plan.
+triggers.crons = []
 vars = { GEOFFERY_DEPLOYMENT_NAME = "prod", GEOFFERY_USER_AGENT = "Geoffery (evanscastle.forge@gmail.com)" }
 
 [[env.prod.d1_databases]]

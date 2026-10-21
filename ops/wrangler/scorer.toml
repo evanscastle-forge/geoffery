@@ -19,7 +19,11 @@ database_id = "2df02cda-965b-4f08-b78a-12cdf7ecbe13"
 
 [env.prod]
 name = "geoffery-scorer-prod"
-triggers.crons = ["*/30 * * * *"]
+# prod cron off (2026-08-25) — parked with the rest of the pipeline for the D1
+# free-tier shutdown; its own load is negligible (~10k rows read/day) and it has
+# nothing to score while the collector is stopped. Restore with
+# triggers.crons = ["*/30 * * * *"].
+triggers.crons = []
 vars = { GEOFFERY_DEPLOYMENT_NAME = "prod" }
 
 [[env.prod.d1_databases]]

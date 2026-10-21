@@ -22,7 +22,11 @@ database_id = "2df02cda-965b-4f08-b78a-12cdf7ecbe13"
 
 [env.prod]
 name = "geoffery-news-prod"
-triggers.crons = ["0 */6 * * *"]
+# prod cron off (2026-08-25) — parked with the rest of the pipeline for the D1
+# free-tier shutdown. D1 load was negligible (~18k rows read/day) but each run
+# also spends Anthropic tokens classifying new updates. Restore with
+# triggers.crons = ["0 */6 * * *"].
+triggers.crons = []
 vars = { GEOFFERY_DEPLOYMENT_NAME = "prod", GEOFFERY_USER_AGENT = "Geoffery (evanscastle.forge@gmail.com)", GEOFFERY_NEWS_CLASSIFIER_MODEL = "claude-haiku-4-5-20251001" }
 
 [[env.prod.d1_databases]]
