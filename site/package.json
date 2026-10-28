@@ -11,6 +11,6 @@
   "dependencies": {
     "@geoffery/content": "*",
     "@geoffery/core": "*",
-    "astro": "^6.4.6"
+    "astro": "^7.3.3"
   }
 }
